@@ -1,0 +1,59 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/formulario.css' %}">
+
+<div class="container">
+    <div class="form-header">
+        <a href="{% url 'detalhes_veiculo' veiculo.id %}" class="btn-voltar">← Voltar</a>
+        <h1>Editar Custo - {{ veiculo.marca }} {{ veiculo.modelo }}</h1>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="form-card">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="tipo">Tipo de Custo *</label>
+                <select name="tipo" id="tipo" required>
+                    <option value="">Selecione o tipo</option>
+                    {% for value, label in tipo_choices %}
+                        <option value="{{ value }}" {% if custo.tipo == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="descricao">Descrição *</label>
+                <textarea name="descricao" id="descricao" rows="4" required placeholder="Descreva o custo...">{{ custo.descricao }}</textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="valor">Valor (R$) *</label>
+                    <input type="number" name="valor" id="valor" step="0.01" required value="{{ custo.valor }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="data">Data *</label>
+                    <input type="date" name="data" id="data" required value="{{ custo.data|date:'Y-m-d' }}">
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="{% url 'detalhes_veiculo' veiculo.id %}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock content %}

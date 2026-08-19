@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Ambientes virtuais
+venv/
+.venv/
+env/
+ENV/
+
+# Variaveis de ambiente / segredos
+.env
+
+# Banco de dados local
+*.sqlite3
+db.sqlite3
+
+# Django
+*.log
+local_settings.py
+staticfiles/
+
+# Arquivos enviados pelo usuario (uploads de midia)
+media/veiculos/*
+!media/veiculos/.gitkeep
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

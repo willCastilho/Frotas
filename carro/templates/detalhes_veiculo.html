@@ -1,0 +1,112 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/detalhes.css' %}">
+
+<div class="container">
+    <div class="detalhes-header">
+        <a href="{% url 'home' %}" class="btn-voltar">← Voltar</a>
+        <h1>{{ veiculo.marca }} {{ veiculo.modelo }}</h1>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="detalhes-grid">
+        <!-- Card com foto e informações básicas -->
+        <div class="detalhes-card">
+            <div class="detalhes-image">
+                {% if veiculo.picture %}
+                    <img src="{{ veiculo.picture.url }}" alt="{{ veiculo.modelo }}">
+                {% else %}
+                    <div class="placeholder-image">🚗</div>
+                {% endif %}
+            </div>
+            <div class="detalhes-info">
+                <div class="info-row">
+                    <span class="info-label">Marca:</span>
+                    <span class="info-value">{{ veiculo.marca }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Modelo:</span>
+                    <span class="info-value">{{ veiculo.modelo }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Ano:</span>
+                    <span class="info-value">{{ veiculo.ano }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Cor:</span>
+                    <span class="info-value">{{ veiculo.cor }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Status:</span>
+                    <span class="badge badge-{{ veiculo.status }}">{{ veiculo.get_status_display }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card com resumo de custos -->
+        <div class="detalhes-card">
+            <h2>Resumo de Custos</h2>
+            <div class="custo-resumo">
+                <div class="custo-item">
+                    <span class="custo-label">Mês Atual</span>
+                    <span class="custo-valor">R$ {{ custo_mes_atual|floatformat:2 }}</span>
+                </div>
+                <div class="custo-item">
+                    <span class="custo-label">Mês Anterior</span>
+                    <span class="custo-valor">R$ {{ custo_mes_anterior|floatformat:2 }}</span>
+                </div>
+                <div class="custo-item">
+                    <span class="custo-label">Variação</span>
+                    <span class="custo-variacao variacao-{{ comparacao.cor }}">
+                        {{ comparacao.direcao }} {{ comparacao.percentual }}%
+                    </span>
+                </div>
+            </div>
+            <a href="{% url 'novo_custo' veiculo.id %}" class="btn btn-primary btn-block">+ Adicionar Novo Custo</a>
+        </div>
+    </div>
+
+    <!-- Lista de custos -->
+    <div class="custos-lista">
+        <h2>Últimos Custos Registrados</h2>
+        {% if custos %}
+            <table class="custos-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                        <th>Valor</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for custo in custos %}
+                        <tr>
+                            <td>{{ custo.data|date:"d/m/Y" }}</td>
+                            <td><span class="tipo-badge">{{ custo.get_tipo_display }}</span></td>
+                            <td>{{ custo.descricao }}</td>
+                            <td class="valor-cell">R$ {{ custo.valor|floatformat:2 }}</td>
+                            <td>
+                                <a href="{% url 'editar_custo' custo.id %}" class="btn btn-small btn-secondary btn-sm">Editar</a>
+                                <a href="{% url 'deletar_custo' custo.id %}" class="btn btn-small btn-danger" onclick="return confirm('Tem certeza que deseja excluir este custo?')">Excluir</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="sem-custos">Nenhum custo registrado ainda.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

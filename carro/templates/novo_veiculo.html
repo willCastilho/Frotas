@@ -1,0 +1,77 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/formulario.css' %}">
+
+<div class="container">
+    <div class="form-header">
+        <a href="{% url 'home' %}" class="btn-voltar">← Voltar</a>
+        <h1>Adicionar Novo Veículo</h1>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="form-card">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="marca">Marca *</label>
+                    <input type="text" name="marca" id="marca" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="modelo">Modelo *</label>
+                    <input type="text" name="modelo" id="modelo" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="ano">Ano *</label>
+                    <input type="number" name="ano" id="ano" required min="1900" max="2100">
+                </div>
+
+                <div class="form-group">
+                    <label for="cor">Cor *</label>
+                    <input type="text" name="cor" id="cor" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="data_compra">Data de Compra *</label>
+                    <input type="date" name="data_compra" id="data_compra" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="status">Status *</label>
+                    <select name="status" id="status" required>
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="picture">Foto do Veículo</label>
+                <input type="file" name="picture" id="picture" accept="image/*">
+            </div>
+
+            <div class="form-actions">
+                <a href="{% url 'home' %}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">Salvar Veículo</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock content %}

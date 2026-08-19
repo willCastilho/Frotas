@@ -1,0 +1,107 @@
+{% extends "head.html" %}
+
+{% block content %}
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Central de custos </h1>
+            <p>Visualize e gerencie seus veículos com relatório de custos em tempo real</p>
+            
+        </div>
+
+        <div class="filters-section">
+            <form method="get" action="{% url 'home' %}" style="display: contents;">
+                <div class="filter-group">
+                    <span class="filter-label">Status:</span>
+                    <a href="?status=todos&search={{ search_query }}" class="filter-btn {% if status_filter == 'todos' %}active{% endif %}">Todos</a>
+                    <a href="?status=ativo&search={{ search_query }}" class="filter-btn {% if status_filter == 'ativo' %}active{% endif %}">✓ Ativo</a>
+                    <a href="?status=inativo&search={{ search_query }}" class="filter-btn {% if status_filter == 'inativo' %}active{% endif %}">✗ Inativo</a>
+                    <a href="?status=manutencao&search={{ search_query }}" class="filter-btn {% if status_filter == 'manutencao' %}active{% endif %}">⚙ Manutenção</a>
+                </div>
+                <div class="search-box">
+                    <input type="text" name="search" placeholder="Buscar por marca ou modelo..." value="{{ search_query }}">
+                    <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Buscar</button>
+                    <a href="{% url 'novo_veiculo' %}" class="btn btn-primary">Novo Veículo</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="cards-grid">
+            {% for carro in carros %}
+                <div class="card {% if carro.status == 'inativo' %}inactive{% endif %}">
+                    <div class="card-image">
+                        <span class="card-status status-{{ carro.status }}">
+                            {% if carro.status == 'ativo' %}Ativo
+                            {% elif carro.status == 'inativo' %}Inativo
+                            {% else %}Manutenção{% endif %}
+                        </span>
+                        {% if carro.picture %}
+                            <img src="{{ carro.picture.url }}" alt="{{ carro.modelo }}">
+                        {% else %}
+                            <div style="text-align: center; z-index: 1; font-size: 4rem;">🚗</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-content">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <h3>{{ carro.modelo }}</h3>
+                                <p>{{ carro.marca }}</p>
+                            </div>
+                        </div>
+                        
+                        <p class="card-description">
+                            Veículo {{ carro.status }} da marca {{ carro.marca }}. 
+                            {% if carro.status == 'manutencao' %}
+                                Em processo de manutenção preventiva.
+                            {% elif carro.status == 'inativo' %}
+                                Atualmente sem uso registrado.
+                            {% else %}
+                                Disponível para uso diário.
+                            {% endif %}
+                        </p>
+                        
+                        <div class="card-specs">
+                            <div class="spec">
+                                <span class="spec-label">Ano</span>
+                                <span class="spec-value">{{ carro.ano }}</span>
+                            </div>
+                            <div class="spec">
+                                <span class="spec-label">Cor</span>
+                                <span class="spec-value">{{ carro.cor }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="cost-section">
+                            <div class="cost-header">
+                                <span class="cost-label">Custo Este Mês</span>
+                                <span class="cost-comparison comparison-{{ carro.comparacao.cor }}">
+                                    {{ carro.comparacao.direcao }} {{ carro.comparacao.percentual }}% vs mês anterior
+                                </span>
+                            </div>
+                            <div class="cost-value">
+                                <span class="cost-amount">R$ {{ carro.custo_mes_atual|floatformat:2 }}</span>
+                                <span class="cost-currency">/ mês</span>
+                            </div>
+                            <div class="cost-bar">
+                                <div class="cost-bar-fill cost-bar-{{ carro.comparacao.cor }}" 
+                                     style="width: {% if carro.comparacao.cor == 'green' %}60{% elif carro.comparacao.cor == 'yellow' %}85{% else %}110{% endif %}%;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="card-actions">
+                            <a href="{% url 'novo_custo' carro.id %}" class="btn btn-primary">Novo Custo</a>
+                            <a href="{% url 'detalhes_veiculo' carro.id %}" class="btn btn-secondary">Detalhes</a>
+                            <a href="{% url 'editar_veiculo' carro.id %}" class="btn btn-secondary">Editar</a>
+                            <a href="{% url 'excluir_veiculo' carro.id %}" class="btn btn-secondary" onclick="return confirm('Tem certeza que deseja excluir este veículo?')">Excluir</a>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="no-results">
+                    <h2>Nenhum veículo encontrado</h2>
+                    <p>Tente ajustar seus filtros de busca</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock content %}
