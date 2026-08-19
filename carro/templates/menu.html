@@ -1,0 +1,12 @@
+{% if user.is_authenticated %}
+<nav class="topbar">
+    <a href="{% url 'home' %}" class="topbar-brand">🚗 Gestão de Frotas</a>
+    <div class="topbar-user">
+        <span>Olá, {{ user.get_username }}</span>
+        <form method="post" action="{% url 'logout' %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary btn-small">Sair</button>
+        </form>
+    </div>
+</nav>
+{% endif %}

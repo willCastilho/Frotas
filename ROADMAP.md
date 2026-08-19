@@ -30,21 +30,20 @@ Feito na criação do repositório:
 
 ---
 
-## 🔴 Fase 1 — Estabilizar (o sistema precisa rodar)
+## ✅ Fase 1 — Estabilizar (concluída)
 
-Correções que impedem o uso hoje. É a prioridade absoluta.
+Correções que impediam o uso. Cobertas por testes em `carro/tests.py`.
 
-- [ ] 🔴 **Bug da home com banco vazio** — o `context` está indentado dentro do
-  `for` em `carro/views/carro_views.py`; com a lista de veículos vazia (banco
-  novo ou filtro sem resultado) ocorre `UnboundLocalError` e a página retorna
-  erro 500. Desindentar o `context` para fora do loop.
-- [ ] 🔴 **Exclusão via GET** — `excluir_veiculo` e `deletar_custo` são
-  acionados por links (`<a href>`). Trocar por `<form method="post">` com
-  `{% csrf_token %}` e proteger as views com `@require_POST`. O `confirm()` do
-  navegador não é proteção real (bots/prefetch podem apagar dados).
-- [ ] 🟠 **Autenticação básica** — não há nenhum login; qualquer um pode editar
-  e excluir. Adicionar `@login_required` nas views e uma tela de login. Perfis
-  granulares ficam para a Fase 5.
+- [x] 🔴 **Bug da home com banco vazio** — o `context` estava indentado dentro
+  do `for` em `carro/views/carro_views.py`; com a lista de veículos vazia
+  ocorria `UnboundLocalError` (erro 500). O `context` foi movido para fora do
+  loop. Regressão coberta por `HomeTests.test_home_com_banco_vazio`.
+- [x] 🔴 **Exclusão via GET** — `excluir_veiculo` e `deletar_custo` agora usam
+  `@require_POST`, e os templates enviam `<form method="post">` com
+  `{% csrf_token %}` no lugar de links. Coberto por `ExclusaoTests`.
+- [x] 🟠 **Autenticação básica** — todas as views têm `@login_required`; fluxo
+  de login/logout via `django.contrib.auth.urls`, com `registration/login.html`
+  e barra de topo com "Sair". Perfis granulares ficam para a Fase 5.
 
 ---
 

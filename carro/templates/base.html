@@ -92,7 +92,10 @@
                             <a href="{% url 'novo_custo' carro.id %}" class="btn btn-primary">Novo Custo</a>
                             <a href="{% url 'detalhes_veiculo' carro.id %}" class="btn btn-secondary">Detalhes</a>
                             <a href="{% url 'editar_veiculo' carro.id %}" class="btn btn-secondary">Editar</a>
-                            <a href="{% url 'excluir_veiculo' carro.id %}" class="btn btn-secondary" onclick="return confirm('Tem certeza que deseja excluir este veículo?')">Excluir</a>
+                            <form method="post" action="{% url 'excluir_veiculo' carro.id %}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir este veículo?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-secondary">Excluir</button>
+                            </form>
                         </div>
                     </div>
                 </div>

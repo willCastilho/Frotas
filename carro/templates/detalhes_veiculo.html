@@ -98,7 +98,10 @@
                             <td class="valor-cell">R$ {{ custo.valor|floatformat:2 }}</td>
                             <td>
                                 <a href="{% url 'editar_custo' custo.id %}" class="btn btn-small btn-secondary btn-sm">Editar</a>
-                                <a href="{% url 'deletar_custo' custo.id %}" class="btn btn-small btn-danger" onclick="return confirm('Tem certeza que deseja excluir este custo?')">Excluir</a>
+                                <form method="post" action="{% url 'deletar_custo' custo.id %}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir este custo?')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-small btn-danger">Excluir</button>
+                                </form>
                             </td>
                         </tr>
                     {% endfor %}

@@ -80,7 +80,9 @@ Edite o `.env` preenchendo `DB_PASSWORD` (e o que mais precisar).
 python manage.py migrate
 ```
 
-### 7. (Opcional) Crie um usuário administrador
+### 7. Crie um usuário (necessário para entrar)
+
+O sistema exige login. Crie um usuário administrador:
 
 ```bash
 python manage.py createsuperuser
@@ -92,7 +94,14 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Acesse: http://127.0.0.1:8000/ — e o admin em http://127.0.0.1:8000/admin/
+Acesse: http://127.0.0.1:8000/ — você será redirecionado para a tela de login
+(`/accounts/login/`). O admin fica em http://127.0.0.1:8000/admin/
+
+## ✅ Rodando os testes
+
+```bash
+python manage.py test
+```
 
 ## 📁 Estrutura do projeto
 

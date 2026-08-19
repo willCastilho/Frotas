@@ -440,6 +440,30 @@ body {
     }
 }
 
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 24px;
+    background: #1f2937;
+    color: #fff;
+}
+
+.topbar-brand {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .filter-btn {
     text-decoration: none;
     display: inline-block;
