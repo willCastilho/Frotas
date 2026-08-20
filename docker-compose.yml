@@ -1,17 +1,16 @@
 services:
   db:
-    image: mysql:8.0
+    image: postgres:16
     environment:
-      MYSQL_DATABASE: ${DB_NAME:-gestao_frotas}
-      MYSQL_USER: ${DB_USER:-frotas}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-frotas}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      POSTGRES_DB: ${DB_NAME:-gestao_frotas}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_ROOT_PASSWORD:-root}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-gestao_frotas}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -26,15 +25,15 @@ services:
       DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
       DB_NAME: ${DB_NAME:-gestao_frotas}
-      DB_USER: ${DB_USER:-frotas}
-      DB_PASSWORD: ${DB_PASSWORD:-frotas}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_HOST: db
-      DB_PORT: "3306"
+      DB_PORT: "5432"
     ports:
       - "8000:8000"
     volumes:
       - media_data:/app/media
 
 volumes:
-  mysql_data:
+  postgres_data:
   media_data:

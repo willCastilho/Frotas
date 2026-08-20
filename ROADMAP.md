@@ -21,12 +21,13 @@ Feito na criação do repositório:
 - [x] Remoção do `venv/` do versionamento
 - [x] `requirements.txt` com dependências fixadas
 - [x] `SECRET_KEY`, `DEBUG` e `ALLOWED_HOSTS` via variáveis de ambiente (`.env`)
-- [x] Banco em **MySQL** (saímos do SQLite) — configurado via `.env`
+- [x] Banco em **PostgreSQL** (saímos do SQLite) — configurado via `.env`
 - [x] `.gitignore`, `.env.example` e script `scripts/create_database.sql`
 - [x] `README.md` com instruções de instalação e uso
 
-> Observação: a stack de banco já é adequada para produção (MySQL). **Não há
-> necessidade de migrar para PostgreSQL** — seria esforço sem retorno.
+> Observação: o projeto usou MySQL inicialmente e depois migrou para
+> **PostgreSQL** — mais simples de instalar no Windows (wheel `psycopg2-binary`,
+> sem compilador) e igualmente robusto para produção.
 
 ---
 
@@ -110,11 +111,11 @@ O sistema deixou de ser "CRUD de veículo" e virou gestão de frota.
   Consulta, criados pelo comando `python manage.py criar_grupos`.
 - [x] **Auditoria** — `django-auditlog` registrando todas as entidades (quem
   alterou o quê e quando), com registro em `carro/apps.py`.
-- [x] **Deploy** — `Dockerfile` (Gunicorn) + `docker-compose.yml` (web + MySQL),
-  `.dockerignore`, tudo por variáveis de ambiente e `DEBUG=False` por padrão.
-- [x] **CI** — GitHub Actions (`.github/workflows/ci.yml`) sobe um MySQL,
+- [x] **Deploy** — `Dockerfile` (Gunicorn) + `docker-compose.yml` (web +
+  PostgreSQL), `.dockerignore`, tudo por variáveis de ambiente e `DEBUG=False`.
+- [x] **CI** — GitHub Actions (`.github/workflows/ci.yml`) sobe um PostgreSQL,
   checa migrações pendentes e roda os testes a cada push/PR.
-- [x] **Backups e logs** — `scripts/backup.sh` (mysqldump agendável por cron) e
+- [x] **Backups e logs** — `scripts/backup.sh` (`pg_dump` agendável por cron) e
   `LOGGING` configurado nas settings.
 
 ---

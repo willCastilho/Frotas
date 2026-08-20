@@ -10,15 +10,16 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      mysql:
-        image: mysql:8.0
+      postgres:
+        image: postgres:16
         env:
-          MYSQL_DATABASE: gestao_frotas
-          MYSQL_ROOT_PASSWORD: root
+          POSTGRES_DB: gestao_frotas
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
         ports:
-          - 3306:3306
+          - 5432:5432
         options: >-
-          --health-cmd="mysqladmin ping -h localhost -proot"
+          --health-cmd="pg_isready -U postgres"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
@@ -28,10 +29,10 @@ jobs:
       DJANGO_DEBUG: "False"
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
       DB_NAME: gestao_frotas
-      DB_USER: root
-      DB_PASSWORD: root
+      DB_USER: postgres
+      DB_PASSWORD: postgres
       DB_HOST: 127.0.0.1
-      DB_PORT: "3306"
+      DB_PORT: "5432"
 
     steps:
       - uses: actions/checkout@v4
@@ -40,9 +41,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Dependências de sistema (mysqlclient)
-        run: sudo apt-get update && sudo apt-get install -y default-libmysqlclient-dev pkg-config build-essential
 
       - name: Instalar dependências
         run: |

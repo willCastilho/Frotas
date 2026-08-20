@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Backup do banco MySQL do Gestao de Frotas.
+# Backup do banco PostgreSQL do Gestao de Frotas.
 # Le as credenciais do .env (ou do ambiente) e gera um dump com data no nome.
 #
 # Uso:
@@ -19,16 +19,17 @@ if [ -f "$(dirname "$0")/../.env" ]; then
 fi
 
 DB_NAME="${DB_NAME:-gestao_frotas}"
-DB_USER="${DB_USER:-root}"
+DB_USER="${DB_USER:-postgres}"
 DB_HOST="${DB_HOST:-127.0.0.1}"
-DB_PORT="${DB_PORT:-3306}"
+DB_PORT="${DB_PORT:-5432}"
 DESTINO="${1:-./backups}"
 
 mkdir -p "$DESTINO"
 ARQUIVO="$DESTINO/${DB_NAME}_$(date +%Y%m%d_%H%M%S).sql.gz"
 
 echo "Gerando backup em $ARQUIVO ..."
-mysqldump -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" ${DB_PASSWORD:+-p"$DB_PASSWORD"} \
-    --single-transaction --routines --triggers "$DB_NAME" | gzip > "$ARQUIVO"
+# pg_dump le a senha da variavel PGPASSWORD (definida a partir do DB_PASSWORD)
+PGPASSWORD="${DB_PASSWORD:-}" pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" \
+    "$DB_NAME" | gzip > "$ARQUIVO"
 
 echo "Backup concluido: $ARQUIVO"

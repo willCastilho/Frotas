@@ -18,15 +18,15 @@ do mês atual e comparar com o mês anterior.
 
 - Python 3.12
 - Django 5.2
-- MySQL
+- PostgreSQL
 - Pillow (upload de imagens)
 
 ## 📋 Pré-requisitos
 
 - Python 3.12+
-- MySQL 8.0+ instalado e rodando
-- No Linux, para compilar o `mysqlclient` pode ser necessário:
-  `sudo apt install pkg-config default-libmysqlclient-dev build-essential`
+- PostgreSQL 14+ instalado e rodando
+- O driver `psycopg2-binary` já vem como wheel pré-compilado (não precisa de
+  compilador). No Linux, se optar por compilar do fonte, instale `libpq-dev`.
 
 ## 🚀 Como rodar o projeto
 
@@ -53,20 +53,23 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. Crie o banco de dados MySQL (em branco)
+### 4. Crie o banco de dados PostgreSQL (em branco)
 
 Rode o script SQL para criar o banco vazio:
 
 ```bash
-mysql -u root -p < scripts/create_database.sql
+psql -U postgres -f scripts/create_database.sql
 ```
 
+> No **Windows/PowerShell** o comando é o mesmo (não usa redirecionamento `<`).
+> Se preferir, dá para criar direto: `createdb -U postgres gestao_frotas`.
+>
 > O script apenas **cria o banco em branco**. As tabelas são criadas pelo
 > Django no passo 6, através das migrações.
 
 ### 5. Configure as variáveis de ambiente
 
-Copie o arquivo de exemplo e ajuste com os dados do seu MySQL:
+Copie o arquivo de exemplo e ajuste com os dados do seu PostgreSQL:
 
 ```bash
 cp .env.example .env
@@ -114,11 +117,11 @@ python manage.py test
 ```
 
 A cada push/PR os testes também rodam automaticamente no GitHub Actions
-(`.github/workflows/ci.yml`), contra um MySQL real.
+(`.github/workflows/ci.yml`), contra um PostgreSQL real.
 
 ## 🐳 Rodando com Docker
 
-Sobe a aplicação (Gunicorn) e o MySQL já configurados:
+Sobe a aplicação (Gunicorn) e o PostgreSQL já configurados:
 
 ```bash
 docker compose up --build

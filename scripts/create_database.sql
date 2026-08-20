@@ -1,20 +1,24 @@
--- Cria o banco de dados MySQL em branco para o Gestao de Frotas.
--- Rode este script uma unica vez, conectado ao MySQL como um usuario
--- com permissao para criar bancos (por exemplo o root):
+-- Cria o banco de dados PostgreSQL em branco para o Gestao de Frotas.
+-- Rode este script uma unica vez, conectado ao PostgreSQL como um usuario
+-- com permissao para criar bancos (por exemplo o postgres):
 --
---   mysql -u root -p < scripts/create_database.sql
+--   psql -U postgres -f scripts/create_database.sql
+--
+-- (No Windows/PowerShell funciona igual, pois nao usa redirecionamento.)
 --
 -- Depois rode as migracoes do Django para criar as tabelas:
 --
 --   python manage.py migrate
+--
+-- Observacao: o PostgreSQL nao suporta "CREATE DATABASE IF NOT EXISTS".
+-- Se o banco ja existir, o comando abaixo apenas retorna um aviso.
 
-CREATE DATABASE IF NOT EXISTS gestao_frotas
-    CHARACTER SET utf8mb4
-    COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE gestao_frotas
+    ENCODING 'UTF8'
+    TEMPLATE template0;
 
 -- (Opcional) Cria um usuario dedicado para a aplicacao.
 -- Descomente e troque a senha antes de usar:
 --
--- CREATE USER IF NOT EXISTS 'frotas'@'localhost' IDENTIFIED BY 'troque_esta_senha';
--- GRANT ALL PRIVILEGES ON gestao_frotas.* TO 'frotas'@'localhost';
--- FLUSH PRIVILEGES;
+-- CREATE USER frotas WITH PASSWORD 'troque_esta_senha';
+-- GRANT ALL PRIVILEGES ON DATABASE gestao_frotas TO frotas;

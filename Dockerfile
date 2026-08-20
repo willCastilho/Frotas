@@ -3,10 +3,9 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Dependencias de sistema para o mysqlclient
+# psycopg2-binary ja vem compilado; libpq garante o cliente do PostgreSQL
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        build-essential default-libmysqlclient-dev pkg-config \
+    && apt-get install -y --no-install-recommends libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
