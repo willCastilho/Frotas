@@ -12,62 +12,64 @@
 
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                {{ message }}
-            </div>
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
         {% endfor %}
     {% endif %}
 
     <div class="form-card">
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-error">{{ form.non_field_errors }}</div>
+            {% endif %}
+
             <div class="form-row">
                 <div class="form-group">
-                    <label for="marca">Marca *</label>
-                    <input type="text" name="marca" id="marca" value="{{ veiculo.marca }}" required>
+                    <label for="{{ form.marca.id_for_label }}">Marca *</label>
+                    {{ form.marca }}
+                    {% for erro in form.marca.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
                 </div>
-
                 <div class="form-group">
-                    <label for="modelo">Modelo *</label>
-                    <input type="text" name="modelo" id="modelo" value="{{ veiculo.modelo }}" required>
+                    <label for="{{ form.modelo.id_for_label }}">Modelo *</label>
+                    {{ form.modelo }}
+                    {% for erro in form.modelo.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="ano">Ano *</label>
-                    <input type="number" name="ano" id="ano" value="{{ veiculo.ano }}" required min="1900" max="2100">
+                    <label for="{{ form.ano.id_for_label }}">Ano *</label>
+                    {{ form.ano }}
+                    {% for erro in form.ano.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
                 </div>
-
                 <div class="form-group">
-                    <label for="cor">Cor *</label>
-                    <input type="text" name="cor" id="cor" value="{{ veiculo.cor }}" required>
+                    <label for="{{ form.cor.id_for_label }}">Cor *</label>
+                    {{ form.cor }}
+                    {% for erro in form.cor.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="data_compra">Data de Compra *</label>
-                    <input type="date" name="data_compra" id="data_compra" value="{{ veiculo.Data_compra|date:'Y-m-d' }}" required>
+                    <label for="{{ form.data_compra.id_for_label }}">Data de Compra *</label>
+                    {{ form.data_compra }}
+                    {% for erro in form.data_compra.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
                 </div>
-
                 <div class="form-group">
-                    <label for="status">Status *</label>
-                    <select name="status" id="status" required>
-                        {% for value, label in status_choices %}
-                            <option value="{{ value }}" {% if veiculo.status == value %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
+                    <label for="{{ form.status.id_for_label }}">Status *</label>
+                    {{ form.status }}
+                    {% for erro in form.status.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="picture">Foto do Veículo</label>
+                <label for="{{ form.picture.id_for_label }}">Foto do Veículo</label>
                 {% if veiculo.picture %}
                     <p>Foto atual: {{ veiculo.picture.name }}</p>
                 {% endif %}
-                <input type="file" name="picture" id="picture" accept="image/*">
+                {{ form.picture }}
+                {% for erro in form.picture.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
             </div>
 
             <div class="form-actions">

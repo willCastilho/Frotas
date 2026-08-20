@@ -464,6 +464,22 @@ body {
     gap: 12px;
 }
 
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 24px 0;
+    flex-wrap: wrap;
+}
+
+.field-error {
+    display: block;
+    color: #dc2626;
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+
 .filter-btn {
     text-decoration: none;
     display: inline-block;

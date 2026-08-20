@@ -12,40 +12,40 @@
 
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                {{ message }}
-            </div>
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
         {% endfor %}
     {% endif %}
 
     <div class="form-card">
         <form method="post">
             {% csrf_token %}
-            
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-error">{{ form.non_field_errors }}</div>
+            {% endif %}
+
             <div class="form-group">
-                <label for="tipo">Tipo de Custo *</label>
-                <select name="tipo" id="tipo" required>
-                    <option value="">Selecione o tipo</option>
-                    {% for value, label in tipo_choices %}
-                        <option value="{{ value }}" {% if custo.tipo == value %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
+                <label for="{{ form.tipo.id_for_label }}">Tipo de Custo *</label>
+                {{ form.tipo }}
+                {% for erro in form.tipo.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
             </div>
 
             <div class="form-group">
-                <label for="descricao">Descrição *</label>
-                <textarea name="descricao" id="descricao" rows="4" required placeholder="Descreva o custo...">{{ custo.descricao }}</textarea>
+                <label for="{{ form.descricao.id_for_label }}">Descrição *</label>
+                {{ form.descricao }}
+                {% for erro in form.descricao.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="valor">Valor (R$) *</label>
-                    <input type="number" name="valor" id="valor" step="0.01" required value="{{ custo.valor }}">
+                    <label for="{{ form.valor.id_for_label }}">Valor (R$) *</label>
+                    {{ form.valor }}
+                    {% for erro in form.valor.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
                 </div>
-
                 <div class="form-group">
-                    <label for="data">Data *</label>
-                    <input type="date" name="data" id="data" required value="{{ custo.data|date:'Y-m-d' }}">
+                    <label for="{{ form.data.id_for_label }}">Data *</label>
+                    {{ form.data }}
+                    {% for erro in form.data.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
                 </div>
             </div>
 

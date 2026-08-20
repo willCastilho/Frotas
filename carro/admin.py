@@ -3,7 +3,7 @@ from . import models
 
 @admin.register(models.Veiculo)
 class VeiculoAdmin(admin.ModelAdmin):
-    list_display = ('modelo', 'marca', 'ano', 'cor', 'Data_compra', 'data_cadastro')
+    list_display = ('modelo', 'marca', 'ano', 'cor', 'data_compra', 'data_cadastro')
     list_filter = ('marca', 'ano', 'status')
     search_fields = ('modelo', 'marca')
     date_hierarchy = 'data_cadastro'

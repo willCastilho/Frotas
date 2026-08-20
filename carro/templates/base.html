@@ -106,5 +106,17 @@
                 </div>
             {% endfor %}
         </div>
+
+        {% if page_obj.paginator.num_pages > 1 %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?status={{ status_filter }}&search={{ search_query }}&page={{ page_obj.previous_page_number }}" class="filter-btn">← Anterior</a>
+                {% endif %}
+                <span class="filter-btn active">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?status={{ status_filter }}&search={{ search_query }}&page={{ page_obj.next_page_number }}" class="filter-btn">Próxima →</a>
+                {% endif %}
+            </div>
+        {% endif %}
     </div>
 {% endblock content %}

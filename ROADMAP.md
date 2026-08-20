@@ -47,26 +47,23 @@ Correções que impediam o uso. Cobertas por testes em `carro/tests.py`.
 
 ---
 
-## 🟠 Fase 2 — Fundação de código
+## ✅ Fase 2 — Fundação de código (concluída)
 
-Deixar a base pronta para crescer sem virar bagunça.
+Base pronta para crescer sem virar bagunça.
 
-- [ ] 🟡 **Camada de Forms** — criar `carro/forms.py` com `VeiculoForm` e
-  `CustoForm` (`ModelForm`). Elimina a validação manual espalhada nas views,
-  valida tipos de graça (valor negativo, ano fora da faixa, data inválida) e
-  remove a duplicação entre "novo" e "editar".
-- [ ] 🟡 **Organizar as views** — dividir `carro_views.py` por domínio
-  (`views/veiculos.py`, `views/custos.py`, `views/dashboard.py`…). Usar
-  Class-Based Views (List/Create/Update/Delete) **onde reduzem repetição** —
-  sem forçar CBV em views com muita regra de negócio.
-- [ ] 🟠 **Resolver o N+1 de queries** — a home chama `custo_mes_atual()`,
-  `custo_mes_anterior()` e `comparacao_custos()` por veículo (várias queries
-  cada). Trocar por `annotate` + `Sum`/`Case` para calcular em 1–2 queries.
-- [ ] 🟡 **Paginação** na listagem de veículos (`Paginator`).
-- [ ] 🟡 **Testes básicos** — cobrir os cálculos de custo
-  (`custo_mes_atual`, `comparacao_custos`) e o fluxo de criação de veículo/custo.
-- [ ] 🔵 **Limpeza de modelo** — padronizar nomes (`Data_compra` → `data_compra`)
-  e remover o campo `Show`, que não é usado. Requer migração.
+- [x] 🟡 **Camada de Forms** — `carro/forms.py` com `VeiculoForm` e `CustoForm`
+  (`ModelForm`), incluindo validação de ano (1900–2100) e valor (> 0). As views
+  e os templates de formulário agora usam esses forms.
+- [x] 🟡 **Organizar as views** — `carro_views.py` dividido em
+  `views/veiculos.py` e `views/custos.py`, reexportados em `views/__init__.py`.
+- [x] 🟠 **Resolver o N+1 de queries** — `VeiculoQuerySet.com_custos_mensais()`
+  anota custo do mês atual e anterior via `Sum` + `filter`, calculando a lista
+  em uma query em vez de várias por veículo.
+- [x] 🟡 **Paginação** na listagem de veículos (`Paginator`, 9 por página).
+- [x] 🟡 **Testes** — 11 testes cobrindo login, home, exclusão, validação de
+  forms e fluxo de custo.
+- [x] 🔵 **Limpeza de modelo** — `Data_compra` → `data_compra` e remoção do
+  campo `Show` (migração `0004`). Status ganhou `vendido` e `baixado`.
 
 ---
 
