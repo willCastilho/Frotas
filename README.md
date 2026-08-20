@@ -97,33 +97,80 @@ python manage.py runserver
 Acesse: http://127.0.0.1:8000/ — você será redirecionado para a tela de login
 (`/accounts/login/`). O admin fica em http://127.0.0.1:8000/admin/
 
+### 9. (Opcional) Crie os grupos de acesso
+
+Perfis prontos: **Administrador**, **Gestor**, **Operador** e **Consulta**.
+
+```bash
+python manage.py criar_grupos
+```
+
+Depois associe cada usuário a um grupo pelo admin do Django.
+
 ## ✅ Rodando os testes
 
 ```bash
 python manage.py test
 ```
 
+A cada push/PR os testes também rodam automaticamente no GitHub Actions
+(`.github/workflows/ci.yml`), contra um MySQL real.
+
+## 🐳 Rodando com Docker
+
+Sobe a aplicação (Gunicorn) e o MySQL já configurados:
+
+```bash
+docker compose up --build
+```
+
+A aplicação fica em http://localhost:8000/. As variáveis podem ser ajustadas por
+um `.env` na raiz (veja `.env.example`).
+
+## 🔐 Auditoria
+
+Todas as alterações em veículos, custos, abastecimentos, quilometragem e planos
+de manutenção são registradas via **django-auditlog** (quem alterou, o quê e
+quando). Os registros ficam visíveis no admin do Django.
+
+## 💾 Backup do banco
+
+```bash
+./scripts/backup.sh /caminho/para/backups
+```
+
+Gera um dump `.sql.gz` com data no nome. Pode ser agendado no cron.
+
 ## 📁 Estrutura do projeto
 
 ```
 gestao-frotas/
-├── carro/               # App principal (frota)
-│   ├── base/static/css/ # Estilos
-│   ├── migrations/      # Migrações do banco
-│   ├── templates/       # Templates HTML
-│   ├── views/           # Views
+├── carro/                  # App principal (frota)
+│   ├── base/static/css/    # Estilos
+│   ├── management/commands # Comando criar_grupos
+│   ├── migrations/         # Migrações do banco
+│   ├── templates/          # Templates HTML
+│   ├── views/              # Views (veiculos, custos, frota, dashboard, relatorios)
 │   ├── admin.py
-│   ├── models.py        # Modelos Veiculo e Custo
+│   ├── apps.py             # Registro da auditoria
+│   ├── forms.py            # ModelForms
+│   ├── models.py           # Veiculo, Custo, Abastecimento, RegistroKm, PlanoManutencao
+│   ├── tests.py            # 27 testes
 │   └── urls.py
-├── project/             # Configuração do Django
+├── project/                # Configuração do Django
 │   ├── settings.py
 │   ├── urls.py
 │   └── wsgi.py
-├── media/               # Uploads de imagens dos veículos
+├── media/                  # Uploads de imagens dos veículos
 ├── scripts/
-│   └── create_database.sql
+│   ├── create_database.sql
+│   └── backup.sh
+├── .github/workflows/ci.yml
+├── Dockerfile
+├── docker-compose.yml
 ├── .env.example
 ├── manage.py
+├── ROADMAP.md
 └── requirements.txt
 ```
 

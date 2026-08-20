@@ -236,3 +236,28 @@ class DashboardTests(LogadoMixin, TestCase):
         resposta = self.client.get(reverse('exportar_custos'), {'formato': 'xlsx'})
         self.assertEqual(resposta.status_code, 200)
         self.assertIn('spreadsheetml', resposta['Content-Type'])
+
+
+class GruposTests(TestCase):
+    def test_criar_grupos(self):
+        from django.contrib.auth.models import Group
+        from django.core.management import call_command
+
+        call_command('criar_grupos')
+        nomes = set(Group.objects.values_list('name', flat=True))
+        self.assertEqual(
+            nomes, {'Administrador', 'Gestor', 'Operador', 'Consulta'})
+        # Consulta so tem permissoes de visualizacao
+        consulta = Group.objects.get(name='Consulta')
+        for perm in consulta.permissions.all():
+            self.assertTrue(perm.codename.startswith('view_'))
+
+
+class AuditoriaTests(TestCase):
+    def test_alteracao_gera_log(self):
+        from auditlog.models import LogEntry
+
+        veiculo = cria_veiculo()
+        self.assertTrue(
+            LogEntry.objects.get_for_object(veiculo).exists()
+        )

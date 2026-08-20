@@ -104,16 +104,28 @@ O sistema deixou de ser "CRUD de veículo" e virou gestão de frota.
 
 ---
 
-## 🏗️ Fase 5 — Profissionalização (se/quando for para produção real)
+## ✅ Fase 5 — Profissionalização (concluída)
 
-- [ ] **Perfis e permissões** (RBAC) — Admin / Gestor / Operador / Consulta,
-  usando `Groups`/`Permissions` do Django. Só quando existir um segundo tipo de
-  usuário real.
-- [ ] **Auditoria** — quem alterou o quê e quando. Usar biblioteca pronta
-  (`django-auditlog` ou `django-simple-history`) em vez de tabela própria.
-- [ ] **Deploy** — Docker + Gunicorn + Nginx, `DEBUG=False`, HTTPS.
-- [ ] **CI/CD** — rodar testes e lint a cada push (GitHub Actions).
-- [ ] **Backups e logs** estruturados.
+- [x] **Perfis e permissões** (RBAC) — grupos Administrador / Gestor / Operador /
+  Consulta, criados pelo comando `python manage.py criar_grupos`.
+- [x] **Auditoria** — `django-auditlog` registrando todas as entidades (quem
+  alterou o quê e quando), com registro em `carro/apps.py`.
+- [x] **Deploy** — `Dockerfile` (Gunicorn) + `docker-compose.yml` (web + MySQL),
+  `.dockerignore`, tudo por variáveis de ambiente e `DEBUG=False` por padrão.
+- [x] **CI** — GitHub Actions (`.github/workflows/ci.yml`) sobe um MySQL,
+  checa migrações pendentes e roda os testes a cada push/PR.
+- [x] **Backups e logs** — `scripts/backup.sh` (mysqldump agendável por cron) e
+  `LOGGING` configurado nas settings.
+
+---
+
+## 🎉 Status: roadmap concluído
+
+Todas as fases (0–5) foram implementadas. O sistema evoluiu de um CRUD de
+veículos para uma ferramenta de gestão de frota com indicadores, alertas,
+relatórios, controle de acesso e pronta para deploy. **27 testes** cobrem as
+regras principais. Melhorias marcadas com 🔵 seguem propositalmente adiadas
+(YAGNI) até serem necessárias.
 
 ---
 
