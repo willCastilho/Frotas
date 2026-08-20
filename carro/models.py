@@ -98,6 +98,45 @@ class Veiculo(models.Model):
     def comparacao_custos(self):
         return comparacao_custos(self.custo_mes_atual(), self.custo_mes_anterior())
 
+    def _leituras_km(self):
+        """Todas as leituras de odometro conhecidas (abastecimentos + registros)."""
+        km_abast = list(self.abastecimentos.values_list('quilometragem', flat=True))
+        km_reg = list(self.registros_km.values_list('quilometragem', flat=True))
+        return [k for k in km_abast + km_reg if k is not None]
+
+    def km_atual(self):
+        leituras = self._leituras_km()
+        return max(leituras) if leituras else None
+
+    def km_rodados(self):
+        leituras = self._leituras_km()
+        if len(leituras) < 2:
+            return None
+        return max(leituras) - min(leituras)
+
+    def total_custos(self):
+        total = self.custos.aggregate(t=Sum('valor'))['t']
+        return float(total or 0)
+
+    def custo_por_km(self):
+        rodados = self.km_rodados()
+        if not rodados:
+            return None
+        return self.total_custos() / rodados
+
+    def consumo_medio(self):
+        """Consumo medio em km/l pelo metodo de tanque cheio: distancia entre o
+        primeiro e o ultimo abastecimento dividida pelos litros abastecidos
+        depois do primeiro."""
+        abast = list(self.abastecimentos.order_by('quilometragem'))
+        if len(abast) < 2:
+            return None
+        km_total = abast[-1].quilometragem - abast[0].quilometragem
+        litros_total = sum(float(a.litros) for a in abast[1:])
+        if km_total <= 0 or litros_total <= 0:
+            return None
+        return km_total / litros_total
+
 
 class Custo(models.Model):
     TIPO_CHOICES = [
@@ -123,3 +162,137 @@ class Custo(models.Model):
 
     def __str__(self):
         return f"{self.veiculo} - {self.tipo} - R$ {self.valor}"
+
+
+class Abastecimento(models.Model):
+    COMBUSTIVEL_CHOICES = [
+        ('gasolina', 'Gasolina'),
+        ('etanol', 'Etanol'),
+        ('diesel', 'Diesel'),
+        ('gnv', 'GNV'),
+        ('flex', 'Flex'),
+    ]
+
+    veiculo = models.ForeignKey(
+        Veiculo, on_delete=models.CASCADE, related_name='abastecimentos'
+    )
+    data = models.DateField(default=timezone.now)
+    quilometragem = models.PositiveIntegerField()
+    litros = models.DecimalField(max_digits=8, decimal_places=3)
+    valor_total = models.DecimalField(max_digits=10, decimal_places=2)
+    tipo_combustivel = models.CharField(
+        max_length=20, choices=COMBUSTIVEL_CHOICES, default='gasolina'
+    )
+    posto = models.CharField(max_length=100, blank=True)
+    data_cadastro = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-data', '-quilometragem']
+
+    def __str__(self):
+        return f"{self.veiculo} - {self.data} - {self.litros} L"
+
+    @property
+    def valor_litro(self):
+        if self.litros:
+            return float(self.valor_total) / float(self.litros)
+        return 0.0
+
+
+class RegistroQuilometragem(models.Model):
+    veiculo = models.ForeignKey(
+        Veiculo, on_delete=models.CASCADE, related_name='registros_km'
+    )
+    data = models.DateField(default=timezone.now)
+    quilometragem = models.PositiveIntegerField()
+    origem = models.CharField(max_length=100, blank=True)
+    observacao = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-data', '-quilometragem']
+
+    def __str__(self):
+        return f"{self.veiculo} - {self.data} - {self.quilometragem} km"
+
+
+class PlanoManutencao(models.Model):
+    """Manutencao preventiva por km e/ou por prazo (ex.: troca de oleo,
+    licenciamento). O status compara a proxima ocorrencia com o km atual do
+    veiculo e com a data de hoje."""
+
+    veiculo = models.ForeignKey(
+        Veiculo, on_delete=models.CASCADE, related_name='planos_manutencao'
+    )
+    descricao = models.CharField(max_length=120)
+    intervalo_km = models.PositiveIntegerField(
+        null=True, blank=True, help_text='A cada quantos km (opcional)'
+    )
+    intervalo_dias = models.PositiveIntegerField(
+        null=True, blank=True, help_text='A cada quantos dias (opcional)'
+    )
+    km_referencia = models.PositiveIntegerField(
+        null=True, blank=True, help_text='Km da ultima realizacao'
+    )
+    data_referencia = models.DateField(
+        null=True, blank=True, help_text='Data da ultima realizacao'
+    )
+
+    class Meta:
+        ordering = ['descricao']
+
+    def __str__(self):
+        return f"{self.veiculo} - {self.descricao}"
+
+    @property
+    def proxima_km(self):
+        if self.intervalo_km and self.km_referencia is not None:
+            return self.km_referencia + self.intervalo_km
+        return None
+
+    @property
+    def proxima_data(self):
+        if self.intervalo_dias and self.data_referencia:
+            return self.data_referencia + timedelta(days=self.intervalo_dias)
+        return None
+
+    def status(self, km_atual=None):
+        """Retorna dict {cor, texto, detalhe}. Combina o alerta por km e por
+        prazo, escolhendo o mais critico (vermelho > amarelo > verde)."""
+        niveis = []
+        detalhes = []
+
+        if self.proxima_km is not None and km_atual is not None:
+            faltam = self.proxima_km - km_atual
+            margem = max(int((self.intervalo_km or 0) * 0.1), 500)
+            if faltam <= 0:
+                niveis.append('red')
+                detalhes.append(f'Atrasada {abs(faltam)} km')
+            elif faltam <= margem:
+                niveis.append('yellow')
+                detalhes.append(f'Faltam {faltam} km')
+            else:
+                niveis.append('green')
+                detalhes.append(f'Faltam {faltam} km')
+
+        if self.proxima_data is not None:
+            faltam_dias = (self.proxima_data - timezone.now().date()).days
+            if faltam_dias <= 0:
+                niveis.append('red')
+                detalhes.append(f'Vencida ha {abs(faltam_dias)} dias')
+            elif faltam_dias <= 15:
+                niveis.append('yellow')
+                detalhes.append(f'Vence em {faltam_dias} dias')
+            else:
+                niveis.append('green')
+                detalhes.append(f'Vence em {faltam_dias} dias')
+
+        if 'red' in niveis:
+            cor, texto = 'red', '🔴 Atrasada'
+        elif 'yellow' in niveis:
+            cor, texto = 'yellow', '🟡 Próxima'
+        elif 'green' in niveis:
+            cor, texto = 'green', '🟢 Em dia'
+        else:
+            cor, texto = 'gray', 'Sem parâmetros'
+
+        return {'cor': cor, 'texto': texto, 'detalhe': ' · '.join(detalhes)}

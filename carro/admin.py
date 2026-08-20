@@ -16,3 +16,27 @@ class CustoAdmin(admin.ModelAdmin):
     search_fields = ('veiculo__modelo', 'tipo', 'descricao')
     date_hierarchy = 'data'
 
+
+@admin.register(models.Abastecimento)
+class AbastecimentoAdmin(admin.ModelAdmin):
+    list_display = ('veiculo', 'data', 'quilometragem', 'litros',
+                    'valor_total', 'tipo_combustivel')
+    list_filter = ('veiculo', 'tipo_combustivel', 'data')
+    search_fields = ('veiculo__modelo', 'posto')
+    date_hierarchy = 'data'
+
+
+@admin.register(models.RegistroQuilometragem)
+class RegistroQuilometragemAdmin(admin.ModelAdmin):
+    list_display = ('veiculo', 'data', 'quilometragem', 'origem')
+    list_filter = ('veiculo', 'data')
+    date_hierarchy = 'data'
+
+
+@admin.register(models.PlanoManutencao)
+class PlanoManutencaoAdmin(admin.ModelAdmin):
+    list_display = ('veiculo', 'descricao', 'intervalo_km', 'intervalo_dias',
+                    'km_referencia', 'data_referencia')
+    list_filter = ('veiculo',)
+    search_fields = ('veiculo__modelo', 'descricao')
+

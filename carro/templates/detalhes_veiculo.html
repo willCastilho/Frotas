@@ -75,6 +75,124 @@
         </div>
     </div>
 
+    <!-- Indicadores gerenciais -->
+    <div class="metricas-grid">
+        <div class="metrica-card">
+            <span class="metrica-label">Km atual</span>
+            <span class="metrica-valor">{% if km_atual %}{{ km_atual }} km{% else %}—{% endif %}</span>
+        </div>
+        <div class="metrica-card">
+            <span class="metrica-label">Consumo médio</span>
+            <span class="metrica-valor">{% if consumo_medio %}{{ consumo_medio|floatformat:1 }} km/l{% else %}—{% endif %}</span>
+        </div>
+        <div class="metrica-card">
+            <span class="metrica-label">Custo por km</span>
+            <span class="metrica-valor">{% if custo_por_km %}R$ {{ custo_por_km|floatformat:2 }}{% else %}—{% endif %}</span>
+        </div>
+    </div>
+
+    <!-- Manutenção preventiva -->
+    <div class="custos-lista">
+        <div class="secao-header">
+            <h2>Manutenção Preventiva</h2>
+            <a href="{% url 'novo_plano_manutencao' veiculo.id %}" class="btn btn-small btn-primary">+ Plano</a>
+        </div>
+        {% if planos %}
+            <table class="custos-table">
+                <thead>
+                    <tr><th>Descrição</th><th>Próxima</th><th>Status</th><th>Ações</th></tr>
+                </thead>
+                <tbody>
+                    {% for p in planos %}
+                        <tr>
+                            <td>{{ p.obj.descricao }}</td>
+                            <td>
+                                {% if p.obj.proxima_km %}{{ p.obj.proxima_km }} km{% endif %}
+                                {% if p.obj.proxima_data %}{% if p.obj.proxima_km %} · {% endif %}{{ p.obj.proxima_data|date:"d/m/Y" }}{% endif %}
+                            </td>
+                            <td><span class="variacao-{{ p.status.cor }}">{{ p.status.texto }}</span><br><small>{{ p.status.detalhe }}</small></td>
+                            <td>
+                                <form method="post" action="{% url 'excluir_plano_manutencao' p.obj.id %}" style="display: inline;" onsubmit="return confirm('Excluir este plano?')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-small btn-danger">Excluir</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="sem-custos">Nenhum plano de manutenção cadastrado.</p>
+        {% endif %}
+    </div>
+
+    <!-- Abastecimentos -->
+    <div class="custos-lista">
+        <div class="secao-header">
+            <h2>Abastecimentos</h2>
+            <a href="{% url 'novo_abastecimento' veiculo.id %}" class="btn btn-small btn-primary">+ Abastecimento</a>
+        </div>
+        {% if abastecimentos %}
+            <table class="custos-table">
+                <thead>
+                    <tr><th>Data</th><th>Km</th><th>Litros</th><th>Valor</th><th>R$/L</th><th>Combustível</th><th>Ações</th></tr>
+                </thead>
+                <tbody>
+                    {% for a in abastecimentos %}
+                        <tr>
+                            <td>{{ a.data|date:"d/m/Y" }}</td>
+                            <td>{{ a.quilometragem }}</td>
+                            <td>{{ a.litros|floatformat:2 }}</td>
+                            <td class="valor-cell">R$ {{ a.valor_total|floatformat:2 }}</td>
+                            <td>R$ {{ a.valor_litro|floatformat:2 }}</td>
+                            <td>{{ a.get_tipo_combustivel_display }}</td>
+                            <td>
+                                <form method="post" action="{% url 'excluir_abastecimento' a.id %}" style="display: inline;" onsubmit="return confirm('Excluir este abastecimento?')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-small btn-danger">Excluir</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="sem-custos">Nenhum abastecimento registrado.</p>
+        {% endif %}
+    </div>
+
+    <!-- Histórico de quilometragem -->
+    <div class="custos-lista">
+        <div class="secao-header">
+            <h2>Histórico de Quilometragem</h2>
+            <a href="{% url 'novo_registro_km' veiculo.id %}" class="btn btn-small btn-primary">+ Registro</a>
+        </div>
+        {% if registros_km %}
+            <table class="custos-table">
+                <thead>
+                    <tr><th>Data</th><th>Km</th><th>Origem</th><th>Ações</th></tr>
+                </thead>
+                <tbody>
+                    {% for r in registros_km %}
+                        <tr>
+                            <td>{{ r.data|date:"d/m/Y" }}</td>
+                            <td>{{ r.quilometragem }}</td>
+                            <td>{{ r.origem }}</td>
+                            <td>
+                                <form method="post" action="{% url 'excluir_registro_km' r.id %}" style="display: inline;" onsubmit="return confirm('Excluir este registro?')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-small btn-danger">Excluir</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="sem-custos">Nenhum registro de quilometragem.</p>
+        {% endif %}
+    </div>
+
     <!-- Lista de custos -->
     <div class="custos-lista">
         <h2>Últimos Custos Registrados</h2>

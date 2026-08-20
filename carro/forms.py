@@ -1,6 +1,14 @@
 from django import forms
 
-from carro.models import Custo, Veiculo
+from carro.models import (
+    Abastecimento,
+    Custo,
+    PlanoManutencao,
+    RegistroQuilometragem,
+    Veiculo,
+)
+
+_DATE = forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d')
 
 
 class VeiculoForm(forms.ModelForm):
@@ -34,3 +42,46 @@ class CustoForm(forms.ModelForm):
         if valor is not None and valor <= 0:
             raise forms.ValidationError('O valor deve ser maior que zero.')
         return valor
+
+
+class AbastecimentoForm(forms.ModelForm):
+    class Meta:
+        model = Abastecimento
+        fields = ['data', 'quilometragem', 'litros', 'valor_total',
+                  'tipo_combustivel', 'posto']
+        widgets = {'data': _DATE}
+
+    def clean_litros(self):
+        litros = self.cleaned_data['litros']
+        if litros is not None and litros <= 0:
+            raise forms.ValidationError('Os litros devem ser maiores que zero.')
+        return litros
+
+    def clean_valor_total(self):
+        valor = self.cleaned_data['valor_total']
+        if valor is not None and valor <= 0:
+            raise forms.ValidationError('O valor deve ser maior que zero.')
+        return valor
+
+
+class RegistroQuilometragemForm(forms.ModelForm):
+    class Meta:
+        model = RegistroQuilometragem
+        fields = ['data', 'quilometragem', 'origem', 'observacao']
+        widgets = {'data': _DATE, 'observacao': forms.Textarea(attrs={'rows': 2})}
+
+
+class PlanoManutencaoForm(forms.ModelForm):
+    class Meta:
+        model = PlanoManutencao
+        fields = ['descricao', 'intervalo_km', 'intervalo_dias',
+                  'km_referencia', 'data_referencia']
+        widgets = {'data_referencia': _DATE}
+
+    def clean(self):
+        dados = super().clean()
+        if not dados.get('intervalo_km') and not dados.get('intervalo_dias'):
+            raise forms.ValidationError(
+                'Informe ao menos um intervalo: por km ou por dias.'
+            )
+        return dados

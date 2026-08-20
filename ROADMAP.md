@@ -67,31 +67,24 @@ Base pronta para crescer sem virar bagunça.
 
 ---
 
-## 🟢 Fase 3 — Modelagem de domínio (a parte de maior valor)
+## ✅ Fase 3 — Modelagem de domínio (concluída)
 
-Aqui o sistema deixa de ser "CRUD de veículo" e vira gestão de frota de verdade.
-**Um item por vez**, cada um com tela e teste.
+O sistema deixou de ser "CRUD de veículo" e virou gestão de frota.
 
-- [ ] **Abastecimento como entidade própria** — em vez de tratar combustível
-  como um "custo" genérico:
-  ```
-  Abastecimento: veiculo, data, quilometragem, litros,
-                 valor_total, valor_litro, posto, tipo_combustivel
-  ```
-  Habilita **consumo médio (km/l)**, **preço médio do litro** e
-  **custo de combustível por km**.
-- [ ] **Histórico de quilometragem** — registrar leituras de odômetro ao longo
-  do tempo (`RegistroQuilometragem: veiculo, data, quilometragem, origem`) em
-  vez de um único número. Base para km/mês, custo/km e detecção de
-  inconsistências.
-- [ ] **Manutenção preventiva com alerta** — controlar por km e/ou por data
-  (troca de óleo, licenciamento, seguro) com status visual
-  🟢 em dia · 🟡 próximo · 🔴 atrasado.
-- [ ] **Situação do veículo mais rica** — além de ativo/inativo/manutenção,
-  contemplar `vendido` / `baixado` para permitir indicadores corretos.
-- [ ] 🔵 **Dados cadastrais adicionais** — placa (única), Renavam, chassi,
-  combustível, quilometragem atual — **conforme forem sendo usados**, não todos
-  de uma vez.
+- [x] **Abastecimento como entidade própria** (`Abastecimento`: data,
+  quilometragem, litros, valor_total, tipo_combustivel, posto) com propriedade
+  `valor_litro`. Habilita **consumo médio (km/l)** e **custo por km**.
+- [x] **Histórico de quilometragem** (`RegistroQuilometragem`) — leituras de
+  odômetro ao longo do tempo; `Veiculo.km_atual()` usa a maior leitura conhecida.
+- [x] **Manutenção preventiva com alerta** (`PlanoManutencao`) — por km e/ou por
+  data, com status 🟢 em dia · 🟡 próximo · 🔴 atrasado (`plano.status(km_atual)`).
+- [x] **Situação do veículo mais rica** — `vendido` e `baixado` (feito na Fase 2).
+- [x] **Indicadores na página do veículo** — km atual, consumo médio e custo/km,
+  além das listas de abastecimentos, quilometragem e planos de manutenção.
+- [x] **CRUD** — criação pelo front-end (formulário genérico) e exclusão via
+  POST; todas as entidades também registradas no Django admin.
+- [ ] 🔵 **Dados cadastrais adicionais** (placa única, Renavam, chassi) —
+  adiar até serem realmente usados (YAGNI).
 
 ---
 

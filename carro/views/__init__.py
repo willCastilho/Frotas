@@ -10,6 +10,14 @@ from .custos import (
     editar_custo,
     deletar_custo,
 )
+from .frota import (
+    novo_abastecimento,
+    novo_registro_km,
+    novo_plano_manutencao,
+    excluir_abastecimento,
+    excluir_registro_km,
+    excluir_plano_manutencao,
+)
 
 __all__ = [
     'home',
@@ -20,4 +28,10 @@ __all__ = [
     'novo_custo',
     'editar_custo',
     'deletar_custo',
+    'novo_abastecimento',
+    'novo_registro_km',
+    'novo_plano_manutencao',
+    'excluir_abastecimento',
+    'excluir_registro_km',
+    'excluir_plano_manutencao',
 ]

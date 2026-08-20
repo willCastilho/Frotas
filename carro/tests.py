@@ -2,8 +2,16 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
 
+from datetime import date, timedelta
+
 from carro.forms import CustoForm, VeiculoForm
-from carro.models import Custo, Veiculo
+from carro.models import (
+    Abastecimento,
+    Custo,
+    PlanoManutencao,
+    RegistroQuilometragem,
+    Veiculo,
+)
 
 
 def cria_veiculo(**kwargs):
@@ -109,3 +117,93 @@ class CustoFluxoTests(LogadoMixin, TestCase):
         self.assertEqual(resposta.status_code, 302)
         self.assertEqual(Custo.objects.count(), 1)
         self.assertEqual(Custo.objects.first().veiculo, veiculo)
+
+
+class MetricasFrotaTests(TestCase):
+    def setUp(self):
+        self.veiculo = cria_veiculo()
+
+    def test_km_atual_pega_maior_leitura(self):
+        Abastecimento.objects.create(
+            veiculo=self.veiculo, quilometragem=1000, litros=30,
+            valor_total=180, data='2024-01-01')
+        RegistroQuilometragem.objects.create(
+            veiculo=self.veiculo, quilometragem=1500, data='2024-02-01')
+        self.assertEqual(self.veiculo.km_atual(), 1500)
+
+    def test_consumo_medio_tanque_cheio(self):
+        # 1000 -> 1400 km = 400 km; litros apos o primeiro = 40 -> 10 km/l
+        Abastecimento.objects.create(
+            veiculo=self.veiculo, quilometragem=1000, litros=40,
+            valor_total=240, data='2024-01-01')
+        Abastecimento.objects.create(
+            veiculo=self.veiculo, quilometragem=1400, litros=40,
+            valor_total=240, data='2024-01-10')
+        self.assertAlmostEqual(self.veiculo.consumo_medio(), 10.0)
+
+    def test_consumo_medio_insuficiente(self):
+        self.assertIsNone(self.veiculo.consumo_medio())
+
+    def test_custo_por_km(self):
+        Custo.objects.create(veiculo=self.veiculo, tipo='outro',
+                             descricao='x', valor=1000, data='2024-01-01')
+        Abastecimento.objects.create(
+            veiculo=self.veiculo, quilometragem=1000, litros=30,
+            valor_total=180, data='2024-01-01')
+        RegistroQuilometragem.objects.create(
+            veiculo=self.veiculo, quilometragem=3000, data='2024-02-01')
+        # 1000 de custo / 2000 km = 0.5 R$/km
+        self.assertAlmostEqual(self.veiculo.custo_por_km(), 0.5)
+
+
+class PlanoManutencaoTests(TestCase):
+    def setUp(self):
+        self.veiculo = cria_veiculo()
+
+    def test_status_atrasado_por_km(self):
+        plano = PlanoManutencao.objects.create(
+            veiculo=self.veiculo, descricao='Óleo',
+            intervalo_km=10000, km_referencia=70000)
+        # proxima_km = 80000; km_atual 82000 -> atrasado
+        self.assertEqual(plano.status(82000)['cor'], 'red')
+
+    def test_status_em_dia_por_km(self):
+        plano = PlanoManutencao.objects.create(
+            veiculo=self.veiculo, descricao='Óleo',
+            intervalo_km=10000, km_referencia=70000)
+        self.assertEqual(plano.status(72000)['cor'], 'green')
+
+    def test_status_vencida_por_data(self):
+        plano = PlanoManutencao.objects.create(
+            veiculo=self.veiculo, descricao='Licenciamento',
+            intervalo_dias=30, data_referencia=date.today() - timedelta(days=60))
+        self.assertEqual(plano.status()['cor'], 'red')
+
+
+class FrotaViewsTests(LogadoMixin, TestCase):
+    def setUp(self):
+        super().setUp()
+        self.veiculo = cria_veiculo()
+
+    def test_novo_abastecimento(self):
+        url = reverse('novo_abastecimento', args=[self.veiculo.id])
+        resposta = self.client.post(url, {
+            'data': '2024-01-01', 'quilometragem': 1000, 'litros': '30.000',
+            'valor_total': '180.00', 'tipo_combustivel': 'gasolina', 'posto': 'Shell',
+        })
+        self.assertEqual(resposta.status_code, 302)
+        self.assertEqual(Abastecimento.objects.count(), 1)
+
+    def test_plano_exige_algum_intervalo(self):
+        url = reverse('novo_plano_manutencao', args=[self.veiculo.id])
+        resposta = self.client.post(url, {'descricao': 'Sem intervalo'})
+        self.assertEqual(resposta.status_code, 200)  # form invalido, re-render
+        self.assertEqual(PlanoManutencao.objects.count(), 0)
+
+    def test_detalhes_renderiza_com_dominio(self):
+        Abastecimento.objects.create(
+            veiculo=self.veiculo, quilometragem=1000, litros=30,
+            valor_total=180, data='2024-01-01')
+        resposta = self.client.get(reverse('detalhes_veiculo', args=[self.veiculo.id]))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, 'Consumo médio')

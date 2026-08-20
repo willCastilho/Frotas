@@ -60,12 +60,24 @@ def detalhes_veiculo(request, veiculo_id):
     veiculo = get_object_or_404(Veiculo, id=veiculo_id)
     custos = Custo.objects.filter(veiculo=veiculo).order_by('-data')
 
+    km_atual = veiculo.km_atual()
+    planos = [
+        {'obj': plano, 'status': plano.status(km_atual)}
+        for plano in veiculo.planos_manutencao.all()
+    ]
+
     context = {
         'veiculo': veiculo,
         'custos': custos,
         'custo_mes_atual': veiculo.custo_mes_atual(),
         'custo_mes_anterior': veiculo.custo_mes_anterior(),
         'comparacao': veiculo.comparacao_custos(),
+        'km_atual': km_atual,
+        'consumo_medio': veiculo.consumo_medio(),
+        'custo_por_km': veiculo.custo_por_km(),
+        'abastecimentos': veiculo.abastecimentos.all()[:10],
+        'registros_km': veiculo.registros_km.all()[:10],
+        'planos': planos,
     }
     return render(request, 'detalhes_veiculo.html', context)
 
