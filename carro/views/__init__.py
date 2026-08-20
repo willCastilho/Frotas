@@ -18,6 +18,8 @@ from .frota import (
     excluir_registro_km,
     excluir_plano_manutencao,
 )
+from .dashboard import dashboard
+from .relatorios import relatorios, exportar_custos
 
 __all__ = [
     'home',
@@ -34,4 +36,7 @@ __all__ = [
     'excluir_abastecimento',
     'excluir_registro_km',
     'excluir_plano_manutencao',
+    'dashboard',
+    'relatorios',
+    'exportar_custos',
 ]

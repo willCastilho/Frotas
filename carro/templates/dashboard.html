@@ -1,0 +1,85 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>📊 Painel de Gestão</h1>
+        <p>Visão geral da frota e dos custos</p>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <span class="kpi-valor">{{ total_veiculos }}</span>
+            <span class="kpi-label">Veículos</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-valor">{{ ativos }}</span>
+            <span class="kpi-label">Ativos</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-valor">{{ em_manutencao }}</span>
+            <span class="kpi-label">Em manutenção</span>
+        </div>
+        <div class="kpi-card kpi-destaque">
+            <span class="kpi-valor">R$ {{ custo_mes_total|floatformat:2 }}</span>
+            <span class="kpi-label">Custo do mês</span>
+        </div>
+    </div>
+
+    <div class="painel-grid">
+        <div class="painel-card">
+            <h2>Custos dos últimos 6 meses</h2>
+            <div class="grafico-barras">
+                {% for m in custos_meses %}
+                    <div class="barra-col">
+                        <div class="barra-valor">R$ {{ m.total|floatformat:0 }}</div>
+                        <div class="barra" style="height: {{ m.pct }}%;" title="R$ {{ m.total|floatformat:2 }}"></div>
+                        <div class="barra-label">{{ m.label }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="painel-card">
+            <h2>Veículos com maior custo</h2>
+            {% if ranking %}
+                <ul class="ranking">
+                    {% for v in ranking %}
+                        <li>
+                            <a href="{% url 'detalhes_veiculo' v.id %}">{{ v.marca }} {{ v.modelo }}</a>
+                            <span>R$ {{ v.total|floatformat:2 }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="vazio">Sem custos registrados.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="painel-card">
+        <h2>Alertas de manutenção</h2>
+        {% if alertas %}
+            <table class="alertas-table">
+                <thead>
+                    <tr><th>Veículo</th><th>Manutenção</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    {% for a in alertas %}
+                        <tr>
+                            <td><a href="{% url 'detalhes_veiculo' a.plano.veiculo.id %}">{{ a.plano.veiculo.marca }} {{ a.plano.veiculo.modelo }}</a></td>
+                            <td>{{ a.plano.descricao }}</td>
+                            <td><span class="variacao-{{ a.status.cor }}">{{ a.status.texto }}</span> <small>{{ a.status.detalhe }}</small></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vazio">Nenhum alerta de manutenção. 🎉</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

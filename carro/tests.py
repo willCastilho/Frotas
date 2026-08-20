@@ -207,3 +207,32 @@ class FrotaViewsTests(LogadoMixin, TestCase):
         resposta = self.client.get(reverse('detalhes_veiculo', args=[self.veiculo.id]))
         self.assertEqual(resposta.status_code, 200)
         self.assertContains(resposta, 'Consumo médio')
+
+
+class DashboardTests(LogadoMixin, TestCase):
+    def test_dashboard_renderiza(self):
+        cria_veiculo()
+        resposta = self.client.get(reverse('dashboard'))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, 'Painel de Gestão')
+
+    def test_relatorios_renderiza(self):
+        resposta = self.client.get(reverse('relatorios'))
+        self.assertEqual(resposta.status_code, 200)
+
+    def test_exportar_csv(self):
+        veiculo = cria_veiculo()
+        Custo.objects.create(veiculo=veiculo, tipo='combustivel',
+                             descricao='Gasolina', valor=100, data='2024-01-01')
+        resposta = self.client.get(reverse('exportar_custos'), {'formato': 'csv'})
+        self.assertEqual(resposta.status_code, 200)
+        self.assertIn('text/csv', resposta['Content-Type'])
+        self.assertIn('Gasolina', resposta.content.decode('utf-8'))
+
+    def test_exportar_xlsx(self):
+        veiculo = cria_veiculo()
+        Custo.objects.create(veiculo=veiculo, tipo='combustivel',
+                             descricao='Gasolina', valor=100, data='2024-01-01')
+        resposta = self.client.get(reverse('exportar_custos'), {'formato': 'xlsx'})
+        self.assertEqual(resposta.status_code, 200)
+        self.assertIn('spreadsheetml', resposta['Content-Type'])

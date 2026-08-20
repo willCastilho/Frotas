@@ -88,19 +88,19 @@ O sistema deixou de ser "CRUD de veículo" e virou gestão de frota.
 
 ---
 
-## 📊 Fase 4 — Camada gerencial
+## ✅ Fase 4 — Camada gerencial (concluída)
 
-Só faz sentido **depois** que os dados ricos da Fase 3 existirem (dashboard sem
-dados é gráfico vazio).
+- [x] **Dashboard** (`/dashboard/`) — KPIs (veículos, ativos, em manutenção,
+  custo do mês), gráfico de barras dos custos dos últimos 6 meses (CSS puro,
+  sem libs externas), ranking dos veículos por custo e **alertas de manutenção
+  da frota** (planos vencidos/próximos).
+- [x] **Relatórios** (`/relatorios/`) — custos por categoria e por veículo, com
+  filtro de período.
+- [x] **Exportação** — CSV (com BOM/`;` para Excel PT-BR) e Excel (`openpyxl`).
+- [x] **Navegação** — barra de topo com Dashboard / Veículos / Relatórios.
 
-- [ ] **Dashboard inicial** — cards de resumo (veículos ativos, custo do mês,
-  em manutenção) + gráfico de custos dos últimos meses + ranking de veículos
-  por custo.
-- [ ] **Relatórios** — custos por veículo/período/categoria, consumo de
-  combustível, quilometragem, veículos mais caros.
-- [ ] **Exportação** — CSV/Excel (e PDF se necessário). Exportar dados é quase
-  tão importante quanto cadastrá-los em um sistema administrativo.
-- [ ] **Filtros e busca avançada** na listagem (marca, status, faixa de ano).
+> A busca/filtro na listagem de veículos (marca, status) já existia na home; a
+> faixa de ano fica como melhoria opcional futura.
 
 ---
 

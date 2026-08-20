@@ -19,4 +19,9 @@ urlpatterns = [
     path('abastecimento/<int:pk>/excluir/', carro_views.excluir_abastecimento, name='excluir_abastecimento'),
     path('km/<int:pk>/excluir/', carro_views.excluir_registro_km, name='excluir_registro_km'),
     path('plano/<int:pk>/excluir/', carro_views.excluir_plano_manutencao, name='excluir_plano_manutencao'),
+
+    # Fase 4 - camada gerencial
+    path('dashboard/', carro_views.dashboard, name='dashboard'),
+    path('relatorios/', carro_views.relatorios, name='relatorios'),
+    path('relatorios/exportar/', carro_views.exportar_custos, name='exportar_custos'),
 ]
