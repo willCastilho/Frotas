@@ -261,3 +261,39 @@ class AuditoriaTests(TestCase):
         self.assertTrue(
             LogEntry.objects.get_for_object(veiculo).exists()
         )
+
+
+class CriarAdminTests(TestCase):
+    def test_cria_e_e_idempotente(self):
+        import os
+        from django.contrib.auth import get_user_model
+        from django.core.management import call_command
+
+        User = get_user_model()
+        env = {
+            'DJANGO_SUPERUSER_USERNAME': 'admin',
+            'DJANGO_SUPERUSER_PASSWORD': 'senhaForte123',
+            'DJANGO_SUPERUSER_EMAIL': 'admin@exemplo.com',
+        }
+        antigo = {k: os.environ.get(k) for k in env}
+        os.environ.update(env)
+        try:
+            call_command('criar_admin')
+            self.assertTrue(User.objects.filter(username='admin', is_superuser=True).exists())
+            # Rodar de novo nao deve duplicar nem falhar
+            call_command('criar_admin')
+            self.assertEqual(User.objects.filter(username='admin').count(), 1)
+        finally:
+            for k, v in antigo.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
+    def test_sem_variaveis_nao_cria(self):
+        from django.contrib.auth import get_user_model
+        from django.core.management import call_command
+
+        User = get_user_model()
+        call_command('criar_admin')
+        self.assertEqual(User.objects.filter(is_superuser=True).count(), 0)
