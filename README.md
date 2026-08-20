@@ -130,6 +130,30 @@ docker compose up --build
 A aplicação fica em http://localhost:8000/. As variáveis podem ser ajustadas por
 um `.env` na raiz (veja `.env.example`).
 
+## ☁️ Deploy no Railway
+
+O projeto já está pronto para o [Railway](https://railway.app) (build por
+`Dockerfile`, `PORT` automática, estáticos via WhiteNoise e leitura de
+`DATABASE_URL`).
+
+1. **Novo projeto** → *Deploy from GitHub repo* → selecione `willCastilho/Frotas`.
+2. Adicione um serviço **PostgreSQL** (*New → Database → PostgreSQL*).
+3. No serviço da aplicação, aba **Variables**, defina:
+   - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}` (referência ao Postgres)
+   - `DJANGO_SECRET_KEY` = uma chave longa e aleatória
+   - `DJANGO_DEBUG` = `False`
+   - `DJANGO_ALLOWED_HOSTS` = o domínio gerado, ex.: `meuapp.up.railway.app`
+   - `DJANGO_CSRF_TRUSTED_ORIGINS` = `https://meuapp.up.railway.app`
+4. O deploy roda `migrate` automaticamente no start. Para criar o usuário
+   administrador, use o terminal do serviço no Railway:
+   ```bash
+   python manage.py createsuperuser
+   python manage.py criar_grupos   # opcional
+   ```
+
+> As migrações rodam sozinhas a cada deploy (definido no `Dockerfile` /
+> `railway.json`). O banco do Railway já vem criado — não precisa de `createdb`.
+
 ## 🔐 Auditoria
 
 Todas as alterações em veículos, custos, abastecimentos, quilometragem e planos

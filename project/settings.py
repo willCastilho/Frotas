@@ -28,6 +28,14 @@ ALLOWED_HOSTS = [
     if h.strip()
 ]
 
+# Dominios confiaveis para CSRF (necessario com HTTPS, ex.: Railway).
+# Ex.: DJANGO_CSRF_TRUSTED_ORIGINS=https://meuapp.up.railway.app
+CSRF_TRUSTED_ORIGINS = [
+    o.strip()
+    for o in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',')
+    if o.strip()
+]
+
 
 # Application definition
 
@@ -44,6 +52,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -114,20 +123,29 @@ LOGGING = {
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 #
-# Configurado para PostgreSQL. As credenciais vem do arquivo .env
-# (veja .env.example). Crie o banco em branco com o script
-# scripts/create_database.sql antes de rodar as migracoes.
+# Em producao (ex.: Railway) basta definir a variavel DATABASE_URL que o
+# provedor do PostgreSQL fornece. Localmente, se DATABASE_URL nao existir,
+# usa as variaveis DB_* do arquivo .env (veja .env.example).
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'gestao_frotas'),
-        'USER': os.environ.get('DB_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-        'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
+import dj_database_url  # noqa: E402
+
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600),
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME', 'gestao_frotas'),
+            'USER': os.environ.get('DB_USER', 'postgres'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+        }
+    }
 
 
 # Password validation
@@ -170,9 +188,19 @@ STATICFILES_DIRS = [
     BASE_DIR / 'carro' / 'base' / 'static',
 ]
 
-STATIC_ROOT = BASE_DIR / 'static'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# WhiteNoise: serve os arquivos estaticos em producao (com compressao e cache).
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+    },
+}
 
 
 # Default primary key field type
