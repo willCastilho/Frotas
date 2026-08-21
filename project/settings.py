@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'auditlog',
+    'contas',
     'carro',
 ]
 
@@ -60,6 +61,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'auditlog.middleware.AuditlogMiddleware',
+    'contas.middleware.OrganizacaoObrigatoriaMiddleware',
 ]
 
 ROOT_URLCONF = 'project.urls'
@@ -192,15 +194,65 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# WhiteNoise: serve os arquivos estaticos em producao (com compressao e cache).
+# Armazenamento de arquivos.
+# Em producao o disco do container e efemero (uploads somem a cada deploy), entao
+# use um storage externo compativel com S3 (AWS S3, Cloudflare R2, MinIO...).
+# Ative definindo USE_S3=True e as credenciais no ambiente.
+USE_S3 = os.environ.get('USE_S3', 'False').lower() == 'true'
+
+if USE_S3:
+    _default_storage = {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+        'OPTIONS': {
+            'access_key': os.environ.get('AWS_ACCESS_KEY_ID'),
+            'secret_key': os.environ.get('AWS_SECRET_ACCESS_KEY'),
+            'bucket_name': os.environ.get('AWS_STORAGE_BUCKET_NAME'),
+            'region_name': os.environ.get('AWS_S3_REGION_NAME', 'auto'),
+            'endpoint_url': os.environ.get('AWS_S3_ENDPOINT_URL') or None,
+            'querystring_auth': True,
+            'file_overwrite': False,
+        },
+    }
+else:
+    _default_storage = {'BACKEND': 'django.core.files.storage.FileSystemStorage'}
+
 STORAGES = {
-    'default': {
-        'BACKEND': 'django.core.files.storage.FileSystemStorage',
-    },
+    'default': _default_storage,
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
     },
 }
+
+
+# E-mail (recuperacao de senha, convites, alertas).
+# Sem SMTP configurado, os e-mails vao para o console (dev). Em producao,
+# defina EMAIL_HOST/EMAIL_HOST_USER/EMAIL_HOST_PASSWORD no ambiente.
+if os.environ.get('EMAIL_HOST'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.environ.get('EMAIL_HOST')
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Gestão de Frotas <no-reply@frotas.app>')
+
+
+# Monitoramento de erros (Sentry) - ativado se SENTRY_DSN estiver definido.
+SENTRY_DSN = os.environ.get('SENTRY_DSN')
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            traces_sample_rate=float(os.environ.get('SENTRY_TRACES_RATE', '0.1')),
+            send_default_pii=False,
+        )
+    except ImportError:
+        pass
 
 
 # Default primary key field type

@@ -7,6 +7,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('', home, name='home'),
     path('accounts/', include('django.contrib.auth.urls')),
+    path('', include('contas.urls')),
     path('', include('carro.urls')),
     path('admin/', admin.site.urls),
 ]

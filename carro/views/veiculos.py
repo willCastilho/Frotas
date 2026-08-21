@@ -7,8 +7,14 @@ from django.views.decorators.http import require_POST
 
 from carro.forms import VeiculoForm
 from carro.models import Custo, Veiculo, comparacao_custos
+from contas.utils import exige_escrita, organizacao_do
 
 VEICULOS_POR_PAGINA = 9
+
+
+def _veiculos_da_org(request):
+    """Queryset base isolado pela organizacao do usuario logado."""
+    return Veiculo.objects.filter(organizacao=organizacao_do(request.user))
 
 
 @login_required
@@ -16,7 +22,7 @@ def home(request):
     status_filter = request.GET.get('status', 'todos')
     search_query = request.GET.get('search', '').strip()
 
-    carros = Veiculo.objects.com_custos_mensais().order_by('marca', 'modelo')
+    carros = _veiculos_da_org(request).com_custos_mensais().order_by('marca', 'modelo')
 
     if status_filter != 'todos':
         carros = carros.filter(status=status_filter)
@@ -64,7 +70,7 @@ def home(request):
 
 @login_required
 def detalhes_veiculo(request, veiculo_id):
-    veiculo = get_object_or_404(Veiculo, id=veiculo_id)
+    veiculo = get_object_or_404(_veiculos_da_org(request), id=veiculo_id)
     custos = Custo.objects.filter(veiculo=veiculo).order_by('-data')
 
     km_atual = veiculo.km_atual()
@@ -90,18 +96,31 @@ def detalhes_veiculo(request, veiculo_id):
 
 
 @login_required
+@exige_escrita
 def novo_veiculo(request):
+    org = organizacao_do(request.user)
+    if org and org.atingiu_limite_veiculos():
+        messages.error(
+            request,
+            'Você atingiu o limite de veículos do seu plano. '
+            'Faça upgrade para cadastrar mais.'
+        )
+        return redirect('home')
+
     form = VeiculoForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
-        form.save()
+        veiculo = form.save(commit=False)
+        veiculo.organizacao = org
+        veiculo.save()
         messages.success(request, 'Veículo cadastrado com sucesso!')
         return redirect('home')
     return render(request, 'novo_veiculo.html', {'form': form})
 
 
 @login_required
+@exige_escrita
 def editar_veiculo(request, veiculo_id):
-    veiculo = get_object_or_404(Veiculo, id=veiculo_id)
+    veiculo = get_object_or_404(_veiculos_da_org(request), id=veiculo_id)
     form = VeiculoForm(request.POST or None, request.FILES or None, instance=veiculo)
     if request.method == 'POST' and form.is_valid():
         form.save()
@@ -111,9 +130,10 @@ def editar_veiculo(request, veiculo_id):
 
 
 @login_required
+@exige_escrita
 @require_POST
 def excluir_veiculo(request, veiculo_id):
-    veiculo = get_object_or_404(Veiculo, id=veiculo_id)
+    veiculo = get_object_or_404(_veiculos_da_org(request), id=veiculo_id)
     veiculo.delete()
     messages.success(request, 'Veículo excluído com sucesso!')
     return redirect('home')

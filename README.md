@@ -168,6 +168,33 @@ quando). Os registros ficam visíveis no admin do Django.
 
 Gera um dump `.sql.gz` com data no nome. Pode ser agendado no cron.
 
+## 🏢 Multi-tenant (SaaS)
+
+O sistema isola os dados por **organização** (cada cliente vê apenas a própria
+frota). Recursos:
+
+- **Cadastro autosserviço** em `/cadastro/` (cria usuário + organização + perfil admin).
+- **Recuperação de senha por e-mail** (`/accounts/password_reset/`).
+- **Gestão de usuários** por organização em `/conta/usuarios/`, com papéis
+  **Administrador / Gestor / Operador / Consulta** (RBAC por conta).
+- **Planos e limite de veículos** por organização (`/conta/`).
+- **Convite de usuários** por e-mail (o convidado define a própria senha).
+
+Superusuários criados por comando recebem uma organização padrão automaticamente.
+
+### Armazenamento de uploads em produção
+
+Configure um storage S3 (AWS/R2/MinIO) via `USE_S3=True` + credenciais — no
+Railway o disco é efêmero e os uploads locais se perderiam a cada deploy.
+
+### Alertas por e-mail (agendável)
+
+```bash
+python manage.py enviar_alertas
+```
+Envia aos administradores de cada organização os alertas de manutenção atrasada
+e de orçamento estourado. Ideal no cron (diário).
+
 ## 📁 Estrutura do projeto
 
 ```

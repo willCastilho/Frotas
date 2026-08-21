@@ -5,11 +5,23 @@ from django.views.decorators.http import require_POST
 
 from carro.forms import CustoForm
 from carro.models import Custo, Veiculo
+from contas.utils import exige_escrita, organizacao_do
+
+
+def _veiculo_da_org(request, veiculo_id):
+    return get_object_or_404(
+        Veiculo, id=veiculo_id, organizacao=organizacao_do(request.user))
+
+
+def _custo_da_org(request, custo_id):
+    return get_object_or_404(
+        Custo, id=custo_id, veiculo__organizacao=organizacao_do(request.user))
 
 
 @login_required
+@exige_escrita
 def novo_custo(request, veiculo_id):
-    veiculo = get_object_or_404(Veiculo, id=veiculo_id)
+    veiculo = _veiculo_da_org(request, veiculo_id)
     form = CustoForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
         custo = form.save(commit=False)
@@ -21,8 +33,9 @@ def novo_custo(request, veiculo_id):
 
 
 @login_required
+@exige_escrita
 def editar_custo(request, custo_id):
-    custo = get_object_or_404(Custo, id=custo_id)
+    custo = _custo_da_org(request, custo_id)
     veiculo = custo.veiculo
     if hasattr(custo, 'abastecimento'):
         messages.info(request, 'Este custo vem de um abastecimento; edite pelo abastecimento.')
@@ -37,9 +50,10 @@ def editar_custo(request, custo_id):
 
 
 @login_required
+@exige_escrita
 @require_POST
 def deletar_custo(request, custo_id):
-    custo = get_object_or_404(Custo, id=custo_id)
+    custo = _custo_da_org(request, custo_id)
     veiculo_id = custo.veiculo.id
     if hasattr(custo, 'abastecimento'):
         messages.info(request, 'Este custo vem de um abastecimento; exclua pelo abastecimento.')

@@ -68,6 +68,9 @@ class Veiculo(models.Model):
         ('baixado', 'Baixado'),
     ]
 
+    organizacao = models.ForeignKey(
+        'contas.Organizacao', on_delete=models.CASCADE, related_name='veiculos'
+    )
     modelo = models.CharField(max_length=100)
     marca = models.CharField(max_length=100)
     ano = models.IntegerField()
@@ -82,6 +85,11 @@ class Veiculo(models.Model):
     )
 
     objects = VeiculoQuerySet.as_manager()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['organizacao', 'status']),
+        ]
 
     def __str__(self):
         return f"{self.marca} {self.modelo} ({self.ano})"
@@ -203,6 +211,10 @@ class Custo(models.Model):
 
     class Meta:
         ordering = ['-data']
+        indexes = [
+            models.Index(fields=['veiculo', 'data']),
+            models.Index(fields=['data']),
+        ]
 
     def __str__(self):
         return f"{self.veiculo} - {self.tipo} - R$ {self.valor}"

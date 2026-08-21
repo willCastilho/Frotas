@@ -9,7 +9,9 @@ from carro.models import Custo
 
 
 def _custos_filtrados(request):
-    custos = Custo.objects.select_related('veiculo').all()
+    from contas.utils import organizacao_do
+    custos = Custo.objects.select_related('veiculo').filter(
+        veiculo__organizacao=organizacao_do(request.user))
     inicio = request.GET.get('inicio')
     fim = request.GET.get('fim')
     if inicio:

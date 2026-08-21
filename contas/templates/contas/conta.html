@@ -1,0 +1,64 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>Minha conta</h1>
+        <p>Dados da organização e do plano.</p>
+    </div>
+
+    <div class="painel-grid">
+        <div class="painel-card">
+            <h2>Organização</h2>
+            <p><strong>{{ org.nome }}</strong></p>
+            <p class="vazio">Criada em {{ org.criado_em|date:"d/m/Y" }}</p>
+            <p>Seu papel: <strong>{{ perfil.get_papel_display }}</strong></p>
+        </div>
+
+        <div class="painel-card">
+            <h2>Plano</h2>
+            {% if org.plano %}
+                <p><strong>{{ org.plano.nome }}</strong> — R$ {{ org.plano.preco_mensal|floatformat:2 }}/mês</p>
+                <p class="vazio">
+                    Limite de veículos:
+                    {% if org.plano.limite_veiculos %}{{ org.plano.limite_veiculos }}{% else %}ilimitado{% endif %}
+                </p>
+            {% else %}
+                <p class="vazio">Nenhum plano associado.</p>
+            {% endif %}
+            <p>
+                Assinatura:
+                {% if org.assinatura_em_dia %}
+                    <span class="variacao-green">Em dia</span>
+                {% else %}
+                    <span class="variacao-red">Pendente</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    {% if planos %}
+    <div class="painel-card">
+        <h2>Planos disponíveis</h2>
+        <table class="alertas-table">
+            <thead><tr><th>Plano</th><th>Preço/mês</th><th>Limite de veículos</th></tr></thead>
+            <tbody>
+                {% for p in planos %}
+                    <tr>
+                        <td>{{ p.nome }}</td>
+                        <td>R$ {{ p.preco_mensal|floatformat:2 }}</td>
+                        <td>{% if p.limite_veiculos %}{{ p.limite_veiculos }}{% else %}ilimitado{% endif %}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p style="font-size:.82rem;color:var(--text-muted);margin-top:10px;">
+            A troca de plano e o pagamento serão feitos pelo checkout (integração de pagamento).
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock content %}

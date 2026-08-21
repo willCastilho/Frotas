@@ -33,6 +33,7 @@
 .kpi-destaque { background: linear-gradient(135deg, var(--primary), var(--primary-600)); border-color: transparent; }
 .kpi-destaque::before { background: rgba(255,255,255,.5); }
 .kpi-destaque .kpi-valor, .kpi-destaque .kpi-label { color: #fff; }
+.kpi-projecao { color: rgba(255,255,255,.85); font-size: .78rem; margin-top: 4px; }
 
 /* Painéis */
 .painel-grid {

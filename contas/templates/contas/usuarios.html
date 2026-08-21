@@ -1,0 +1,77 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/formulario.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>Usuários da conta</h1>
+        <p>Gerencie quem tem acesso e o papel de cada um.</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="painel-card">
+        <h2>Membros</h2>
+        <table class="alertas-table">
+            <thead><tr><th>Usuário</th><th>E-mail</th><th>Papel</th><th>Ações</th></tr></thead>
+            <tbody>
+                {% for m in membros %}
+                    <tr>
+                        <td>{{ m.user.get_username }}</td>
+                        <td>{{ m.user.email }}</td>
+                        <td>
+                            <form method="post" action="{% url 'alterar_papel' m.id %}" style="display:flex;gap:6px;align-items:center;">
+                                {% csrf_token %}
+                                <select name="papel">
+                                    {% for val, lab in m.PAPEL_CHOICES %}
+                                        <option value="{{ val }}" {% if m.papel == val %}selected{% endif %}>{{ lab }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-small btn-secondary">Salvar</button>
+                            </form>
+                        </td>
+                        <td>
+                            {% if m.user_id != request.user.id %}
+                                <form method="post" action="{% url 'remover_usuario' m.id %}" onsubmit="return confirm('Remover este usuário?')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-small btn-danger">Remover</button>
+                                </form>
+                            {% else %}
+                                <span class="vazio">você</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="form-card" style="margin-top:20px;">
+        <h2>Adicionar usuário</h2>
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% for erro in field.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
+                </div>
+            {% endfor %}
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Adicionar e enviar convite</button>
+            </div>
+        </form>
+        <p style="font-size:.82rem;color:var(--text-muted);margin-top:10px;">
+            O usuário receberá um e-mail para definir a própria senha.
+        </p>
+    </div>
+</div>
+{% endblock content %}

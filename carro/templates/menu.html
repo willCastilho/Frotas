@@ -1,11 +1,17 @@
 {% if user.is_authenticated %}
 <nav class="topbar">
-    <a href="{% url 'dashboard' %}" class="topbar-brand">🚗 Gestão de Frotas</a>
-    <div class="topbar-nav">
-        <a href="{% url 'dashboard' %}">Dashboard</a>
-        <a href="{% url 'home' %}">Veículos</a>
-        <a href="{% url 'relatorios' %}">Relatórios</a>
-    </div>
+    <a href="{% if user.perfil %}{% url 'dashboard' %}{% else %}{% url 'criar_organizacao' %}{% endif %}" class="topbar-brand">🚗 Gestão de Frotas</a>
+    {% if user.perfil %}
+        <div class="topbar-nav">
+            <a href="{% url 'dashboard' %}">Dashboard</a>
+            <a href="{% url 'home' %}">Veículos</a>
+            <a href="{% url 'relatorios' %}">Relatórios</a>
+            <a href="{% url 'conta' %}">Conta</a>
+            {% if user.perfil.pode_administrar %}
+                <a href="{% url 'usuarios' %}">Usuários</a>
+            {% endif %}
+        </div>
+    {% endif %}
     <div class="topbar-user">
         <span>Olá, {{ user.get_username }}</span>
         <form method="post" action="{% url 'logout' %}" style="display: inline;">

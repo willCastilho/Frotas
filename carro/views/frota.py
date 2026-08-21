@@ -14,10 +14,12 @@ from carro.models import (
     RegistroQuilometragem,
     Veiculo,
 )
+from contas.utils import exige_escrita, organizacao_do
 
 
 def _criar(request, veiculo_id, form_class, titulo, sucesso):
-    veiculo = get_object_or_404(Veiculo, id=veiculo_id)
+    veiculo = get_object_or_404(
+        Veiculo, id=veiculo_id, organizacao=organizacao_do(request.user))
     form = form_class(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         obj = form.save(commit=False)
@@ -30,25 +32,29 @@ def _criar(request, veiculo_id, form_class, titulo, sucesso):
 
 
 @login_required
+@exige_escrita
 def novo_abastecimento(request, veiculo_id):
     return _criar(request, veiculo_id, AbastecimentoForm,
                   'Novo Abastecimento', 'Abastecimento registrado com sucesso!')
 
 
 @login_required
+@exige_escrita
 def novo_registro_km(request, veiculo_id):
     return _criar(request, veiculo_id, RegistroQuilometragemForm,
                   'Novo Registro de Quilometragem', 'Quilometragem registrada!')
 
 
 @login_required
+@exige_escrita
 def novo_plano_manutencao(request, veiculo_id):
     return _criar(request, veiculo_id, PlanoManutencaoForm,
                   'Novo Plano de Manutenção', 'Plano de manutenção criado!')
 
 
 def _excluir(request, model, pk, sucesso):
-    obj = get_object_or_404(model, pk=pk)
+    obj = get_object_or_404(
+        model, pk=pk, veiculo__organizacao=organizacao_do(request.user))
     veiculo_id = obj.veiculo_id
     obj.delete()
     messages.success(request, sucesso)
@@ -56,18 +62,21 @@ def _excluir(request, model, pk, sucesso):
 
 
 @login_required
+@exige_escrita
 @require_POST
 def excluir_abastecimento(request, pk):
     return _excluir(request, Abastecimento, pk, 'Abastecimento excluído.')
 
 
 @login_required
+@exige_escrita
 @require_POST
 def excluir_registro_km(request, pk):
     return _excluir(request, RegistroQuilometragem, pk, 'Registro excluído.')
 
 
 @login_required
+@exige_escrita
 @require_POST
 def excluir_plano_manutencao(request, pk):
     return _excluir(request, PlanoManutencao, pk, 'Plano excluído.')

@@ -1,0 +1,22 @@
+{% extends "head.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="header"><h1>Termos de Uso</h1></div>
+    <div style="max-width:800px;color:var(--text-muted);line-height:1.7;">
+        <p>Ao utilizar o sistema de Gestão de Frotas, você concorda com estes termos.
+        O serviço é fornecido "como está", para gerenciamento de veículos e custos da
+        sua organização.</p>
+        <h2 style="color:var(--text);margin-top:24px;">1. Uso do serviço</h2>
+        <p>Você é responsável pelos dados cadastrados e por manter a confidencialidade
+        das credenciais de acesso da sua conta.</p>
+        <h2 style="color:var(--text);margin-top:24px;">2. Dados</h2>
+        <p>Os dados da sua organização são isolados e acessíveis apenas aos usuários
+        que você autorizar. Consulte a
+        <a href="{% url 'privacidade' %}">Política de Privacidade</a>.</p>
+        <h2 style="color:var(--text);margin-top:24px;">3. Cancelamento</h2>
+        <p>Você pode encerrar sua conta a qualquer momento. Este é um documento modelo
+        e deve ser revisado por um profissional jurídico antes do uso comercial.</p>
+    </div>
+</div>
+{% endblock content %}

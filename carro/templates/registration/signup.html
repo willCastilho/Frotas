@@ -1,0 +1,38 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/formulario.css' %}">
+
+<div class="container">
+    <div class="form-header">
+        <h1>🚗 Criar conta</h1>
+        <p style="color:var(--text-muted)">Cadastre sua empresa e comece a gerenciar sua frota.</p>
+    </div>
+
+    <div class="form-card">
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-error">{{ form.non_field_errors }}</div>
+            {% endif %}
+            {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small>{{ field.help_text|safe }}</small>{% endif %}
+                    {% for erro in field.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
+                </div>
+            {% endfor %}
+            <p style="font-size:.85rem;color:var(--text-muted)">
+                Veja os <a href="{% url 'termos' %}" target="_blank">Termos de Uso</a> e a
+                <a href="{% url 'privacidade' %}" target="_blank">Política de Privacidade</a>.
+            </p>
+            <div class="form-actions">
+                <a href="{% url 'login' %}" class="btn btn-secondary">Já tenho conta</a>
+                <button type="submit" class="btn btn-primary">Criar conta</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock content %}
