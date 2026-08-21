@@ -227,7 +227,12 @@ STORAGES = {
 # E-mail (recuperacao de senha, convites, alertas).
 # Sem SMTP configurado, os e-mails vao para o console (dev). Em producao,
 # defina EMAIL_HOST/EMAIL_HOST_USER/EMAIL_HOST_PASSWORD no ambiente.
-if os.environ.get('EMAIL_HOST'):
+# Prioridade: API HTTP do Brevo (HTTPS/443, imune a bloqueio de SMTP) ->
+# SMTP generico -> console (dev).
+if os.environ.get('BREVO_API_KEY'):
+    EMAIL_BACKEND = 'contas.email_backends.BrevoAPIBackend'
+    BREVO_API_KEY = os.environ['BREVO_API_KEY']
+elif os.environ.get('EMAIL_HOST'):
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = os.environ.get('EMAIL_HOST')
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')

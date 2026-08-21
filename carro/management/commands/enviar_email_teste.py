@@ -14,15 +14,17 @@ class Command(BaseCommand):
         destino = options['destino']
         backend = getattr(settings, 'EMAIL_BACKEND', '')
         self.stdout.write(f'Backend de e-mail: {backend}')
-        if 'smtp' in backend.lower():
+        if 'brevo' in backend.lower():
+            self.stdout.write('Modo: API HTTP do Brevo (HTTPS/443).')
+        elif 'smtp' in backend.lower():
             self.stdout.write(
                 f'SMTP: {settings.EMAIL_HOST}:{settings.EMAIL_PORT} '
                 f'(TLS={getattr(settings, "EMAIL_USE_TLS", False)}, '
                 f'SSL={getattr(settings, "EMAIL_USE_SSL", False)})')
         else:
             self.stdout.write(self.style.WARNING(
-                'Nenhum SMTP configurado (EMAIL_HOST vazio). O e-mail iria para '
-                'o console. Defina as variaveis de e-mail no ambiente.'))
+                'Nenhum e-mail configurado (BREVO_API_KEY/EMAIL_HOST vazios). O '
+                'e-mail iria para o console. Defina as variaveis no ambiente.'))
 
         try:
             enviados = send_mail(

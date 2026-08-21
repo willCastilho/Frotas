@@ -607,6 +607,49 @@ class DashboardPeriodoTests(LogadoMixin, TestCase):
         self.assertEqual(float(r.context['custo_mes_total']), 0.0)
 
 
+class BrevoBackendTests(TestCase):
+    def test_envia_via_api_http(self):
+        import json
+        from unittest.mock import patch
+        from django.core.mail import EmailMessage
+        from contas.email_backends import BrevoAPIBackend
+
+        backend = BrevoAPIBackend()
+        backend.api_key = 'chave-teste'
+        msg = EmailMessage('Assunto', 'Corpo', 'Frotas <no-reply@ex.com>',
+                           ['destino@ex.com'])
+        capturado = {}
+
+        class FakeResp:
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def read(self): return b'{"messageId":"1"}'
+
+        def fake_urlopen(req, timeout=15):
+            capturado['url'] = req.full_url
+            capturado['api_key'] = req.get_header('Api-key')
+            capturado['body'] = json.loads(req.data.decode('utf-8'))
+            return FakeResp()
+
+        with patch('contas.email_backends.urllib.request.urlopen',
+                   side_effect=fake_urlopen):
+            enviados = backend.send_messages([msg])
+
+        self.assertEqual(enviados, 1)
+        self.assertIn('api.brevo.com', capturado['url'])
+        self.assertEqual(capturado['api_key'], 'chave-teste')
+        self.assertEqual(capturado['body']['to'], [{'email': 'destino@ex.com'}])
+        self.assertEqual(capturado['body']['sender']['email'], 'no-reply@ex.com')
+
+    def test_sem_chave_falha(self):
+        from django.core.mail import EmailMessage
+        from contas.email_backends import BrevoAPIBackend
+        backend = BrevoAPIBackend()
+        backend.api_key = ''
+        with self.assertRaises(ValueError):
+            backend.send_messages([EmailMessage('a', 'b', 'x@ex.com', ['y@ex.com'])])
+
+
 class ConviteUsuarioTests(LogadoMixin, TestCase):
     def _convidar(self, **over):
         dados = {'username': 'convidado', 'email': 'novo@ex.com',
