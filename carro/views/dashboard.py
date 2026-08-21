@@ -1,14 +1,80 @@
 import calendar
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Max, Sum
+from django.db.models import Max, Q, Sum
 from django.db.models.functions import TruncMonth
 from django.shortcuts import render
 from django.utils import timezone
 
 from carro.models import Custo, Documento, PlanoManutencao, Veiculo
 from contas.utils import organizacao_do
+
+
+MESES_LONGOS_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+                   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+
+
+def _periodo_do_request(request):
+    """Resolve o periodo do dashboard a partir dos parametros GET.
+
+    Retorna (inicio, fim, rotulo, preset, eh_mes_atual). `fim` pode ser None
+    (ate hoje). `eh_mes_atual` habilita a projecao de fechamento.
+    """
+    hoje = timezone.now().date()
+    preset = request.GET.get('periodo', 'mes_atual')
+
+    if preset == 'mes_anterior':
+        primeiro_atual = hoje.replace(day=1)
+        fim = primeiro_atual - timedelta(days=1)
+        inicio = fim.replace(day=1)
+        rotulo = f'{MESES_LONGOS_PT[inicio.month - 1].capitalize()}/{inicio.year}'
+        return inicio, fim, rotulo, preset, False
+
+    if preset == '3meses':
+        mes = hoje.month - 2
+        ano = hoje.year
+        if mes <= 0:
+            mes += 12
+            ano -= 1
+        inicio = date(ano, mes, 1)
+        return inicio, None, 'Últimos 3 meses', preset, False
+
+    if preset == 'ano':
+        inicio = date(hoje.year, 1, 1)
+        return inicio, None, f'Ano de {hoje.year}', preset, False
+
+    if preset == 'custom':
+        inicio_str = request.GET.get('inicio')
+        fim_str = request.GET.get('fim')
+        inicio = date.fromisoformat(inicio_str) if inicio_str else hoje.replace(day=1)
+        fim = date.fromisoformat(fim_str) if fim_str else None
+        partes = [inicio.strftime('%d/%m/%Y'), fim.strftime('%d/%m/%Y') if fim else 'hoje']
+        return inicio, fim, ' — '.join(partes), preset, False
+
+    # mes_atual (padrao)
+    inicio = hoje.replace(day=1)
+    rotulo = f'{MESES_LONGOS_PT[inicio.month - 1].capitalize()}/{inicio.year}'
+    return inicio, None, rotulo, 'mes_atual', True
+
+
+def _patrimonio(org):
+    """Soma o valor de aquisicao e o valor estimado atual da frota."""
+    aquisicao = atual = 0.0
+    for v in Veiculo.objects.filter(organizacao=org).exclude(
+            valor_aquisicao__isnull=True):
+        est = v.valor_estimado_atual()
+        if est:
+            aquisicao += est['aquisicao']
+            atual += est['atual']
+    if aquisicao <= 0:
+        return None
+    return {
+        'aquisicao': aquisicao,
+        'atual': atual,
+        'depreciacao': aquisicao - atual,
+        'pct': round((aquisicao - atual) / aquisicao * 100),
+    }
 
 
 def _agenda_90_dias(org):
@@ -105,13 +171,19 @@ def _projecao_fechamento(custo_ate_agora):
 @login_required
 def dashboard(request):
     org = organizacao_do(request.user)
-    inicio_mes = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    custos_mes = Custo.objects.filter(veiculo__organizacao=org, data__gte=inicio_mes)
-    custo_mes_total = custos_mes.aggregate(t=Sum('valor'))['t'] or 0
+    inicio, fim, periodo_rotulo, periodo_preset, eh_mes_atual = _periodo_do_request(request)
+
+    filtro_periodo = Q(data__gte=inicio)
+    filtro_ranking = Q(custos__data__gte=inicio)
+    if fim:
+        filtro_periodo &= Q(data__lte=fim)
+        filtro_ranking &= Q(custos__data__lte=fim)
+    custos_periodo = Custo.objects.filter(veiculo__organizacao=org).filter(filtro_periodo)
+    custo_periodo_total = custos_periodo.aggregate(t=Sum('valor'))['t'] or 0
 
     por_categoria = []
-    total_cat = float(custo_mes_total) or 1
-    for row in custos_mes.values('tipo').annotate(total=Sum('valor')).order_by('-total'):
+    total_cat = float(custo_periodo_total) or 1
+    for row in custos_periodo.values('tipo').annotate(total=Sum('valor')).order_by('-total'):
         valor = float(row['total'] or 0)
         por_categoria.append({
             'rotulo': ROTULOS_TIPO.get(row['tipo'], row['tipo']),
@@ -121,7 +193,7 @@ def dashboard(request):
 
     ranking = list(
         Veiculo.objects.filter(organizacao=org)
-        .annotate(total=Sum('custos__valor'))
+        .annotate(total=Sum('custos__valor', filter=filtro_ranking))
         .filter(total__isnull=False)
         .order_by('-total')[:5]
     )
@@ -139,8 +211,14 @@ def dashboard(request):
         'total_veiculos': Veiculo.objects.filter(organizacao=org).count(),
         'ativos': Veiculo.objects.filter(organizacao=org, status='ativo').count(),
         'em_manutencao': Veiculo.objects.filter(organizacao=org, status='manutencao').count(),
-        'custo_mes_total': custo_mes_total,
-        'projecao_fechamento': _projecao_fechamento(custo_mes_total),
+        'custo_mes_total': custo_periodo_total,
+        'projecao_fechamento': _projecao_fechamento(custo_periodo_total),
+        'mostrar_projecao': eh_mes_atual,
+        'periodo_rotulo': periodo_rotulo,
+        'periodo_preset': periodo_preset,
+        'periodo_inicio': inicio.isoformat(),
+        'periodo_fim': fim.isoformat() if fim else '',
+        'patrimonio': _patrimonio(org),
         'custos_meses': _custos_ultimos_meses(org, 6),
         'por_categoria': por_categoria,
         'ranking': ranking,

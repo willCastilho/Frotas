@@ -75,6 +75,14 @@
                     <span class="info-value">R$ {{ veiculo.valor_aquisicao|floatformat:2 }}</span>
                 </div>
                 {% endif %}
+                {% if depreciacao %}
+                <div class="info-row">
+                    <span class="info-label">Valor estimado hoje:</span>
+                    <span class="info-value">R$ {{ depreciacao.atual|floatformat:2 }}
+                        <small style="color:var(--text-muted);">(−{{ depreciacao.pct }}% em {{ depreciacao.anos }} anos)</small>
+                    </span>
+                </div>
+                {% endif %}
                 <div class="info-row">
                     <span class="info-label">Status:</span>
                     <span class="badge badge-{{ veiculo.status }}">{{ veiculo.get_status_display }}</span>
@@ -280,7 +288,7 @@
                         <tr>
                             <td>{{ custo.data|date:"d/m/Y" }}</td>
                             <td><span class="tipo-badge">{{ custo.get_tipo_display }}</span></td>
-                            <td>{{ custo.descricao }}</td>
+                            <td>{{ custo.descricao }}{% if custo.parcela_rotulo %} <small style="color:var(--text-muted);">({{ custo.parcela_rotulo }})</small>{% endif %}</td>
                             <td class="valor-cell">R$ {{ custo.valor|floatformat:2 }}</td>
                             <td>
                                 <a href="{% url 'editar_custo' custo.id %}" class="btn btn-small btn-secondary btn-sm">Editar</a>

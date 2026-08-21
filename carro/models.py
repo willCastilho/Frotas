@@ -1,5 +1,5 @@
 # carro/models.py
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.db import models
 from django.db.models import Q, Sum
@@ -8,6 +8,16 @@ from django.utils import timezone
 
 def _inicio_mes(momento):
     return momento.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+
+def somar_meses(base, meses):
+    """Soma `meses` a uma data preservando o fim do mes (ex.: 31/jan + 1 -> 28/fev)."""
+    total = base.month - 1 + meses
+    ano = base.year + total // 12
+    mes = total % 12 + 1
+    import calendar
+    ultimo_dia = calendar.monthrange(ano, mes)[1]
+    return date(ano, mes, min(base.day, ultimo_dia))
 
 
 def comparacao_custos(atual, anterior):
@@ -195,6 +205,29 @@ class Veiculo(models.Model):
             return None
         return km_total / litros_total
 
+    # Depreciacao anual pelo metodo do saldo decrescente (declining balance).
+    TAXA_DEPRECIACAO_ANUAL = 0.10
+
+    def valor_estimado_atual(self):
+        """Estima o valor atual do veiculo pela depreciacao de saldo decrescente
+        sobre o valor de aquisicao. Retorna None se nao houver valor informado."""
+        if not self.valor_aquisicao:
+            return None
+        inicio = self.data_compra or self.data_cadastro.date()
+        anos = max((timezone.now().date() - inicio).days / 365.25, 0)
+        aquisicao = float(self.valor_aquisicao)
+        atual = aquisicao * ((1 - self.TAXA_DEPRECIACAO_ANUAL) ** anos)
+        depreciacao = aquisicao - atual
+        pct = round(depreciacao / aquisicao * 100) if aquisicao else 0
+        return {
+            'aquisicao': aquisicao,
+            'atual': atual,
+            'depreciacao': depreciacao,
+            'pct': pct,
+            'anos': round(anos, 1),
+            'taxa': round(self.TAXA_DEPRECIACAO_ANUAL * 100),
+        }
+
 
 class Custo(models.Model):
     TIPO_CHOICES = [
@@ -237,6 +270,11 @@ class Custo(models.Model):
         upload_to='comprovantes/', null=True, blank=True,
         help_text='Foto/PDF da nota ou comprovante (opcional).'
     )
+    # Recorrencia / parcelamento: lancamentos gerados juntos compartilham o
+    # mesmo `grupo`; parcela_numero/parcela_total descrevem a posicao na serie.
+    grupo = models.CharField(max_length=36, blank=True, db_index=True)
+    parcela_numero = models.PositiveIntegerField(null=True, blank=True)
+    parcela_total = models.PositiveIntegerField(null=True, blank=True)
     data_cadastro = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -248,6 +286,13 @@ class Custo(models.Model):
 
     def __str__(self):
         return f"{self.veiculo} - {self.tipo} - R$ {self.valor}"
+
+    @property
+    def parcela_rotulo(self):
+        """Ex.: '3/12' quando faz parte de uma serie parcelada/recorrente."""
+        if self.parcela_total and self.parcela_total > 1:
+            return f'{self.parcela_numero}/{self.parcela_total}'
+        return ''
 
 
 class Abastecimento(models.Model):

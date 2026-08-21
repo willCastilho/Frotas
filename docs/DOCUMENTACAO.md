@@ -205,8 +205,12 @@ Prioridade: **Alta** essencial · **Média** importante · **Baixa** desejável.
 
 ## 10. Pendências e evolução
 
+Concluído recentemente: **custos recorrentes/parcelados** (IPVA, seguro,
+licenciamento), **depreciação** a partir do valor de aquisição (com patrimônio
+da frota no dashboard), **relatório em PDF** e **filtros de período no
+dashboard**.
+
+Em aberto:
+
 - **Gateway de pagamento** (Stripe / Mercado Pago) com webhook de assinatura.
-- **Custos recorrentes/parcelados** (IPVA, seguro).
-- **Depreciação** a partir do valor de aquisição.
-- **Relatório em PDF** e filtros de período no dashboard.
 - **2FA** e limite de tentativas de login.

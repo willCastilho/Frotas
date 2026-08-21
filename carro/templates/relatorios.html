@@ -23,6 +23,7 @@
             <button type="submit" class="btn btn-primary">Filtrar</button>
             <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&formato=csv" class="btn btn-secondary">Exportar CSV</a>
             <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&formato=xlsx" class="btn btn-secondary">Exportar Excel</a>
+            <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&formato=pdf" class="btn btn-secondary">Exportar PDF</a>
         </form>
     </div>
 

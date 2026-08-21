@@ -1,10 +1,13 @@
+import uuid
+from decimal import Decimal
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from carro.forms import CustoForm
-from carro.models import Custo, Veiculo
+from carro.models import Custo, Veiculo, somar_meses
 from contas.utils import exige_escrita, organizacao_do
 
 
@@ -18,6 +21,42 @@ def _custo_da_org(request, custo_id):
         Custo, id=custo_id, veiculo__organizacao=organizacao_do(request.user))
 
 
+def _gerar_serie(custo, veiculo, recorrencia, ocorrencias):
+    """Gera a serie de custos recorrentes/parcelados a partir do lancamento base.
+
+    - parcelado: divide o valor total em `ocorrencias` parcelas mensais.
+    - mensal/anual: repete o mesmo valor a cada mes/ano.
+    Retorna a quantidade de lancamentos criados.
+    """
+    grupo = uuid.uuid4().hex
+    total = Decimal(str(custo.valor))
+    passo_meses = 12 if recorrencia == 'anual' else 1
+
+    if recorrencia == 'parcelado':
+        parcela = (total / ocorrencias).quantize(Decimal('0.01'))
+        valores = [parcela] * (ocorrencias - 1)
+        valores.append(total - parcela * (ocorrencias - 1))  # ajuste do arredondamento
+    else:
+        valores = [total] * ocorrencias
+
+    for i, valor in enumerate(valores):
+        Custo.objects.create(
+            veiculo=veiculo,
+            tipo=custo.tipo,
+            descricao=custo.descricao,
+            valor=valor,
+            data=somar_meses(custo.data, i * passo_meses),
+            quilometragem=custo.quilometragem if i == 0 else None,
+            fornecedor=custo.fornecedor,
+            forma_pagamento=custo.forma_pagamento,
+            comprovante=custo.comprovante if i == 0 else None,
+            grupo=grupo,
+            parcela_numero=i + 1,
+            parcela_total=ocorrencias,
+        )
+    return len(valores)
+
+
 @login_required
 @exige_escrita
 def novo_custo(request, veiculo_id):
@@ -26,8 +65,14 @@ def novo_custo(request, veiculo_id):
     if request.method == 'POST' and form.is_valid():
         custo = form.save(commit=False)
         custo.veiculo = veiculo
-        custo.save()
-        messages.success(request, 'Custo cadastrado com sucesso!')
+        recorrencia = form.cleaned_data.get('recorrencia') or 'nenhuma'
+        ocorrencias = form.cleaned_data.get('ocorrencias') or 1
+        if recorrencia != 'nenhuma' and ocorrencias > 1:
+            qtd = _gerar_serie(custo, veiculo, recorrencia, ocorrencias)
+            messages.success(request, f'{qtd} lançamentos cadastrados com sucesso!')
+        else:
+            custo.save()
+            messages.success(request, 'Custo cadastrado com sucesso!')
         return redirect('detalhes_veiculo', veiculo_id=veiculo.id)
     return render(request, 'novo_custo.html', {'form': form, 'veiculo': veiculo})
 

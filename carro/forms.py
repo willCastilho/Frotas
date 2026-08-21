@@ -48,6 +48,22 @@ class VeiculoForm(forms.ModelForm):
 
 
 class CustoForm(forms.ModelForm):
+    RECORRENCIA_CHOICES = [
+        ('nenhuma', 'Lançamento único'),
+        ('parcelado', 'Parcelado (dividir o valor)'),
+        ('mensal', 'Repetir todo mês (mesmo valor)'),
+        ('anual', 'Repetir todo ano (mesmo valor)'),
+    ]
+
+    recorrencia = forms.ChoiceField(
+        choices=RECORRENCIA_CHOICES, required=False, initial='nenhuma',
+        label='Recorrência',
+        help_text='Para IPVA, seguro e licenciamento parcelados ou recorrentes.')
+    ocorrencias = forms.IntegerField(
+        required=False, min_value=1, max_value=60, initial=1,
+        label='Nº de parcelas/repetições',
+        help_text='Quantos lançamentos gerar (ex.: 12 para IPVA em 12x).')
+
     class Meta:
         model = Custo
         fields = ['tipo', 'descricao', 'valor', 'data', 'quilometragem',
@@ -61,12 +77,27 @@ class CustoForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Combustivel entra somente via Abastecimento (evita contagem dupla).
         self.fields['tipo'].choices = Custo.TIPO_CHOICES_MANUAL
+        # Recorrencia so faz sentido ao criar; ao editar um lancamento existente
+        # nao reprocessamos a serie.
+        if self.instance and self.instance.pk:
+            self.fields.pop('recorrencia', None)
+            self.fields.pop('ocorrencias', None)
 
     def clean_valor(self):
         valor = self.cleaned_data['valor']
         if valor is not None and valor <= 0:
             raise forms.ValidationError('O valor deve ser maior que zero.')
         return valor
+
+    def clean(self):
+        dados = super().clean()
+        recorrencia = dados.get('recorrencia') or 'nenhuma'
+        ocorrencias = dados.get('ocorrencias') or 1
+        if recorrencia != 'nenhuma' and ocorrencias < 2:
+            self.add_error(
+                'ocorrencias',
+                'Para recorrência ou parcelamento, informe 2 ou mais.')
+        return dados
 
 
 class AbastecimentoForm(forms.ModelForm):

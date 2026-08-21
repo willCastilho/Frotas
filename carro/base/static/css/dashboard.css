@@ -118,6 +118,42 @@
 
 .vazio { color: var(--text-muted); }
 
+/* Filtro de período (dashboard) */
+.periodo-filtro {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.periodo-presets { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: .85rem;
+    font-weight: 600;
+    transition: all .15s;
+}
+.chip:hover { border-color: var(--primary); color: var(--text); }
+.chip-ativo { background: var(--primary); border-color: var(--primary); color: #fff; }
+.periodo-custom { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.periodo-custom input { width: 150px; }
+
+/* Patrimônio da frota */
+.patrimonio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 18px;
+}
+.patrimonio-grid > div { display: flex; flex-direction: column; gap: 4px; }
+.patrimonio-label { color: var(--text-muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+.patrimonio-valor { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; }
+
 /* Custos por categoria (barras horizontais) */
 .categorias { display: flex; flex-direction: column; gap: 14px; }
 .cat-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }

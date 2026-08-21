@@ -10,6 +10,21 @@
         <p>Visão geral da frota e dos custos</p>
     </div>
 
+    <div class="painel-card periodo-filtro">
+        <div class="periodo-presets">
+            <a href="?periodo=mes_atual" class="chip {% if periodo_preset == 'mes_atual' %}chip-ativo{% endif %}">Mês atual</a>
+            <a href="?periodo=mes_anterior" class="chip {% if periodo_preset == 'mes_anterior' %}chip-ativo{% endif %}">Mês anterior</a>
+            <a href="?periodo=3meses" class="chip {% if periodo_preset == '3meses' %}chip-ativo{% endif %}">Últimos 3 meses</a>
+            <a href="?periodo=ano" class="chip {% if periodo_preset == 'ano' %}chip-ativo{% endif %}">Ano</a>
+        </div>
+        <form method="get" class="periodo-custom">
+            <input type="hidden" name="periodo" value="custom">
+            <input type="date" name="inicio" value="{{ periodo_inicio }}" aria-label="Início">
+            <input type="date" name="fim" value="{{ periodo_fim }}" aria-label="Fim">
+            <button type="submit" class="btn btn-small btn-primary">Aplicar</button>
+        </form>
+    </div>
+
     <div class="kpi-grid">
         <div class="kpi-card">
             <span class="kpi-valor">{{ total_veiculos }}</span>
@@ -25,10 +40,23 @@
         </div>
         <div class="kpi-card kpi-destaque">
             <span class="kpi-valor">R$ {{ custo_mes_total|floatformat:2 }}</span>
-            <span class="kpi-label">Custo do mês</span>
-            <span class="kpi-projecao">Projeção de fechamento: R$ {{ projecao_fechamento|floatformat:2 }}</span>
+            <span class="kpi-label">Custo · {{ periodo_rotulo }}</span>
+            {% if mostrar_projecao %}
+                <span class="kpi-projecao">Projeção de fechamento: R$ {{ projecao_fechamento|floatformat:2 }}</span>
+            {% endif %}
         </div>
     </div>
+
+    {% if patrimonio %}
+    <div class="painel-card patrimonio-card">
+        <h2>Patrimônio da frota</h2>
+        <div class="patrimonio-grid">
+            <div><span class="patrimonio-label">Valor de aquisição</span><span class="patrimonio-valor">R$ {{ patrimonio.aquisicao|floatformat:2 }}</span></div>
+            <div><span class="patrimonio-label">Valor estimado hoje</span><span class="patrimonio-valor">R$ {{ patrimonio.atual|floatformat:2 }}</span></div>
+            <div><span class="patrimonio-label">Depreciação acumulada</span><span class="patrimonio-valor variacao-red">− R$ {{ patrimonio.depreciacao|floatformat:2 }} ({{ patrimonio.pct }}%)</span></div>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="painel-grid">
         <div class="painel-card">
@@ -45,7 +73,7 @@
         </div>
 
         <div class="painel-card">
-            <h2>Custos do mês por categoria</h2>
+            <h2>Custos por categoria · {{ periodo_rotulo }}</h2>
             {% if por_categoria %}
                 <div class="categorias">
                     {% for c in por_categoria %}

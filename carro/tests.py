@@ -510,3 +510,82 @@ class CriarAdminTests(TestCase):
         from django.core.management import call_command
         call_command('criar_admin')
         self.assertEqual(get_user_model().objects.filter(is_superuser=True).count(), 0)
+
+
+class CustoRecorrenteTests(LogadoMixin, TestCase):
+    def test_parcelado_divide_valor(self):
+        veiculo = self.cria_veiculo()
+        r = self.client.post(reverse('novo_custo', args=[veiculo.id]), {
+            'tipo': 'ipva', 'descricao': 'IPVA 2026', 'valor': '1000.00',
+            'data': '2026-01-10', 'recorrencia': 'parcelado', 'ocorrencias': '4',
+        })
+        self.assertEqual(r.status_code, 302)
+        custos = Custo.objects.filter(veiculo=veiculo).order_by('data')
+        self.assertEqual(custos.count(), 4)
+        # A soma das parcelas bate exatamente com o total.
+        self.assertEqual(sum(float(c.valor) for c in custos), 1000.0)
+        # Parcelas em meses consecutivos.
+        self.assertEqual([c.data.month for c in custos], [1, 2, 3, 4])
+        self.assertEqual(custos.first().parcela_total, 4)
+
+    def test_recorrencia_mensal_repete_valor(self):
+        veiculo = self.cria_veiculo()
+        self.client.post(reverse('novo_custo', args=[veiculo.id]), {
+            'tipo': 'seguro', 'descricao': 'Seguro', 'valor': '300.00',
+            'data': '2026-01-15', 'recorrencia': 'mensal', 'ocorrencias': '3',
+        })
+        custos = Custo.objects.filter(veiculo=veiculo)
+        self.assertEqual(custos.count(), 3)
+        self.assertTrue(all(float(c.valor) == 300.0 for c in custos))
+
+    def test_unico_nao_gera_serie(self):
+        veiculo = self.cria_veiculo()
+        self.client.post(reverse('novo_custo', args=[veiculo.id]), {
+            'tipo': 'manutencao', 'descricao': 'Revisao', 'valor': '250.00',
+            'data': '2026-01-15', 'recorrencia': 'nenhuma', 'ocorrencias': '1',
+        })
+        self.assertEqual(Custo.objects.filter(veiculo=veiculo).count(), 1)
+
+
+class DepreciacaoTests(TestCase):
+    def test_valor_estimado_menor_que_aquisicao(self):
+        veiculo = cria_veiculo(
+            data_compra=date.today() - timedelta(days=730),
+            valor_aquisicao='100000.00')
+        info = veiculo.valor_estimado_atual()
+        self.assertIsNotNone(info)
+        self.assertLess(info['atual'], 100000.0)
+        self.assertGreater(info['atual'], 0)
+        self.assertGreater(info['pct'], 0)
+
+    def test_sem_valor_aquisicao_retorna_none(self):
+        veiculo = cria_veiculo()
+        self.assertIsNone(veiculo.valor_estimado_atual())
+
+
+class RelatorioPDFTests(LogadoMixin, TestCase):
+    def test_exportar_pdf(self):
+        veiculo = self.cria_veiculo()
+        Custo.objects.create(veiculo=veiculo, tipo='manutencao',
+                             descricao='Revisao', valor=100, data='2024-01-01')
+        r = self.client.get(reverse('exportar_custos'), {'formato': 'pdf'})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'application/pdf')
+        self.assertTrue(r.content.startswith(b'%PDF'))
+
+
+class DashboardPeriodoTests(LogadoMixin, TestCase):
+    def test_periodo_mes_anterior_sem_projecao(self):
+        r = self.client.get(reverse('dashboard'), {'periodo': 'mes_anterior'})
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(r.context['mostrar_projecao'])
+        self.assertNotContains(r, 'Projeção de fechamento')
+
+    def test_periodo_filtra_custos(self):
+        veiculo = self.cria_veiculo()
+        Custo.objects.create(veiculo=veiculo, tipo='manutencao',
+                             descricao='Antigo', valor=500, data='2020-01-01')
+        r = self.client.get(reverse('dashboard'),
+                            {'periodo': 'custom', 'inicio': '2026-01-01'})
+        # Custo de 2020 fica fora do periodo escolhido.
+        self.assertEqual(float(r.context['custo_mes_total']), 0.0)
