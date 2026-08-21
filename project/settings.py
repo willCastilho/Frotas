@@ -230,10 +230,14 @@ STORAGES = {
 if os.environ.get('EMAIL_HOST'):
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = os.environ.get('EMAIL_HOST')
-    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
+    # SSL (porta 465) e TLS (porta 587) sao mutuamente exclusivos.
+    EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False').lower() == 'true'
+    EMAIL_USE_TLS = (not EMAIL_USE_SSL and
+                     os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true')
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '465' if EMAIL_USE_SSL else '587'))
+    EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '10'))
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 

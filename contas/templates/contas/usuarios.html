@@ -17,6 +17,34 @@
         {% endfor %}
     {% endif %}
 
+    {% if convite %}
+        <div class="painel-card convite-box">
+            <h2>🔗 Link de acesso para {{ convite.email }}</h2>
+            <p class="convite-hint">
+                {% if convite.smtp %}
+                    Enviamos este link por e-mail. Se ele não chegar, envie o link abaixo manualmente.
+                {% else %}
+                    O envio de e-mail ainda não está configurado no servidor. Copie o link abaixo e envie ao usuário para ele definir a senha.
+                {% endif %}
+            </p>
+            <div class="convite-linha">
+                <input type="text" id="convite-link" value="{{ convite.link }}" readonly onclick="this.select()">
+                <button type="button" class="btn btn-small btn-primary" onclick="copiarConvite()">Copiar</button>
+            </div>
+        </div>
+        <script>
+            function copiarConvite() {
+                var campo = document.getElementById('convite-link');
+                campo.select();
+                navigator.clipboard.writeText(campo.value).then(function () {
+                    var b = event.target; var t = b.textContent;
+                    b.textContent = 'Copiado!';
+                    setTimeout(function () { b.textContent = t; }, 1500);
+                });
+            }
+        </script>
+    {% endif %}
+
     <div class="painel-card">
         <h2>Membros</h2>
         <table class="alertas-table">
@@ -66,11 +94,12 @@
                 </div>
             {% endfor %}
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Adicionar e enviar convite</button>
+                <button type="submit" class="btn btn-primary">Adicionar e gerar convite</button>
             </div>
         </form>
         <p style="font-size:.82rem;color:var(--text-muted);margin-top:10px;">
-            O usuário receberá um e-mail para definir a própria senha.
+            Geramos um link para o usuário definir a própria senha. Ele é enviado por e-mail
+            (quando o servidor de e-mail está configurado) e também aparece aqui para você copiar.
         </p>
     </div>
 </div>

@@ -162,6 +162,21 @@
 .cat-bar { height: 8px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
 .cat-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--primary), #6ea8ff); }
 
+/* Caixa de convite (link de definição de senha) */
+.convite-box { border-left: 4px solid var(--primary); }
+.convite-hint { color: var(--text-muted); font-size: .85rem; margin: 0 0 12px; }
+.convite-linha { display: flex; gap: 8px; align-items: center; }
+.convite-linha input {
+    flex: 1;
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    color: var(--text);
+    font-family: monospace;
+    font-size: .82rem;
+}
+
 /* Layout de duas colunas: agenda (esquerda) + análises (direita) */
 .dash-colunas {
     display: grid;

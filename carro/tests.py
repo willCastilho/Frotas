@@ -605,3 +605,48 @@ class DashboardPeriodoTests(LogadoMixin, TestCase):
                             {'periodo': 'custom', 'inicio': '2026-01-01'})
         # Custo de 2020 fica fora do periodo escolhido.
         self.assertEqual(float(r.context['custo_mes_total']), 0.0)
+
+
+class ConviteUsuarioTests(LogadoMixin, TestCase):
+    def _convidar(self, **over):
+        dados = {'username': 'convidado', 'email': 'novo@ex.com',
+                 'papel': PerfilUsuario.PAPEL_OPERADOR}
+        dados.update(over)
+        return self.client.post(reverse('usuarios'), dados, follow=True)
+
+    def test_convite_cria_usuario_e_perfil(self):
+        r = self._convidar()
+        self.assertEqual(r.status_code, 200)
+        novo = User.objects.get(username='convidado')
+        self.assertFalse(novo.has_usable_password())
+        self.assertEqual(novo.perfil.organizacao, self.org)
+        self.assertEqual(novo.perfil.papel, PerfilUsuario.PAPEL_OPERADOR)
+
+    def test_convite_mostra_link_na_tela(self):
+        r = self._convidar()
+        # O link de definir senha aparece na tela (garantia sem SMTP).
+        self.assertContains(r, 'Link de acesso')
+        self.assertContains(r, '/reset/')
+
+    def test_convite_envia_email(self):
+        from django.core import mail
+        self._convidar(email='alvo@ex.com')
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('alvo@ex.com', mail.outbox[0].to)
+        self.assertIn('/reset/', mail.outbox[0].body)
+
+    def test_link_permite_definir_senha(self):
+        self._convidar(email='fulano@ex.com')
+        novo = User.objects.get(username='convidado')
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+        uid = urlsafe_base64_encode(force_bytes(novo.pk))
+        token = default_token_generator.make_token(novo)
+        # Token valido mesmo com senha inutilizavel (o bug antigo).
+        self.assertTrue(default_token_generator.check_token(novo, token))
+        url = reverse('password_reset_confirm',
+                      kwargs={'uidb64': uid, 'token': token})
+        # A pagina de confirmacao redireciona para o formulario 'set-password'.
+        r = self.client.get(url, follow=True)
+        self.assertEqual(r.status_code, 200)
