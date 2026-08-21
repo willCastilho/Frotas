@@ -58,106 +58,92 @@
     </div>
     {% endif %}
 
-    <div class="painel-grid">
-        <div class="painel-card">
-            <h2>Custos dos últimos 6 meses</h2>
-            <div class="grafico-barras">
-                {% for m in custos_meses %}
-                    <div class="barra-col">
-                        <div class="barra-valor">R$ {{ m.total|floatformat:0 }}</div>
-                        <div class="barra" style="height: {{ m.pct }}%;" title="R$ {{ m.total|floatformat:2 }}"></div>
-                        <div class="barra-label">{{ m.label }}</div>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <div class="painel-card">
-            <h2>Custos por categoria · {{ periodo_rotulo }}</h2>
-            {% if por_categoria %}
-                <div class="categorias">
-                    {% for c in por_categoria %}
-                        <div class="cat-row">
-                            <div class="cat-top">
-                                <span class="cat-nome">{{ c.rotulo }}</span>
-                                <span class="cat-valor">R$ {{ c.total|floatformat:2 }} · {{ c.pct }}%</span>
+    <div class="dash-colunas">
+        <!-- Coluna esquerda: agenda vertical de pendências -->
+        <div class="painel-card agenda-card">
+            <h2>⏱️ Próximos 90 dias</h2>
+            <p class="agenda-sub">Documentos e manutenções a vencer</p>
+            {% if agenda_90 %}
+                <ul class="agenda-lista">
+                    {% for i in agenda_90 %}
+                        <li class="agenda-item agenda-{{ i.cor }}">
+                            <div class="agenda-quando">
+                                {% if i.data %}
+                                    <span class="agenda-dia">{{ i.data|date:"d/m" }}</span>
+                                    <span class="agenda-ano">{{ i.data|date:"Y" }}</span>
+                                {% else %}
+                                    <span class="agenda-dia">km</span>
+                                {% endif %}
                             </div>
-                            <div class="cat-bar"><div class="cat-bar-fill" style="width: {{ c.pct }}%;"></div></div>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="vazio">Sem custos neste mês.</p>
-            {% endif %}
-        </div>
-
-        <div class="painel-card">
-            <h2>Veículos com maior custo</h2>
-            {% if ranking %}
-                <ul class="ranking">
-                    {% for v in ranking %}
-                        <li>
-                            <a href="{% url 'detalhes_veiculo' v.id %}">{{ v.marca }} {{ v.modelo }}</a>
-                            <span>R$ {{ v.total|floatformat:2 }}</span>
+                            <div class="agenda-info">
+                                <a href="{% url 'detalhes_veiculo' i.veiculo_id %}" class="agenda-veiculo">{{ i.veiculo.marca }} {{ i.veiculo.modelo }}{% if i.veiculo.placa %} · {{ i.veiculo.placa }}{% endif %}</a>
+                                <span class="agenda-titulo">{{ i.categoria }} · {{ i.titulo }}</span>
+                                <span class="agenda-detalhe variacao-{{ i.cor }}">
+                                    {% if i.data %}
+                                        {% if i.dias < 0 %}Vencido há {{ i.dias|stringformat:"d"|cut:"-" }} dias
+                                        {% elif i.dias == 0 %}Vence hoje
+                                        {% else %}Faltam {{ i.dias }} dias{% endif %}
+                                    {% else %}{{ i.detalhe }}{% endif %}
+                                </span>
+                            </div>
                         </li>
                     {% endfor %}
                 </ul>
             {% else %}
-                <p class="vazio">Sem custos registrados.</p>
+                <p class="vazio">Nada vencendo nos próximos 90 dias. 🎉</p>
             {% endif %}
         </div>
-    </div>
 
-    <div class="painel-card">
-        <h2>Alertas de manutenção</h2>
-        {% if alertas %}
-            <table class="alertas-table">
-                <thead>
-                    <tr><th>Veículo</th><th>Manutenção</th><th>Status</th></tr>
-                </thead>
-                <tbody>
-                    {% for a in alertas %}
-                        <tr>
-                            <td><a href="{% url 'detalhes_veiculo' a.plano.veiculo.id %}">{{ a.plano.veiculo.marca }} {{ a.plano.veiculo.modelo }}</a></td>
-                            <td>{{ a.plano.descricao }}</td>
-                            <td><span class="variacao-{{ a.status.cor }}">{{ a.status.texto }}</span> <small>{{ a.status.detalhe }}</small></td>
-                        </tr>
+        <!-- Coluna direita: análises -->
+        <div class="dash-analises">
+            <div class="painel-card">
+                <h2>Custos dos últimos 6 meses</h2>
+                <div class="grafico-barras">
+                    {% for m in custos_meses %}
+                        <div class="barra-col">
+                            <div class="barra-valor">R$ {{ m.total|floatformat:0 }}</div>
+                            <div class="barra" style="height: {{ m.pct }}%;" title="R$ {{ m.total|floatformat:2 }}"></div>
+                            <div class="barra-label">{{ m.label }}</div>
+                        </div>
                     {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p class="vazio">Nenhum alerta de manutenção. 🎉</p>
-        {% endif %}
-    </div>
+                </div>
+            </div>
 
-    <div class="painel-card">
-        <h2>Próximos 90 dias — documentos e manutenções</h2>
-        {% if agenda_90 %}
-            <table class="alertas-table">
-                <thead>
-                    <tr><th>Veículo</th><th>Item</th><th>Categoria</th><th>Vencimento</th><th>Status</th></tr>
-                </thead>
-                <tbody>
-                    {% for i in agenda_90 %}
-                        <tr>
-                            <td><a href="{% url 'detalhes_veiculo' i.veiculo_id %}">{{ i.veiculo.marca }} {{ i.veiculo.modelo }}{% if i.veiculo.placa %} · {{ i.veiculo.placa }}{% endif %}</a></td>
-                            <td>{{ i.titulo }}</td>
-                            <td>{{ i.categoria }}</td>
-                            <td>{{ i.data|date:"d/m/Y" }}</td>
-                            <td>
-                                <span class="variacao-{{ i.cor }}">
-                                    {% if i.dias < 0 %}Vencido há {{ i.dias|stringformat:"d"|cut:"-" }} dias
-                                    {% elif i.dias == 0 %}Vence hoje
-                                    {% else %}Faltam {{ i.dias }} dias{% endif %}
-                                </span>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p class="vazio">Nada vencendo nos próximos 90 dias. 🎉</p>
-        {% endif %}
+            <div class="painel-card">
+                <h2>Custos por categoria · {{ periodo_rotulo }}</h2>
+                {% if por_categoria %}
+                    <div class="categorias">
+                        {% for c in por_categoria %}
+                            <div class="cat-row">
+                                <div class="cat-top">
+                                    <span class="cat-nome">{{ c.rotulo }}</span>
+                                    <span class="cat-valor">R$ {{ c.total|floatformat:2 }} · {{ c.pct }}%</span>
+                                </div>
+                                <div class="cat-bar"><div class="cat-bar-fill" style="width: {{ c.pct }}%;"></div></div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="vazio">Sem custos neste período.</p>
+                {% endif %}
+            </div>
+
+            <div class="painel-card">
+                <h2>Veículos com maior custo</h2>
+                {% if ranking %}
+                    <ul class="ranking">
+                        {% for v in ranking %}
+                            <li>
+                                <a href="{% url 'detalhes_veiculo' v.id %}">{{ v.marca }} {{ v.modelo }}</a>
+                                <span>R$ {{ v.total|floatformat:2 }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="vazio">Sem custos registrados.</p>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 {% endblock content %}

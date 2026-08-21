@@ -422,6 +422,22 @@ class Agenda90Tests(LogadoMixin, TestCase):
         self.assertEqual(categorias, {'Documento', 'Manutenção'})
         self.assertEqual(len(agenda), 2)  # o seguro de 200 dias fica de fora
         self.assertContains(r, 'Próximos 90 dias')
+        # O painel separado de alertas de manutencao foi consolidado na agenda.
+        self.assertNotContains(r, 'Alertas de manutenção')
+
+    def test_manutencao_por_km_atrasada_entra_na_agenda(self):
+        v = self.cria_veiculo()
+        # Manutencao so por km, atrasada (referencia + intervalo < km atual).
+        PlanoManutencao.objects.create(
+            veiculo=v, descricao='Troca de óleo', intervalo_km=10000,
+            km_referencia=0)
+        RegistroQuilometragem.objects.create(
+            veiculo=v, data=date.today(), quilometragem=15000)
+        agenda = self.client.get(reverse('dashboard')).context['agenda_90']
+        itens = [i for i in agenda if i['titulo'] == 'Troca de óleo']
+        self.assertEqual(len(itens), 1)
+        self.assertIsNone(itens[0]['data'])   # sem data: alerta por km
+        self.assertEqual(itens[0]['cor'], 'red')
 
 
 class DashboardTests(LogadoMixin, TestCase):

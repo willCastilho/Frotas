@@ -162,6 +162,64 @@
 .cat-bar { height: 8px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
 .cat-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--primary), #6ea8ff); }
 
+/* Layout de duas colunas: agenda (esquerda) + análises (direita) */
+.dash-colunas {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 20px;
+    align-items: start;
+}
+.dash-analises { display: flex; flex-direction: column; }
+
+/* Agenda vertical (próximos 90 dias) */
+.agenda-card { position: sticky; top: 16px; }
+.agenda-card h2 { margin-bottom: 2px; }
+.agenda-sub { color: var(--text-muted); font-size: .82rem; margin: 0 0 16px; }
+.agenda-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 620px;
+    overflow-y: auto;
+}
+.agenda-item {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    border-left: 4px solid var(--gray);
+}
+.agenda-red    { border-left-color: var(--red); }
+.agenda-yellow { border-left-color: var(--yellow); }
+.agenda-green  { border-left-color: var(--green); }
+.agenda-gray   { border-left-color: var(--gray); }
+.agenda-quando {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    text-align: center;
+}
+.agenda-dia { font-weight: 800; font-size: 1.05rem; letter-spacing: -0.02em; }
+.agenda-ano { font-size: .7rem; color: var(--text-faint); }
+.agenda-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.agenda-veiculo { color: var(--primary); text-decoration: none; font-weight: 600; font-size: .92rem; }
+.agenda-veiculo:hover { text-decoration: underline; }
+.agenda-titulo { color: var(--text-muted); font-size: .82rem; }
+.agenda-detalhe { font-size: .82rem; }
+
+@media (max-width: 900px) {
+    .dash-colunas { grid-template-columns: 1fr; }
+    .agenda-card { position: static; }
+    .agenda-lista { max-height: none; }
+}
+
 @media (max-width: 768px) {
     .grafico-barras { gap: 6px; }
     .barra-valor { display: none; }

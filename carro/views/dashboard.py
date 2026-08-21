@@ -77,9 +77,10 @@ def _patrimonio(org):
     }
 
 
-def _agenda_90_dias(org):
-    """Reune documentos e manutencoes programadas (por data) que vencem nos
-    proximos 90 dias (ou ja vencidos), ordenados por data."""
+def _agenda_90_dias(org, kms):
+    """Painel unico de pendencias: documentos e manutencoes que vencem nos
+    proximos 90 dias (por data) e manutencoes ja em alerta por quilometragem
+    (sem data). Ordena por data; os itens so-por-km vao ao fim, por severidade."""
     hoje = timezone.now().date()
     limite = hoje + timedelta(days=90)
     itens = []
@@ -91,24 +92,31 @@ def _agenda_90_dias(org):
             'veiculo': doc.veiculo, 'veiculo_id': doc.veiculo_id,
             'titulo': doc.get_tipo_display(), 'categoria': 'Documento',
             'data': doc.vencimento, 'dias': st['dias'], 'cor': st['cor'],
+            'detalhe': st['detalhe'],
         })
 
     for plano in PlanoManutencao.objects.filter(
-            veiculo__organizacao=org,
-            intervalo_dias__isnull=False,
-            data_referencia__isnull=False).select_related('veiculo'):
+            veiculo__organizacao=org).select_related('veiculo'):
+        st = plano.status(kms.get(plano.veiculo_id))
         prox = plano.proxima_data
-        if not prox or prox > limite:
+        tem_data = prox is not None and prox <= limite
+        # Inclui se vence por data em ate 90 dias, ou ja esta em alerta por km.
+        if not tem_data and st['cor'] not in ('red', 'yellow'):
             continue
-        dias = (prox - hoje).days
-        cor = 'red' if dias <= 0 else 'yellow' if dias <= 15 else 'green'
         itens.append({
             'veiculo': plano.veiculo, 'veiculo_id': plano.veiculo_id,
             'titulo': plano.descricao, 'categoria': 'Manutenção',
-            'data': prox, 'dias': dias, 'cor': cor,
+            'data': prox if tem_data else None,
+            'dias': (prox - hoje).days if tem_data else None,
+            'cor': st['cor'], 'detalhe': st['detalhe'],
         })
 
-    itens.sort(key=lambda i: i['data'])
+    ordem_cor = {'red': 0, 'yellow': 1, 'green': 2, 'gray': 3}
+    itens.sort(key=lambda i: (
+        0 if i['data'] else 1,
+        i['data'].toordinal() if i['data'] else 0,
+        ordem_cor.get(i['cor'], 9),
+    ))
     return itens
 
 ROTULOS_TIPO = dict(Custo.TIPO_CHOICES)
@@ -199,13 +207,6 @@ def dashboard(request):
     )
 
     kms = _km_por_veiculo(org)
-    alertas = []
-    for plano in PlanoManutencao.objects.filter(
-            veiculo__organizacao=org).select_related('veiculo'):
-        st = plano.status(kms.get(plano.veiculo_id))
-        if st['cor'] in ('red', 'yellow'):
-            alertas.append({'plano': plano, 'status': st})
-    alertas.sort(key=lambda a: 0 if a['status']['cor'] == 'red' else 1)
 
     context = {
         'total_veiculos': Veiculo.objects.filter(organizacao=org).count(),
@@ -222,7 +223,6 @@ def dashboard(request):
         'custos_meses': _custos_ultimos_meses(org, 6),
         'por_categoria': por_categoria,
         'ranking': ranking,
-        'alertas': alertas,
-        'agenda_90': _agenda_90_dias(org),
+        'agenda_90': _agenda_90_dias(org, kms),
     }
     return render(request, 'dashboard.html', context)
