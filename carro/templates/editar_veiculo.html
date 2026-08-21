@@ -64,6 +64,13 @@
             </div>
 
             <div class="form-group">
+                <label for="{{ form.meta_custo_mensal.id_for_label }}">Meta de custo mensal (R$)</label>
+                {{ form.meta_custo_mensal }}
+                <small>Opcional. Usado para o alerta de orçamento no card do veículo.</small>
+                {% for erro in form.meta_custo_mensal.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
+            </div>
+
+            <div class="form-group">
                 <label for="{{ form.picture.id_for_label }}">Foto do Veículo</label>
                 {% if veiculo.picture %}
                     <p>Foto atual: {{ veiculo.picture.name }}</p>

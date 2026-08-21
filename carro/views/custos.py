@@ -10,7 +10,7 @@ from carro.models import Custo, Veiculo
 @login_required
 def novo_custo(request, veiculo_id):
     veiculo = get_object_or_404(Veiculo, id=veiculo_id)
-    form = CustoForm(request.POST or None)
+    form = CustoForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
         custo = form.save(commit=False)
         custo.veiculo = veiculo
@@ -24,7 +24,10 @@ def novo_custo(request, veiculo_id):
 def editar_custo(request, custo_id):
     custo = get_object_or_404(Custo, id=custo_id)
     veiculo = custo.veiculo
-    form = CustoForm(request.POST or None, instance=custo)
+    if hasattr(custo, 'abastecimento'):
+        messages.info(request, 'Este custo vem de um abastecimento; edite pelo abastecimento.')
+        return redirect('detalhes_veiculo', veiculo_id=veiculo.id)
+    form = CustoForm(request.POST or None, request.FILES or None, instance=custo)
     if request.method == 'POST' and form.is_valid():
         form.save()
         messages.success(request, 'Custo editado com sucesso!')
@@ -38,6 +41,9 @@ def editar_custo(request, custo_id):
 def deletar_custo(request, custo_id):
     custo = get_object_or_404(Custo, id=custo_id)
     veiculo_id = custo.veiculo.id
+    if hasattr(custo, 'abastecimento'):
+        messages.info(request, 'Este custo vem de um abastecimento; exclua pelo abastecimento.')
+        return redirect('detalhes_veiculo', veiculo_id=veiculo_id)
     custo.delete()
     messages.success(request, 'Custo deletado com sucesso!')
     return redirect('detalhes_veiculo', veiculo_id=veiculo_id)

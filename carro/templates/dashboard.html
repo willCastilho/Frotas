@@ -44,6 +44,25 @@
         </div>
 
         <div class="painel-card">
+            <h2>Custos do mês por categoria</h2>
+            {% if por_categoria %}
+                <div class="categorias">
+                    {% for c in por_categoria %}
+                        <div class="cat-row">
+                            <div class="cat-top">
+                                <span class="cat-nome">{{ c.rotulo }}</span>
+                                <span class="cat-valor">R$ {{ c.total|floatformat:2 }} · {{ c.pct }}%</span>
+                            </div>
+                            <div class="cat-bar"><div class="cat-bar-fill" style="width: {{ c.pct }}%;"></div></div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="vazio">Sem custos neste mês.</p>
+            {% endif %}
+        </div>
+
+        <div class="painel-card">
             <h2>Veículos com maior custo</h2>
             {% if ranking %}
                 <ul class="ranking">

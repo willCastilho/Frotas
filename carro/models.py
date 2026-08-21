@@ -76,11 +76,31 @@ class Veiculo(models.Model):
     data_cadastro = models.DateTimeField(default=timezone.now)
     picture = models.ImageField(upload_to="veiculos/", blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ativo')
+    meta_custo_mensal = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text='Orcamento de custo por mes (opcional). Usado nos alertas.'
+    )
 
     objects = VeiculoQuerySet.as_manager()
 
     def __str__(self):
         return f"{self.marca} {self.modelo} ({self.ano})"
+
+    def custo_vs_meta(self):
+        """Compara o custo do mes atual com a meta. Retorna dict com pct (real),
+        pct_barra (limitado a 100 para a largura) e cor."""
+        meta = float(self.meta_custo_mensal or 0)
+        if meta <= 0:
+            return None
+        atual = self.custo_mes_atual()
+        pct = round(atual / meta * 100)
+        if pct < 80:
+            cor = 'green'
+        elif pct <= 100:
+            cor = 'yellow'
+        else:
+            cor = 'red'
+        return {'meta': meta, 'pct': pct, 'pct_barra': min(pct, 100), 'cor': cor}
 
     def custo_mes_atual(self):
         inicio = _inicio_mes(timezone.now())
@@ -150,11 +170,35 @@ class Custo(models.Model):
         ('outro', '📌 Outro'),
     ]
 
+    # Tipos que o usuario pode lancar manualmente (combustivel entra so via
+    # Abastecimento, para nao contar em dobro).
+    TIPO_CHOICES_MANUAL = [c for c in TIPO_CHOICES if c[0] != 'combustivel']
+
+    FORMA_PAGAMENTO_CHOICES = [
+        ('dinheiro', 'Dinheiro'),
+        ('pix', 'Pix'),
+        ('debito', 'Cartão de débito'),
+        ('credito', 'Cartão de crédito'),
+        ('boleto', 'Boleto'),
+        ('outro', 'Outro'),
+    ]
+
     veiculo = models.ForeignKey(Veiculo, on_delete=models.CASCADE, related_name='custos')
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
     descricao = models.TextField()
     valor = models.DecimalField(max_digits=10, decimal_places=2)
     data = models.DateField(default=timezone.now)
+    quilometragem = models.PositiveIntegerField(
+        null=True, blank=True, help_text='Km do veiculo no momento do custo (opcional).'
+    )
+    fornecedor = models.CharField(max_length=120, blank=True)
+    forma_pagamento = models.CharField(
+        max_length=20, choices=FORMA_PAGAMENTO_CHOICES, blank=True
+    )
+    comprovante = models.FileField(
+        upload_to='comprovantes/', null=True, blank=True,
+        help_text='Foto/PDF da nota ou comprovante (opcional).'
+    )
     data_cadastro = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -184,6 +228,11 @@ class Abastecimento(models.Model):
         max_length=20, choices=COMBUSTIVEL_CHOICES, default='gasolina'
     )
     posto = models.CharField(max_length=100, blank=True)
+    # Custo de combustivel gerado automaticamente (fonte unica -> sem contagem dupla)
+    custo = models.OneToOneField(
+        Custo, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='abastecimento'
+    )
     data_cadastro = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -197,6 +246,31 @@ class Abastecimento(models.Model):
         if self.litros:
             return float(self.valor_total) / float(self.litros)
         return 0.0
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Cria/atualiza o Custo de combustivel espelhado neste abastecimento.
+        custo = self.custo or Custo()
+        custo.veiculo = self.veiculo
+        custo.tipo = 'combustivel'
+        custo.valor = self.valor_total
+        custo.data = self.data
+        custo.quilometragem = self.quilometragem
+        custo.fornecedor = self.posto
+        custo.descricao = (
+            f'Abastecimento de {self.litros} L'
+            + (f' em {self.posto}' if self.posto else '')
+        )
+        custo.save()
+        if self.custo_id != custo.id:
+            self.custo = custo
+            super().save(update_fields=['custo'])
+
+    def delete(self, *args, **kwargs):
+        custo = self.custo
+        super().delete(*args, **kwargs)
+        if custo:
+            custo.delete()
 
 
 class RegistroQuilometragem(models.Model):

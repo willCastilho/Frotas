@@ -8,6 +8,8 @@ from django.utils import timezone
 
 from carro.models import Custo, PlanoManutencao, Veiculo
 
+ROTULOS_TIPO = dict(Custo.TIPO_CHOICES)
+
 MESES_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
             'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
@@ -57,8 +59,19 @@ def _custos_ultimos_meses(qtd=6):
 @login_required
 def dashboard(request):
     inicio_mes = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    custo_mes_total = Custo.objects.filter(data__gte=inicio_mes).aggregate(
-        t=Sum('valor'))['t'] or 0
+    custos_mes = Custo.objects.filter(data__gte=inicio_mes)
+    custo_mes_total = custos_mes.aggregate(t=Sum('valor'))['t'] or 0
+
+    # Custos do mes por categoria (para o grafico de composicao)
+    por_categoria = []
+    total_cat = float(custo_mes_total) or 1
+    for row in custos_mes.values('tipo').annotate(total=Sum('valor')).order_by('-total'):
+        valor = float(row['total'] or 0)
+        por_categoria.append({
+            'rotulo': ROTULOS_TIPO.get(row['tipo'], row['tipo']),
+            'total': valor,
+            'pct': round(valor / total_cat * 100),
+        })
 
     ranking = list(
         Veiculo.objects.annotate(total=Sum('custos__valor'))
@@ -80,6 +93,7 @@ def dashboard(request):
         'em_manutencao': Veiculo.objects.filter(status='manutencao').count(),
         'custo_mes_total': custo_mes_total,
         'custos_meses': _custos_ultimos_meses(6),
+        'por_categoria': por_categoria,
         'ranking': ranking,
         'alertas': alertas,
     }

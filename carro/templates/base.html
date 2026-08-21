@@ -82,10 +82,17 @@
                                 <span class="cost-amount">R$ {{ carro.custo_mes_atual|floatformat:2 }}</span>
                                 <span class="cost-currency">/ mês</span>
                             </div>
-                            <div class="cost-bar">
-                                <div class="cost-bar-fill cost-bar-{{ carro.comparacao.cor }}" 
-                                     style="width: {% if carro.comparacao.cor == 'green' %}60{% elif carro.comparacao.cor == 'yellow' %}85{% else %}110{% endif %}%;"></div>
-                            </div>
+                            {% if carro.meta %}
+                                <div class="cost-bar">
+                                    <div class="cost-bar-fill cost-bar-{{ carro.meta.cor }}"
+                                         style="width: {{ carro.meta.pct_barra }}%;"></div>
+                                </div>
+                                <span class="cost-meta comparison-{{ carro.meta.cor }}">
+                                    {{ carro.meta.pct }}% da meta (R$ {{ carro.meta.meta|floatformat:2 }})
+                                </span>
+                            {% else %}
+                                <span class="cost-meta cost-meta-vazia">Sem meta definida</span>
+                            {% endif %}
                         </div>
                         
                         <div class="card-actions">

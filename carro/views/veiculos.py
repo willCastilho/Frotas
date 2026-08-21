@@ -34,6 +34,12 @@ def home(request):
     for carro in page_obj:
         atual = float(carro.custo_atual or 0)
         anterior = float(carro.custo_anterior or 0)
+        meta = float(carro.meta_custo_mensal or 0)
+        meta_info = None
+        if meta > 0:
+            pct = round(atual / meta * 100)
+            cor = 'green' if pct < 80 else 'yellow' if pct <= 100 else 'red'
+            meta_info = {'meta': meta, 'pct': pct, 'pct_barra': min(pct, 100), 'cor': cor}
         carros_com_custos.append({
             'id': carro.id,
             'marca': carro.marca,
@@ -44,6 +50,7 @@ def home(request):
             'picture': carro.picture,
             'custo_mes_atual': atual,
             'comparacao': comparacao_custos(atual, anterior),
+            'meta': meta_info,
         })
 
     context = {

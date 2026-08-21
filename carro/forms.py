@@ -14,7 +14,8 @@ _DATE = forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d')
 class VeiculoForm(forms.ModelForm):
     class Meta:
         model = Veiculo
-        fields = ['marca', 'modelo', 'ano', 'cor', 'data_compra', 'status', 'picture']
+        fields = ['marca', 'modelo', 'ano', 'cor', 'data_compra', 'status',
+                  'meta_custo_mensal', 'picture']
         widgets = {
             'data_compra': forms.DateInput(
                 attrs={'type': 'date'}, format='%Y-%m-%d'
@@ -31,11 +32,17 @@ class VeiculoForm(forms.ModelForm):
 class CustoForm(forms.ModelForm):
     class Meta:
         model = Custo
-        fields = ['tipo', 'descricao', 'valor', 'data']
+        fields = ['tipo', 'descricao', 'valor', 'data', 'quilometragem',
+                  'fornecedor', 'forma_pagamento', 'comprovante']
         widgets = {
             'data': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
-            'descricao': forms.Textarea(attrs={'rows': 4}),
+            'descricao': forms.Textarea(attrs={'rows': 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Combustivel entra somente via Abastecimento (evita contagem dupla).
+        self.fields['tipo'].choices = Custo.TIPO_CHOICES_MANUAL
 
     def clean_valor(self):
         valor = self.cleaned_data['valor']

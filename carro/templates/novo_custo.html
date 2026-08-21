@@ -17,37 +17,21 @@
     {% endif %}
 
     <div class="form-card">
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
 
             {% if form.non_field_errors %}
                 <div class="alert alert-error">{{ form.non_field_errors }}</div>
             {% endif %}
 
-            <div class="form-group">
-                <label for="{{ form.tipo.id_for_label }}">Tipo de Custo *</label>
-                {{ form.tipo }}
-                {% for erro in form.tipo.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.descricao.id_for_label }}">Descrição *</label>
-                {{ form.descricao }}
-                {% for erro in form.descricao.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
-            </div>
-
-            <div class="form-row">
+            {% for field in form %}
                 <div class="form-group">
-                    <label for="{{ form.valor.id_for_label }}">Valor (R$) *</label>
-                    {{ form.valor }}
-                    {% for erro in form.valor.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                    {% for erro in field.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
                 </div>
-                <div class="form-group">
-                    <label for="{{ form.data.id_for_label }}">Data *</label>
-                    {{ form.data }}
-                    {% for erro in form.data.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
-                </div>
-            </div>
+            {% endfor %}
 
             <div class="form-actions">
                 <a href="{% url 'detalhes_veiculo' veiculo.id %}" class="btn btn-secondary">Cancelar</a>

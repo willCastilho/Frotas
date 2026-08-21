@@ -111,7 +111,7 @@ class CustoFluxoTests(LogadoMixin, TestCase):
         veiculo = cria_veiculo()
         url = reverse('novo_custo', args=[veiculo.id])
         resposta = self.client.post(url, {
-            'tipo': 'combustivel', 'descricao': 'Gasolina',
+            'tipo': 'manutencao', 'descricao': 'Troca de pneu',
             'valor': '150.00', 'data': '2024-01-10',
         })
         self.assertEqual(resposta.status_code, 302)
@@ -147,13 +147,14 @@ class MetricasFrotaTests(TestCase):
     def test_custo_por_km(self):
         Custo.objects.create(veiculo=self.veiculo, tipo='outro',
                              descricao='x', valor=1000, data='2024-01-01')
+        # O abastecimento gera automaticamente um custo de combustivel (180).
         Abastecimento.objects.create(
             veiculo=self.veiculo, quilometragem=1000, litros=30,
             valor_total=180, data='2024-01-01')
         RegistroQuilometragem.objects.create(
             veiculo=self.veiculo, quilometragem=3000, data='2024-02-01')
-        # 1000 de custo / 2000 km = 0.5 R$/km
-        self.assertAlmostEqual(self.veiculo.custo_por_km(), 0.5)
+        # (1000 + 180) de custo / 2000 km = 0.59 R$/km
+        self.assertAlmostEqual(self.veiculo.custo_por_km(), 1180 / 2000)
 
 
 class PlanoManutencaoTests(TestCase):
@@ -207,6 +208,56 @@ class FrotaViewsTests(LogadoMixin, TestCase):
         resposta = self.client.get(reverse('detalhes_veiculo', args=[self.veiculo.id]))
         self.assertEqual(resposta.status_code, 200)
         self.assertContains(resposta, 'Consumo médio')
+
+
+class CombustivelFonteUnicaTests(LogadoMixin, TestCase):
+    def setUp(self):
+        super().setUp()
+        self.veiculo = cria_veiculo()
+
+    def test_abastecimento_gera_custo(self):
+        ab = Abastecimento.objects.create(
+            veiculo=self.veiculo, quilometragem=1000, litros=30,
+            valor_total=180, data='2024-01-01')
+        self.assertIsNotNone(ab.custo)
+        self.assertEqual(ab.custo.tipo, 'combustivel')
+        self.assertEqual(float(ab.custo.valor), 180.0)
+        self.assertEqual(Custo.objects.filter(tipo='combustivel').count(), 1)
+
+    def test_excluir_abastecimento_remove_custo(self):
+        ab = Abastecimento.objects.create(
+            veiculo=self.veiculo, quilometragem=1000, litros=30,
+            valor_total=180, data='2024-01-01')
+        ab.delete()
+        self.assertEqual(Custo.objects.filter(tipo='combustivel').count(), 0)
+
+    def test_form_custo_nao_oferece_combustivel(self):
+        from carro.forms import CustoForm
+        tipos = [c[0] for c in CustoForm().fields['tipo'].choices]
+        self.assertNotIn('combustivel', tipos)
+
+    def test_custo_de_abastecimento_nao_edita_direto(self):
+        ab = Abastecimento.objects.create(
+            veiculo=self.veiculo, quilometragem=1000, litros=30,
+            valor_total=180, data='2024-01-01')
+        r = self.client.get(reverse('editar_custo', args=[ab.custo.id]))
+        self.assertEqual(r.status_code, 302)
+
+
+class MetaCustoTests(TestCase):
+    def test_custo_vs_meta(self):
+        v = cria_veiculo(meta_custo_mensal=1000)
+        hoje = date.today().replace(day=10)
+        Custo.objects.create(veiculo=v, tipo='outro', descricao='x',
+                             valor=1200, data=hoje)
+        info = v.custo_vs_meta()
+        self.assertEqual(info['pct'], 120)
+        self.assertEqual(info['cor'], 'red')
+        self.assertEqual(info['pct_barra'], 100)
+
+    def test_sem_meta_retorna_none(self):
+        v = cria_veiculo()
+        self.assertIsNone(v.custo_vs_meta())
 
 
 class DashboardTests(LogadoMixin, TestCase):

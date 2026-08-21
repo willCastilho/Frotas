@@ -339,6 +339,8 @@ label { display: block; font-size: .85rem; font-weight: 600; color: var(--text-m
 .cost-bar-green  { background: var(--green); }
 .cost-bar-yellow { background: var(--yellow); }
 .cost-bar-red    { background: var(--red); }
+.cost-meta { display: block; margin-top: 8px; font-size: .78rem; font-weight: 600; }
+.cost-meta-vazia { color: var(--text-faint); font-weight: 500; }
 
 .card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
 .card-actions .btn, .card-actions form { flex: 1 1 auto; }

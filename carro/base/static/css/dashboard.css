@@ -117,6 +117,14 @@
 
 .vazio { color: var(--text-muted); }
 
+/* Custos por categoria (barras horizontais) */
+.categorias { display: flex; flex-direction: column; gap: 14px; }
+.cat-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+.cat-nome { font-weight: 600; }
+.cat-valor { color: var(--text-muted); font-size: .85rem; }
+.cat-bar { height: 8px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
+.cat-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--primary), #6ea8ff); }
+
 @media (max-width: 768px) {
     .grafico-barras { gap: 6px; }
     .barra-valor { display: none; }
