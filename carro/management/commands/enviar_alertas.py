@@ -2,7 +2,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.core.management.base import BaseCommand
 
-from carro.models import PlanoManutencao, Veiculo
+from carro.models import Documento, PlanoManutencao, Veiculo
 from contas.models import Organizacao, PerfilUsuario
 
 
@@ -50,6 +50,12 @@ class Command(BaseCommand):
             st = plano.status(plano.veiculo.km_atual())
             if st['cor'] == 'red':
                 linhas.append(f'🔴 {plano.veiculo}: {plano.descricao} — {st["detalhe"]}')
+        # Documentos vencidos ou vencendo em ate 30 dias
+        for doc in Documento.objects.filter(
+                veiculo__organizacao=org).select_related('veiculo'):
+            st = doc.status()
+            if st['cor'] in ('red', 'yellow'):
+                linhas.append(f'📄 {doc.veiculo}: {doc.get_tipo_display()} — {st["detalhe"]}')
         # Orcamento estourado no mes
         for v in Veiculo.objects.filter(organizacao=org, meta_custo_mensal__isnull=False):
             info = v.custo_vs_meta()

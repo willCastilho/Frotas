@@ -16,9 +16,11 @@ urlpatterns = [
     path('veiculo/<int:veiculo_id>/novo-abastecimento/', carro_views.novo_abastecimento, name='novo_abastecimento'),
     path('veiculo/<int:veiculo_id>/novo-km/', carro_views.novo_registro_km, name='novo_registro_km'),
     path('veiculo/<int:veiculo_id>/novo-plano/', carro_views.novo_plano_manutencao, name='novo_plano_manutencao'),
+    path('veiculo/<int:veiculo_id>/novo-documento/', carro_views.novo_documento, name='novo_documento'),
     path('abastecimento/<int:pk>/excluir/', carro_views.excluir_abastecimento, name='excluir_abastecimento'),
     path('km/<int:pk>/excluir/', carro_views.excluir_registro_km, name='excluir_registro_km'),
     path('plano/<int:pk>/excluir/', carro_views.excluir_plano_manutencao, name='excluir_plano_manutencao'),
+    path('documento/<int:pk>/excluir/', carro_views.excluir_documento, name='excluir_documento'),
 
     # Fase 4 - camada gerencial
     path('dashboard/', carro_views.dashboard, name='dashboard'),

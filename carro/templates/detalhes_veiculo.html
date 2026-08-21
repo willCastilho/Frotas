@@ -126,6 +126,39 @@
         </div>
     </div>
 
+    <!-- Documentos -->
+    <div class="custos-lista">
+        <div class="secao-header">
+            <h2>Documentos</h2>
+            <a href="{% url 'novo_documento' veiculo.id %}" class="btn btn-small btn-primary">+ Documento</a>
+        </div>
+        {% if documentos %}
+            <table class="custos-table">
+                <thead>
+                    <tr><th>Tipo</th><th>Vencimento</th><th>Status</th><th>Obs.</th><th>Ações</th></tr>
+                </thead>
+                <tbody>
+                    {% for d in documentos %}
+                        <tr>
+                            <td>{{ d.obj.get_tipo_display }}</td>
+                            <td>{{ d.obj.vencimento|date:"d/m/Y" }}</td>
+                            <td><span class="variacao-{{ d.status.cor }}">{{ d.status.texto }}</span><br><small>{{ d.status.detalhe }}</small></td>
+                            <td>{{ d.obj.observacao }}</td>
+                            <td>
+                                <form method="post" action="{% url 'excluir_documento' d.obj.id %}" style="display:inline;" onsubmit="return confirm('Excluir este documento?')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-small btn-danger">Excluir</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="sem-custos">Nenhum documento cadastrado.</p>
+        {% endif %}
+    </div>
+
     <!-- Manutenção preventiva -->
     <div class="custos-lista">
         <div class="secao-header">

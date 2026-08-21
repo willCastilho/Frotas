@@ -101,5 +101,35 @@
             <p class="vazio">Nenhum alerta de manutenção. 🎉</p>
         {% endif %}
     </div>
+
+    <div class="painel-card">
+        <h2>Próximos 90 dias — documentos e manutenções</h2>
+        {% if agenda_90 %}
+            <table class="alertas-table">
+                <thead>
+                    <tr><th>Veículo</th><th>Item</th><th>Categoria</th><th>Vencimento</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    {% for i in agenda_90 %}
+                        <tr>
+                            <td><a href="{% url 'detalhes_veiculo' i.veiculo_id %}">{{ i.veiculo.marca }} {{ i.veiculo.modelo }}{% if i.veiculo.placa %} · {{ i.veiculo.placa }}{% endif %}</a></td>
+                            <td>{{ i.titulo }}</td>
+                            <td>{{ i.categoria }}</td>
+                            <td>{{ i.data|date:"d/m/Y" }}</td>
+                            <td>
+                                <span class="variacao-{{ i.cor }}">
+                                    {% if i.dias < 0 %}Vencido há {{ i.dias|stringformat:"d"|cut:"-" }} dias
+                                    {% elif i.dias == 0 %}Vence hoje
+                                    {% else %}Faltam {{ i.dias }} dias{% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vazio">Nada vencendo nos próximos 90 dias. 🎉</p>
+        {% endif %}
+    </div>
 </div>
 {% endblock content %}

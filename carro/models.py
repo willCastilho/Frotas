@@ -412,3 +412,44 @@ class PlanoManutencao(models.Model):
             cor, texto = 'gray', 'Sem parâmetros'
 
         return {'cor': cor, 'texto': texto, 'detalhe': ' · '.join(detalhes)}
+
+
+class Documento(models.Model):
+    """Documento do veiculo com data de vencimento (licenciamento, seguro,
+    IPVA, CRLV...). Gera alerta conforme a proximidade do vencimento."""
+    TIPO_CHOICES = [
+        ('licenciamento', 'Licenciamento'),
+        ('seguro', 'Seguro'),
+        ('ipva', 'IPVA'),
+        ('crlv', 'CRLV'),
+        ('multa', 'Multa'),
+        ('outro', 'Outro'),
+    ]
+
+    veiculo = models.ForeignKey(
+        Veiculo, on_delete=models.CASCADE, related_name='documentos'
+    )
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    vencimento = models.DateField()
+    observacao = models.CharField(max_length=200, blank=True)
+    data_cadastro = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['vencimento']
+        indexes = [models.Index(fields=['veiculo', 'vencimento'])]
+
+    def __str__(self):
+        return f"{self.veiculo} - {self.get_tipo_display()} ({self.vencimento})"
+
+    def dias_restantes(self):
+        return (self.vencimento - timezone.now().date()).days
+
+    def status(self):
+        dias = self.dias_restantes()
+        if dias < 0:
+            cor, texto, detalhe = 'red', '🔴 Vencido', f'Vencido há {abs(dias)} dias'
+        elif dias <= 30:
+            cor, texto, detalhe = 'yellow', '🟡 Vence em breve', f'Vence em {dias} dias'
+        else:
+            cor, texto, detalhe = 'green', '🟢 Em dia', f'Vence em {dias} dias'
+        return {'cor': cor, 'texto': texto, 'detalhe': detalhe, 'dias': dias}

@@ -3,6 +3,7 @@ from django import forms
 from carro.models import (
     Abastecimento,
     Custo,
+    Documento,
     PlanoManutencao,
     RegistroQuilometragem,
     Veiculo,
@@ -93,6 +94,13 @@ class RegistroQuilometragemForm(forms.ModelForm):
         model = RegistroQuilometragem
         fields = ['data', 'quilometragem', 'origem', 'observacao']
         widgets = {'data': _DATE, 'observacao': forms.Textarea(attrs={'rows': 2})}
+
+
+class DocumentoForm(forms.ModelForm):
+    class Meta:
+        model = Documento
+        fields = ['tipo', 'vencimento', 'observacao']
+        widgets = {'vencimento': _DATE}
 
 
 class PlanoManutencaoForm(forms.ModelForm):

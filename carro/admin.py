@@ -40,3 +40,11 @@ class PlanoManutencaoAdmin(admin.ModelAdmin):
     list_filter = ('veiculo',)
     search_fields = ('veiculo__modelo', 'descricao')
 
+
+@admin.register(models.Documento)
+class DocumentoAdmin(admin.ModelAdmin):
+    list_display = ('veiculo', 'tipo', 'vencimento', 'observacao')
+    list_filter = ('tipo', 'vencimento')
+    search_fields = ('veiculo__modelo', 'veiculo__placa')
+    date_hierarchy = 'vencimento'
+

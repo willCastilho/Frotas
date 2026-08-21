@@ -7,8 +7,43 @@ from django.db.models.functions import TruncMonth
 from django.shortcuts import render
 from django.utils import timezone
 
-from carro.models import Custo, PlanoManutencao, Veiculo
+from carro.models import Custo, Documento, PlanoManutencao, Veiculo
 from contas.utils import organizacao_do
+
+
+def _agenda_90_dias(org):
+    """Reune documentos e manutencoes programadas (por data) que vencem nos
+    proximos 90 dias (ou ja vencidos), ordenados por data."""
+    hoje = timezone.now().date()
+    limite = hoje + timedelta(days=90)
+    itens = []
+
+    for doc in Documento.objects.filter(
+            veiculo__organizacao=org, vencimento__lte=limite).select_related('veiculo'):
+        st = doc.status()
+        itens.append({
+            'veiculo': doc.veiculo, 'veiculo_id': doc.veiculo_id,
+            'titulo': doc.get_tipo_display(), 'categoria': 'Documento',
+            'data': doc.vencimento, 'dias': st['dias'], 'cor': st['cor'],
+        })
+
+    for plano in PlanoManutencao.objects.filter(
+            veiculo__organizacao=org,
+            intervalo_dias__isnull=False,
+            data_referencia__isnull=False).select_related('veiculo'):
+        prox = plano.proxima_data
+        if not prox or prox > limite:
+            continue
+        dias = (prox - hoje).days
+        cor = 'red' if dias <= 0 else 'yellow' if dias <= 15 else 'green'
+        itens.append({
+            'veiculo': plano.veiculo, 'veiculo_id': plano.veiculo_id,
+            'titulo': plano.descricao, 'categoria': 'Manutenção',
+            'data': prox, 'dias': dias, 'cor': cor,
+        })
+
+    itens.sort(key=lambda i: i['data'])
+    return itens
 
 ROTULOS_TIPO = dict(Custo.TIPO_CHOICES)
 MESES_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
@@ -110,5 +145,6 @@ def dashboard(request):
         'por_categoria': por_categoria,
         'ranking': ranking,
         'alertas': alertas,
+        'agenda_90': _agenda_90_dias(org),
     }
     return render(request, 'dashboard.html', context)

@@ -80,6 +80,10 @@ def detalhes_veiculo(request, veiculo_id):
         {'obj': plano, 'status': plano.status(km_atual)}
         for plano in veiculo.planos_manutencao.all()
     ]
+    documentos = [
+        {'obj': doc, 'status': doc.status()}
+        for doc in veiculo.documentos.all()
+    ]
 
     context = {
         'veiculo': veiculo,
@@ -93,6 +97,7 @@ def detalhes_veiculo(request, veiculo_id):
         'abastecimentos': veiculo.abastecimentos.all()[:10],
         'registros_km': veiculo.registros_km.all()[:10],
         'planos': planos,
+        'documentos': documentos,
     }
     return render(request, 'detalhes_veiculo.html', context)
 

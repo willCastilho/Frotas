@@ -14,9 +14,11 @@ from .frota import (
     novo_abastecimento,
     novo_registro_km,
     novo_plano_manutencao,
+    novo_documento,
     excluir_abastecimento,
     excluir_registro_km,
     excluir_plano_manutencao,
+    excluir_documento,
 )
 from .dashboard import dashboard
 from .relatorios import relatorios, exportar_custos
@@ -33,9 +35,11 @@ __all__ = [
     'novo_abastecimento',
     'novo_registro_km',
     'novo_plano_manutencao',
+    'novo_documento',
     'excluir_abastecimento',
     'excluir_registro_km',
     'excluir_plano_manutencao',
+    'excluir_documento',
     'dashboard',
     'relatorios',
     'exportar_custos',

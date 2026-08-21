@@ -8,6 +8,7 @@ from carro.forms import CustoForm, VeiculoForm
 from carro.models import (
     Abastecimento,
     Custo,
+    Documento,
     PlanoManutencao,
     RegistroQuilometragem,
     Veiculo,
@@ -369,6 +370,58 @@ class MetaCustoTests(TestCase):
 
     def test_sem_meta_retorna_none(self):
         self.assertIsNone(cria_veiculo().custo_vs_meta())
+
+
+class DocumentoTests(LogadoMixin, TestCase):
+    def setUp(self):
+        super().setUp()
+        self.veiculo = self.cria_veiculo()
+
+    def test_status_vencido(self):
+        d = Documento.objects.create(
+            veiculo=self.veiculo, tipo='ipva',
+            vencimento=date.today() - timedelta(days=5))
+        self.assertEqual(d.status()['cor'], 'red')
+
+    def test_status_vence_em_breve(self):
+        d = Documento.objects.create(
+            veiculo=self.veiculo, tipo='seguro',
+            vencimento=date.today() + timedelta(days=20))
+        self.assertEqual(d.status()['cor'], 'yellow')
+
+    def test_status_em_dia(self):
+        d = Documento.objects.create(
+            veiculo=self.veiculo, tipo='licenciamento',
+            vencimento=date.today() + timedelta(days=200))
+        self.assertEqual(d.status()['cor'], 'green')
+
+    def test_criar_documento_pela_view(self):
+        r = self.client.post(reverse('novo_documento', args=[self.veiculo.id]), {
+            'tipo': 'licenciamento',
+            'vencimento': (date.today() + timedelta(days=40)).isoformat(),
+            'observacao': 'Anual'})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(Documento.objects.count(), 1)
+
+
+class Agenda90Tests(LogadoMixin, TestCase):
+    def test_agenda_lista_doc_e_manutencao(self):
+        v = self.cria_veiculo()
+        Documento.objects.create(veiculo=v, tipo='ipva',
+                                 vencimento=date.today() + timedelta(days=30))
+        # Manutencao por data vencendo em ~10 dias
+        PlanoManutencao.objects.create(
+            veiculo=v, descricao='Licenciamento', intervalo_dias=30,
+            data_referencia=date.today() - timedelta(days=20))
+        # Documento fora da janela (nao deve aparecer)
+        Documento.objects.create(veiculo=v, tipo='seguro',
+                                 vencimento=date.today() + timedelta(days=200))
+        r = self.client.get(reverse('dashboard'))
+        agenda = r.context['agenda_90']
+        categorias = {i['categoria'] for i in agenda}
+        self.assertEqual(categorias, {'Documento', 'Manutenção'})
+        self.assertEqual(len(agenda), 2)  # o seguro de 200 dias fica de fora
+        self.assertContains(r, 'Próximos 90 dias')
 
 
 class DashboardTests(LogadoMixin, TestCase):

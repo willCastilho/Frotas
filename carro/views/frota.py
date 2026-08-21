@@ -5,11 +5,13 @@ from django.views.decorators.http import require_POST
 
 from carro.forms import (
     AbastecimentoForm,
+    DocumentoForm,
     PlanoManutencaoForm,
     RegistroQuilometragemForm,
 )
 from carro.models import (
     Abastecimento,
+    Documento,
     PlanoManutencao,
     RegistroQuilometragem,
     Veiculo,
@@ -52,6 +54,13 @@ def novo_plano_manutencao(request, veiculo_id):
                   'Novo Plano de Manutenção', 'Plano de manutenção criado!')
 
 
+@login_required
+@exige_escrita
+def novo_documento(request, veiculo_id):
+    return _criar(request, veiculo_id, DocumentoForm,
+                  'Novo Documento', 'Documento cadastrado!')
+
+
 def _excluir(request, model, pk, sucesso):
     obj = get_object_or_404(
         model, pk=pk, veiculo__organizacao=organizacao_do(request.user))
@@ -80,3 +89,10 @@ def excluir_registro_km(request, pk):
 @require_POST
 def excluir_plano_manutencao(request, pk):
     return _excluir(request, PlanoManutencao, pk, 'Plano excluído.')
+
+
+@login_required
+@exige_escrita
+@require_POST
+def excluir_documento(request, pk):
+    return _excluir(request, Documento, pk, 'Documento excluído.')
