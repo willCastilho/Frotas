@@ -67,6 +67,14 @@ class Veiculo(models.Model):
         ('vendido', 'Vendido'),
         ('baixado', 'Baixado'),
     ]
+    COMBUSTIVEL_CHOICES = [
+        ('gasolina', 'Gasolina'),
+        ('etanol', 'Etanol'),
+        ('diesel', 'Diesel'),
+        ('gnv', 'GNV'),
+        ('flex', 'Flex'),
+        ('eletrico', 'Elétrico'),
+    ]
 
     organizacao = models.ForeignKey(
         'contas.Organizacao', on_delete=models.CASCADE, related_name='veiculos'
@@ -75,7 +83,16 @@ class Veiculo(models.Model):
     marca = models.CharField(max_length=100)
     ano = models.IntegerField()
     cor = models.CharField(max_length=50)
+    placa = models.CharField(max_length=10, blank=True)
+    renavam = models.CharField(max_length=20, blank=True)
+    chassi = models.CharField(max_length=30, blank=True)
+    combustivel = models.CharField(
+        max_length=20, choices=COMBUSTIVEL_CHOICES, blank=True)
     data_compra = models.DateField()
+    valor_aquisicao = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text='Valor pago na aquisicao (opcional).')
+    observacoes = models.TextField(blank=True)
     data_cadastro = models.DateTimeField(default=timezone.now)
     picture = models.ImageField(upload_to="veiculos/", blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ativo')
@@ -90,9 +107,22 @@ class Veiculo(models.Model):
         indexes = [
             models.Index(fields=['organizacao', 'status']),
         ]
+        constraints = [
+            # Placa unica por organizacao (ignorando veiculos sem placa).
+            models.UniqueConstraint(
+                fields=['organizacao', 'placa'],
+                condition=~models.Q(placa=''),
+                name='placa_unica_por_org',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.marca} {self.modelo} ({self.ano})"
+
+    def save(self, *args, **kwargs):
+        if self.placa:
+            self.placa = self.placa.upper().strip()
+        super().save(*args, **kwargs)
 
     def custo_vs_meta(self):
         """Compara o custo do mes atual com a meta. Retorna dict com pct (real),

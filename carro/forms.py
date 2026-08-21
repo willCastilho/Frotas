@@ -14,19 +14,36 @@ _DATE = forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d')
 class VeiculoForm(forms.ModelForm):
     class Meta:
         model = Veiculo
-        fields = ['marca', 'modelo', 'ano', 'cor', 'data_compra', 'status',
-                  'meta_custo_mensal', 'picture']
+        fields = ['marca', 'modelo', 'ano', 'cor', 'placa', 'renavam', 'chassi',
+                  'combustivel', 'data_compra', 'valor_aquisicao', 'status',
+                  'meta_custo_mensal', 'observacoes', 'picture']
         widgets = {
             'data_compra': forms.DateInput(
                 attrs={'type': 'date'}, format='%Y-%m-%d'
             ),
+            'observacoes': forms.Textarea(attrs={'rows': 3}),
         }
+
+    def __init__(self, *args, organizacao=None, **kwargs):
+        self.organizacao = organizacao
+        super().__init__(*args, **kwargs)
 
     def clean_ano(self):
         ano = self.cleaned_data['ano']
         if ano < 1900 or ano > 2100:
             raise forms.ValidationError('Informe um ano entre 1900 e 2100.')
         return ano
+
+    def clean_placa(self):
+        placa = (self.cleaned_data.get('placa') or '').upper().strip()
+        if placa and self.organizacao is not None:
+            existentes = Veiculo.objects.filter(
+                organizacao=self.organizacao, placa=placa)
+            if self.instance and self.instance.pk:
+                existentes = existentes.exclude(pk=self.instance.pk)
+            if existentes.exists():
+                raise forms.ValidationError('Já existe um veículo com esta placa.')
+        return placa
 
 
 class CustoForm(forms.ModelForm):

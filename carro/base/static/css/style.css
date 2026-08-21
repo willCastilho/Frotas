@@ -304,6 +304,15 @@ label { display: block; font-size: .85rem; font-weight: 600; color: var(--text-m
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
 .card-title h3 { margin: 0; }
 .card-title p { margin: 2px 0 0; color: var(--text-muted); font-size: .9rem; }
+.card-placa {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    background: var(--surface-3);
+    color: var(--text);
+    padding: 1px 7px;
+    border-radius: 5px;
+    font-size: .82rem;
+    letter-spacing: .05em;
+}
 .card-description { color: var(--text-muted); font-size: .88rem; margin: 0; }
 
 .card-specs { display: flex; gap: 10px; }

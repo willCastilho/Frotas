@@ -19,66 +19,20 @@
     <div class="form-card">
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-
             {% if form.non_field_errors %}
                 <div class="alert alert-error">{{ form.non_field_errors }}</div>
             {% endif %}
-
-            <div class="form-row">
+            {% if veiculo.picture %}
+                <p style="color:var(--text-muted);font-size:.85rem;">Foto atual: {{ veiculo.picture.name }}</p>
+            {% endif %}
+            {% for field in form %}
                 <div class="form-group">
-                    <label for="{{ form.marca.id_for_label }}">Marca *</label>
-                    {{ form.marca }}
-                    {% for erro in form.marca.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                    {% for erro in field.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
                 </div>
-                <div class="form-group">
-                    <label for="{{ form.modelo.id_for_label }}">Modelo *</label>
-                    {{ form.modelo }}
-                    {% for erro in form.modelo.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="{{ form.ano.id_for_label }}">Ano *</label>
-                    {{ form.ano }}
-                    {% for erro in form.ano.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
-                </div>
-                <div class="form-group">
-                    <label for="{{ form.cor.id_for_label }}">Cor *</label>
-                    {{ form.cor }}
-                    {% for erro in form.cor.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="{{ form.data_compra.id_for_label }}">Data de Compra *</label>
-                    {{ form.data_compra }}
-                    {% for erro in form.data_compra.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
-                </div>
-                <div class="form-group">
-                    <label for="{{ form.status.id_for_label }}">Status *</label>
-                    {{ form.status }}
-                    {% for erro in form.status.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.meta_custo_mensal.id_for_label }}">Meta de custo mensal (R$)</label>
-                {{ form.meta_custo_mensal }}
-                <small>Opcional. Usado para o alerta de orçamento no card do veículo.</small>
-                {% for erro in form.meta_custo_mensal.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.picture.id_for_label }}">Foto do Veículo</label>
-                {% if veiculo.picture %}
-                    <p>Foto atual: {{ veiculo.picture.name }}</p>
-                {% endif %}
-                {{ form.picture }}
-                {% for erro in form.picture.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
-            </div>
-
+            {% endfor %}
             <div class="form-actions">
                 <a href="{% url 'detalhes_veiculo' veiculo.id %}" class="btn btn-secondary">Cancelar</a>
                 <button type="submit" class="btn btn-primary">Salvar Alterações</button>

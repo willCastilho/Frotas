@@ -45,11 +45,46 @@
                     <span class="info-label">Cor:</span>
                     <span class="info-value">{{ veiculo.cor }}</span>
                 </div>
+                {% if veiculo.placa %}
+                <div class="info-row">
+                    <span class="info-label">Placa:</span>
+                    <span class="info-value"><span class="card-placa">{{ veiculo.placa }}</span></span>
+                </div>
+                {% endif %}
+                {% if veiculo.renavam %}
+                <div class="info-row">
+                    <span class="info-label">Renavam:</span>
+                    <span class="info-value">{{ veiculo.renavam }}</span>
+                </div>
+                {% endif %}
+                {% if veiculo.chassi %}
+                <div class="info-row">
+                    <span class="info-label">Chassi:</span>
+                    <span class="info-value">{{ veiculo.chassi }}</span>
+                </div>
+                {% endif %}
+                {% if veiculo.combustivel %}
+                <div class="info-row">
+                    <span class="info-label">Combustível:</span>
+                    <span class="info-value">{{ veiculo.get_combustivel_display }}</span>
+                </div>
+                {% endif %}
+                {% if veiculo.valor_aquisicao %}
+                <div class="info-row">
+                    <span class="info-label">Valor de aquisição:</span>
+                    <span class="info-value">R$ {{ veiculo.valor_aquisicao|floatformat:2 }}</span>
+                </div>
+                {% endif %}
                 <div class="info-row">
                     <span class="info-label">Status:</span>
                     <span class="badge badge-{{ veiculo.status }}">{{ veiculo.get_status_display }}</span>
                 </div>
             </div>
+            {% if veiculo.observacoes %}
+                <p style="color:var(--text-muted);margin-top:14px;font-size:.9rem;">
+                    <strong>Observações:</strong> {{ veiculo.observacoes }}
+                </p>
+            {% endif %}
         </div>
 
         <!-- Card com resumo de custos -->

@@ -30,7 +30,8 @@ def home(request):
     if search_query:
         carros = carros.filter(
             Q(marca__icontains=search_query) |
-            Q(modelo__icontains=search_query)
+            Q(modelo__icontains=search_query) |
+            Q(placa__icontains=search_query)
         )
 
     paginator = Paginator(carros, VEICULOS_POR_PAGINA)
@@ -52,6 +53,7 @@ def home(request):
             'modelo': carro.modelo,
             'ano': carro.ano,
             'cor': carro.cor,
+            'placa': carro.placa,
             'status': carro.status,
             'picture': carro.picture,
             'custo_mes_atual': atual,
@@ -107,7 +109,7 @@ def novo_veiculo(request):
         )
         return redirect('home')
 
-    form = VeiculoForm(request.POST or None, request.FILES or None)
+    form = VeiculoForm(request.POST or None, request.FILES or None, organizacao=org)
     if request.method == 'POST' and form.is_valid():
         veiculo = form.save(commit=False)
         veiculo.organizacao = org
@@ -121,7 +123,8 @@ def novo_veiculo(request):
 @exige_escrita
 def editar_veiculo(request, veiculo_id):
     veiculo = get_object_or_404(_veiculos_da_org(request), id=veiculo_id)
-    form = VeiculoForm(request.POST or None, request.FILES or None, instance=veiculo)
+    form = VeiculoForm(request.POST or None, request.FILES or None,
+                       instance=veiculo, organizacao=organizacao_do(request.user))
     if request.method == 'POST' and form.is_valid():
         form.save()
         messages.success(request, 'Veículo atualizado com sucesso!')

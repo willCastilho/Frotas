@@ -190,6 +190,44 @@ class FormsTests(TestCase):
         self.assertIn('valor', form.errors)
 
 
+class CadastroCompletoTests(LogadoMixin, TestCase):
+    def _dados(self, **extra):
+        base = {
+            'marca': 'Fiat', 'modelo': 'Toro', 'ano': 2021, 'cor': 'Vermelho',
+            'data_compra': '2021-01-01', 'status': 'ativo',
+        }
+        base.update(extra)
+        return base
+
+    def test_cadastra_com_placa_e_documentos(self):
+        r = self.client.post(reverse('novo_veiculo'), self._dados(
+            placa='abc1d23', renavam='123456789', chassi='9BWHE21JX24060831',
+            combustivel='flex', valor_aquisicao='95000.00',
+            observacoes='Único dono'))
+        self.assertEqual(r.status_code, 302)
+        v = Veiculo.objects.get(modelo='Toro')
+        self.assertEqual(v.placa, 'ABC1D23')  # normalizada em maiuscula
+        self.assertEqual(v.combustivel, 'flex')
+        self.assertEqual(float(v.valor_aquisicao), 95000.0)
+
+    def test_placa_unica_por_org(self):
+        self.cria_veiculo(placa='XYZ1A11')
+        r = self.client.post(reverse('novo_veiculo'), self._dados(placa='xyz1a11'))
+        self.assertEqual(r.status_code, 200)  # form invalido, re-render
+        self.assertContains(r, 'Já existe um veículo com esta placa')
+
+    def test_placa_pode_repetir_entre_orgs(self):
+        outra = cria_org('Outra')
+        cria_veiculo(org=outra, placa='SAME123')
+        r = self.client.post(reverse('novo_veiculo'), self._dados(placa='same123'))
+        self.assertEqual(r.status_code, 302)  # permitido: outra organizacao
+
+    def test_busca_por_placa(self):
+        self.cria_veiculo(modelo='Palio', placa='BRA2E19')
+        r = self.client.get(reverse('home'), {'search': 'BRA2E19'})
+        self.assertContains(r, 'Palio')
+
+
 class CustoFluxoTests(LogadoMixin, TestCase):
     def test_novo_custo_associa_veiculo(self):
         veiculo = self.cria_veiculo()
