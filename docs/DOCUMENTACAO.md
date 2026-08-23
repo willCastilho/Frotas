@@ -5,7 +5,7 @@ custos, manutenção e documentação.
 
 - **Stack:** Python 3.12 · Django 5.2 · PostgreSQL
 - **Arquitetura:** SaaS multi-tenant (isolamento por organização)
-- **Cobertura:** 53 testes automatizados
+- **Cobertura:** 74 testes automatizados
 
 > Versão visual (com fluxograma e diagramas): publicada como Artifact no Claude Code.
 
@@ -13,12 +13,16 @@ custos, manutenção e documentação.
 
 ## 1. Visão geral
 
-O sistema permite a uma organização cadastrar seus veículos e acompanhar, de
-forma centralizada, os **custos**, **abastecimentos**, **quilometragem**,
-**manutenções preventivas** e **documentos** de cada veículo. A partir desses
-dados, calcula indicadores gerenciais (consumo médio, custo por km, custo por
-categoria), projeta o fechamento do mês e emite alertas de manutenção e de
-vencimento de documentos.
+O sistema permite a uma organização cadastrar seus veículos e **motoristas** e
+acompanhar, de forma centralizada, os **custos** (avulsos, recorrentes ou
+parcelados), **abastecimentos**, **quilometragem**, **manutenções preventivas**
+e **documentos** de cada veículo. A partir desses dados, calcula indicadores
+gerenciais (consumo médio, custo por km, custo por categoria, **depreciação e
+patrimônio da frota**), projeta o fechamento do mês e emite alertas de
+manutenção e de vencimento de documentos e de CNH.
+
+Cada motorista pode ser **vinculado a um veículo por período**, o que permite
+saber quem estava em qual veículo em qualquer data.
 
 É **multi-tenant**: cada organização vê apenas os próprios dados, com controle
 de acesso por papéis — adequado tanto para uso interno quanto para venda (SaaS).
@@ -44,16 +48,18 @@ flowchart TD
     D --> E
     E -- não --> F[Criar organização]
     F --> G[Dashboard]
-    E -- sim --> G[Dashboard<br/>KPIs, alertas, projeção]
+    E -- sim --> G[Dashboard<br/>KPIs, agenda 90 dias, projeção, patrimônio]
     G --> H[Cadastrar/editar veículos]
     G --> I[Lançar custos e abastecimentos]
     G --> J[Registrar km e manutenção]
     G --> K[Cadastrar documentos]
+    G --> N[Cadastrar motoristas<br/>e vincular a veículos]
     H --> L[Alertas e indicadores]
     I --> L
     J --> L
     K --> L
-    L --> M([Relatórios e exportação<br/>CSV, Excel, e-mail])
+    N --> L
+    L --> M([Relatórios e exportação<br/>CSV, Excel, PDF, e-mail])
 ```
 
 ## 4. Arquitetura de implantação
@@ -63,9 +69,9 @@ flowchart LR
     NAV[Navegador] -- HTTPS --> APP[Aplicação Django<br/>Gunicorn + WhiteNoise<br/>multi-tenant, RBAC, auditoria]
     APP --> DB[(PostgreSQL)]
     APP --> S3[Armazenamento S3/R2<br/>fotos e comprovantes]
-    APP --> MAIL[SMTP / E-mail]
+    APP --> MAIL[E-mail<br/>API HTTP Brevo ou SMTP]
     APP --> SEN[Sentry]
-    GH[GitHub] --> CI[CI - GitHub Actions<br/>53 testes] --> APP
+    GH[GitHub] --> CI[CI - GitHub Actions<br/>74 testes] --> APP
 ```
 
 A aplicação é **stateless**: o estado vive no PostgreSQL e os arquivos no
@@ -78,13 +84,20 @@ erDiagram
     PLANO ||--o{ ORGANIZACAO : possui
     ORGANIZACAO ||--o{ PERFILUSUARIO : tem
     ORGANIZACAO ||--o{ VEICULO : tem
+    ORGANIZACAO ||--o{ MOTORISTA : tem
     VEICULO ||--o{ CUSTO : registra
     VEICULO ||--o{ ABASTECIMENTO : registra
     VEICULO ||--o{ REGISTROQUILOMETRAGEM : registra
     VEICULO ||--o{ PLANOMANUTENCAO : possui
     VEICULO ||--o{ DOCUMENTO : possui
+    VEICULO ||--o{ ATRIBUICAOVEICULO : "tem motorista"
+    MOTORISTA ||--o{ ATRIBUICAOVEICULO : "dirige"
     ABASTECIMENTO ||--|| CUSTO : "gera custo de combustível"
 ```
+
+**Custos recorrentes/parcelados** compartilham um `grupo` e carregam
+`parcela_numero`/`parcela_total`. **AtribuicaoVeiculo** liga Motorista e Veículo
+por um período (`data_inicio`/`data_fim`); em aberto, define o motorista atual.
 
 A **Organização** é a raiz do isolamento: como todo registro depende de um
 Veículo, e o Veículo pertence a uma Organização, cada consulta é filtrada pela
@@ -101,7 +114,7 @@ Prioridade: **Alta** essencial · **Média** importante · **Baixa** desejável.
 | RF-02 | Login e logout | Alta |
 | RF-03 | Recuperação de senha por e-mail (link com expiração) | Alta |
 | RF-04 | Onboarding: usuário sem organização é direcionado a criar uma | Alta |
-| RF-05 | Adicionar usuários por convite (e-mail para definir senha) | Média |
+| RF-05 | Convidar usuários: link de definição de senha exibido na tela (funciona sem SMTP) e também enviado por e-mail | Média |
 | RF-06 | Definir/alterar papel de cada usuário | Média |
 | RF-07 | Remover usuários (exceto a si mesmo) | Baixa |
 | RF-08 | Página da conta (organização, plano, assinatura) | Média |
@@ -132,6 +145,7 @@ Prioridade: **Alta** essencial · **Média** importante · **Baixa** desejável.
 | RF-21 | Registrar abastecimentos (data, km, litros, valor, posto, tipo) | Alta |
 | RF-22 | Calcular consumo médio (km/l), custo/km e preço/litro | Alta |
 | RF-23 | Histórico de quilometragem e km atual derivado | Média |
+| RF-43 | Custos recorrentes/parcelados: parcelado divide o valor; mensal/anual repete (IPVA, seguro, licenciamento) | Média |
 
 ### Manutenção e documentos
 | ID | Requisito | Prioridade |
@@ -139,26 +153,20 @@ Prioridade: **Alta** essencial · **Média** importante · **Baixa** desejável.
 | RF-24 | Planos de manutenção por km e/ou data, com status (em dia/próxima/atrasada) | Alta |
 | RF-25 | Documentos com vencimento e status (vencido/vence em breve/em dia) | Alta |
 
-### Motoristas
-| ID | Requisito | Prioridade |
-|---|---|---|
-| RF-39 | CRUD de motoristas (nome, CPF, CNH, categoria, validade, contato, status) | Alta |
-| RF-40 | Alerta de validade da CNH (vencida/vence em breve/em dia) | Média |
-| RF-41 | Vincular motorista a veículo por período; troca encerra o vínculo anterior | Alta |
-| RF-42 | Relatório de qual motorista estava em qual veículo em uma data, com exportação CSV | Alta |
-
 ### Dashboard e relatórios
 | ID | Requisito | Prioridade |
 |---|---|---|
-| RF-26 | KPIs (veículos, ativos, em manutenção, custo do mês) | Alta |
+| RF-26 | KPIs (veículos, ativos, em manutenção, custo do período) | Alta |
 | RF-27 | Projeção de fechamento do mês | Média |
 | RF-28 | Gráfico de custos dos últimos 6 meses | Média |
-| RF-29 | Custos do mês por categoria | Média |
+| RF-29 | Custos por categoria | Média |
 | RF-30 | Ranking de veículos por custo | Baixa |
-| RF-31 | Alertas de manutenção da frota | Alta |
-| RF-32 | Painel dos próximos 90 dias (documentos + manutenções por data) | Alta |
+| RF-31 | Painel vertical dos próximos 90 dias: documentos, manutenções por data e manutenções em alerta por km (consolida os alertas de manutenção) | Alta |
+| RF-32 | Patrimônio da frota: valor de aquisição × valor estimado atual (depreciação) | Média |
 | RF-33 | Relatórios por categoria e por veículo com filtro de período | Média |
-| RF-34 | Exportar custos em CSV e Excel | Média |
+| RF-34 | Exportar custos em CSV, Excel e PDF | Média |
+| RF-44 | Depreciação estimada do veículo (saldo decrescente) no detalhe | Média |
+| RF-45 | Filtros de período no dashboard (mês atual/anterior, 3 meses, ano, intervalo customizado) | Média |
 
 ### Alertas, auditoria e conformidade
 | ID | Requisito | Prioridade |
@@ -167,6 +175,14 @@ Prioridade: **Alta** essencial · **Média** importante · **Baixa** desejável.
 | RF-36 | Enviar alertas por e-mail (manutenção, documentos, orçamento), agendável | Média |
 | RF-37 | Auditoria das alterações (quem, o quê, quando) | Média |
 | RF-38 | Termos de Uso e Política de Privacidade (LGPD) com consentimento | Alta |
+
+### Motoristas
+| ID | Requisito | Prioridade |
+|---|---|---|
+| RF-39 | CRUD de motoristas (nome, CPF, CNH, categoria, validade, contato, status) | Alta |
+| RF-40 | Alerta de validade da CNH (vencida/vence em breve/em dia) | Média |
+| RF-41 | Vincular motorista a veículo por período; troca encerra o vínculo anterior | Alta |
+| RF-42 | Relatório de qual motorista estava em qual veículo em uma data, com exportação CSV | Alta |
 
 ## 7. Requisitos não funcionais
 
@@ -180,12 +196,13 @@ Prioridade: **Alta** essencial · **Média** importante · **Baixa** desejável.
 | RNF-06 | Disponibilidade | Docker + Gunicorn; migrações no boot; deploy contínuo (Railway) |
 | RNF-07 | Observabilidade | Sentry (opcional) e logging |
 | RNF-08 | Backup | Rotina pg_dump agendável |
-| RNF-09 | Manutenibilidade | Apps Django separados; 53 testes; CI (GitHub Actions) |
+| RNF-09 | Manutenibilidade | Apps Django separados; 74 testes; CI (GitHub Actions) |
 | RNF-10 | Portabilidade | Config por variáveis de ambiente (12-factor); `DATABASE_URL` |
 | RNF-11 | Usabilidade | Tema escuro responsivo; feedback; confirmação em exclusões |
 | RNF-12 | Internacionalização | pt-BR; fuso America/Sao_Paulo |
 | RNF-13 | Integridade | Placa única por organização; combustível fonte única; cascatas coerentes |
 | RNF-14 | Compatibilidade | Navegadores modernos; PostgreSQL 14+; Python 3.12 |
+| RNF-15 | Entrega de e-mail | API HTTP do Brevo (HTTPS/443, imune a bloqueio de SMTP) com fallback para SMTP e console; envio tolerante a falha (não quebra o cadastro) |
 
 ## 8. Regras de negócio
 
@@ -194,8 +211,12 @@ Prioridade: **Alta** essencial · **Média** importante · **Baixa** desejável.
 - **Km atual derivado:** maior leitura entre abastecimentos e registros de km.
 - **Status de manutenção:** combina km e data, escolhendo o mais crítico.
 - **Status de documento:** vencido / vence em breve (≤30 dias) / em dia.
+- **Status de CNH:** mesma regra dos documentos, sobre a validade da CNH.
 - **Alerta de orçamento:** verde ≤80%, amarelo ≤100%, vermelho acima da meta.
 - **Limite de plano:** o cadastro respeita o limite de veículos do plano.
+- **Custos recorrentes/parcelados:** parcelado divide o valor em N parcelas mensais (ajustando o arredondamento na última); mensal/anual repete o mesmo valor.
+- **Depreciação:** saldo decrescente de 10% ao ano sobre o valor de aquisição.
+- **Vínculo de motorista:** ao abrir um novo vínculo para um veículo, o vínculo anterior em aberto é encerrado automaticamente (troca de motorista, sem sobreposição).
 
 ## 9. Stack e tecnologias
 
@@ -205,20 +226,23 @@ Prioridade: **Alta** essencial · **Média** importante · **Baixa** desejável.
 | Banco de dados | PostgreSQL (psycopg2 / dj-database-url) |
 | Servidor | Gunicorn · WhiteNoise |
 | Mídia | FileSystem (dev) · S3/R2 via django-storages (prod) |
-| E-mail | SMTP configurável (console em dev) |
+| E-mail | API HTTP Brevo · SMTP · console (dev) |
 | Auditoria | django-auditlog |
 | Monitoramento | Sentry (opcional) |
-| Relatórios | CSV nativo · Excel (openpyxl) |
+| Relatórios | CSV nativo · Excel (openpyxl) · PDF (reportlab) |
 | Implantação | Docker · Railway · GitHub Actions |
 
 ## 10. Pendências e evolução
 
-Concluído recentemente: **custos recorrentes/parcelados** (IPVA, seguro,
-licenciamento), **depreciação** a partir do valor de aquisição (com patrimônio
-da frota no dashboard), **relatório em PDF** e **filtros de período no
-dashboard**.
+Concluído recentemente: **módulo de motoristas** (cadastro, CNH, vínculo
+motorista × veículo por período e relatório por data), **custos
+recorrentes/parcelados**, **depreciação e patrimônio da frota**, **relatório em
+PDF**, **filtros de período no dashboard**, **convite por link + e-mail** e
+**entrega de e-mail pela API HTTP do Brevo**.
 
 Em aberto:
 
 - **Gateway de pagamento** (Stripe / Mercado Pago) com webhook de assinatura.
+- **Agendador dos alertas por e-mail** (cron diário chamando `enviar_alertas`).
+- **OCR de comprovantes/notas** (leitura automática do cupom) — depois, IA.
 - **2FA** e limite de tentativas de login.
