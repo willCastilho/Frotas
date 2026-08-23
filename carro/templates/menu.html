@@ -5,6 +5,7 @@
         <div class="topbar-nav">
             <a href="{% url 'dashboard' %}">Dashboard</a>
             <a href="{% url 'home' %}">Veículos</a>
+            <a href="{% url 'motoristas' %}">Motoristas</a>
             <a href="{% url 'relatorios' %}">Relatórios</a>
             <a href="{% url 'conta' %}">Conta</a>
             {% if user.perfil.pode_administrar %}

@@ -87,6 +87,26 @@
                     <span class="info-label">Status:</span>
                     <span class="badge badge-{{ veiculo.status }}">{{ veiculo.get_status_display }}</span>
                 </div>
+                <div class="info-row">
+                    <span class="info-label">Motorista:</span>
+                    <span class="info-value">
+                        {% if atribuicao_atual %}
+                            <a href="{% url 'detalhes_motorista' atribuicao_atual.motorista.id %}">{{ atribuicao_atual.motorista.nome }}</a>
+                            <small style="color:var(--text-muted);">desde {{ atribuicao_atual.data_inicio|date:"d/m/Y" }}</small>
+                        {% else %}
+                            <span style="color:var(--text-muted);">sem motorista</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="{% url 'nova_atribuicao' %}?veiculo={{ veiculo.id }}" class="btn btn-small btn-secondary">{% if atribuicao_atual %}Trocar motorista{% else %}Vincular motorista{% endif %}</a>
+                {% if atribuicao_atual %}
+                    <form method="post" action="{% url 'encerrar_atribuicao' atribuicao_atual.id %}" onsubmit="return confirm('Encerrar o vínculo com este motorista?')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-small btn-danger">Encerrar vínculo</button>
+                    </form>
+                {% endif %}
             </div>
             {% if veiculo.observacoes %}
                 <p style="color:var(--text-muted);margin-top:14px;font-size:.9rem;">

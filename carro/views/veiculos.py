@@ -95,6 +95,7 @@ def detalhes_veiculo(request, veiculo_id):
         'consumo_medio': veiculo.consumo_medio(),
         'custo_por_km': veiculo.custo_por_km(),
         'depreciacao': veiculo.valor_estimado_atual(),
+        'atribuicao_atual': veiculo.atribuicao_atual(),
         'abastecimentos': veiculo.abastecimentos.all()[:10],
         'registros_km': veiculo.registros_km.all()[:10],
         'planos': planos,

@@ -1,0 +1,59 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>👤 Motoristas</h1>
+        <p>Cadastro de motoristas e vínculo com os veículos.</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="painel-card periodo-filtro">
+        <form method="get" class="periodo-custom">
+            <input type="text" name="busca" value="{{ busca }}" placeholder="Buscar por nome ou CNH">
+            <button type="submit" class="btn btn-small btn-secondary">Buscar</button>
+        </form>
+        <a href="{% url 'novo_motorista' %}" class="btn btn-primary">+ Novo motorista</a>
+    </div>
+
+    <div class="painel-card">
+        {% if motoristas %}
+            <table class="alertas-table">
+                <thead>
+                    <tr><th>Nome</th><th>CNH</th><th>Validade CNH</th><th>Veículo atual</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    {% for m in motoristas %}
+                        <tr>
+                            <td><a href="{% url 'detalhes_motorista' m.obj.id %}">{{ m.obj.nome }}</a></td>
+                            <td>{{ m.obj.cnh|default:"—" }}{% if m.obj.cnh_categoria %} · {{ m.obj.cnh_categoria }}{% endif %}</td>
+                            <td>
+                                {% if m.obj.cnh_validade %}
+                                    {{ m.obj.cnh_validade|date:"d/m/Y" }}
+                                    {% if m.cnh %}<span class="variacao-{{ m.cnh.cor }}">· {{ m.cnh.texto }}</span>{% endif %}
+                                {% else %}—{% endif %}
+                            </td>
+                            <td>
+                                {% if m.veiculo %}
+                                    <a href="{% url 'detalhes_veiculo' m.veiculo.id %}">{{ m.veiculo.marca }} {{ m.veiculo.modelo }}{% if m.veiculo.placa %} · {{ m.veiculo.placa }}{% endif %}</a>
+                                {% else %}<span class="vazio">sem vínculo</span>{% endif %}
+                            </td>
+                            <td><span class="badge badge-{{ m.obj.status }}">{{ m.obj.get_status_display }}</span></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vazio">Nenhum motorista cadastrado.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

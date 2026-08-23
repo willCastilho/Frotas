@@ -607,6 +607,87 @@ class DashboardPeriodoTests(LogadoMixin, TestCase):
         self.assertEqual(float(r.context['custo_mes_total']), 0.0)
 
 
+class MotoristaTests(LogadoMixin, TestCase):
+    def _cria_motorista(self, nome='João Motorista'):
+        from carro.models import Motorista
+        return Motorista.objects.create(organizacao=self.org, nome=nome)
+
+    def test_cadastro_pela_view(self):
+        r = self.client.post(reverse('novo_motorista'), {
+            'nome': 'Maria Silva', 'cnh': '12345678900',
+            'cnh_categoria': 'B', 'status': 'ativo',
+        })
+        self.assertEqual(r.status_code, 302)
+        from carro.models import Motorista
+        m = Motorista.objects.get(nome='Maria Silva')
+        self.assertEqual(m.organizacao, self.org)
+
+    def test_isolamento_por_organizacao(self):
+        from carro.models import Motorista
+        outra = cria_org('Outra')
+        Motorista.objects.create(organizacao=outra, nome='De Fora')
+        self._cria_motorista('Meu Motorista')
+        r = self.client.get(reverse('motoristas'))
+        self.assertContains(r, 'Meu Motorista')
+        self.assertNotContains(r, 'De Fora')
+
+    def test_vinculo_define_motorista_atual(self):
+        veiculo = self.cria_veiculo()
+        m = self._cria_motorista()
+        r = self.client.post(reverse('nova_atribuicao'), {
+            'motorista': m.id, 'veiculo': veiculo.id,
+            'data_inicio': date.today().isoformat(),
+        })
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(veiculo.motorista_atual(), m)
+
+    def test_troca_encerra_vinculo_anterior(self):
+        from carro.models import AtribuicaoVeiculo
+        veiculo = self.cria_veiculo()
+        m1 = self._cria_motorista('Primeiro')
+        m2 = self._cria_motorista('Segundo')
+        self.client.post(reverse('nova_atribuicao'), {
+            'motorista': m1.id, 'veiculo': veiculo.id,
+            'data_inicio': (date.today() - timedelta(days=10)).isoformat(),
+        })
+        self.client.post(reverse('nova_atribuicao'), {
+            'motorista': m2.id, 'veiculo': veiculo.id,
+            'data_inicio': date.today().isoformat(),
+        })
+        # So o segundo fica em aberto; o primeiro foi encerrado automaticamente.
+        abertos = AtribuicaoVeiculo.objects.filter(veiculo=veiculo, data_fim__isnull=True)
+        self.assertEqual(abertos.count(), 1)
+        self.assertEqual(veiculo.motorista_atual(), m2)
+
+    def test_relatorio_motorista_por_data(self):
+        from carro.models import AtribuicaoVeiculo
+        veiculo = self.cria_veiculo()
+        m = self._cria_motorista('Condutor X')
+        # Vinculo de 01/03 a 31/03.
+        AtribuicaoVeiculo.objects.create(
+            veiculo=veiculo, motorista=m,
+            data_inicio=date(2026, 3, 1), data_fim=date(2026, 3, 31))
+        # Dentro do periodo: aparece.
+        r = self.client.get(reverse('relatorio_motoristas'), {'data': '2026-03-15'})
+        self.assertContains(r, 'Condutor X')
+        # Fora do periodo: nao aparece na lista de alocacoes.
+        r2 = self.client.get(reverse('relatorio_motoristas'), {'data': '2026-05-01'})
+        alocacoes = list(r2.context['alocacoes'])
+        self.assertEqual(alocacoes, [])
+
+    def test_relatorio_exporta_csv(self):
+        from carro.models import AtribuicaoVeiculo
+        veiculo = self.cria_veiculo()
+        m = self._cria_motorista('Exportado')
+        AtribuicaoVeiculo.objects.create(
+            veiculo=veiculo, motorista=m, data_inicio=date(2026, 1, 1))
+        r = self.client.get(reverse('relatorio_motoristas'),
+                            {'data': '2026-06-01', 'formato': 'csv'})
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('text/csv', r['Content-Type'])
+        self.assertIn('Exportado', r.content.decode('utf-8'))
+
+
 class BrevoBackendTests(TestCase):
     def test_envia_via_api_http(self):
         import json

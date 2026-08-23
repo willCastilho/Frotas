@@ -208,6 +208,15 @@ class Veiculo(models.Model):
     # Depreciacao anual pelo metodo do saldo decrescente (declining balance).
     TAXA_DEPRECIACAO_ANUAL = 0.10
 
+    def atribuicao_atual(self):
+        """Vinculo de motorista em aberto (sem data de fim), o mais recente."""
+        return self.atribuicoes.filter(data_fim__isnull=True).order_by(
+            '-data_inicio').select_related('motorista').first()
+
+    def motorista_atual(self):
+        atrib = self.atribuicao_atual()
+        return atrib.motorista if atrib else None
+
     def valor_estimado_atual(self):
         """Estima o valor atual do veiculo pela depreciacao de saldo decrescente
         sobre o valor de aquisicao. Retorna None se nao houver valor informado."""
@@ -498,3 +507,91 @@ class Documento(models.Model):
         else:
             cor, texto, detalhe = 'green', '🟢 Em dia', f'Vence em {dias} dias'
         return {'cor': cor, 'texto': texto, 'detalhe': detalhe, 'dias': dias}
+
+
+class Motorista(models.Model):
+    """Motorista da frota. Pertence a uma organizacao (multi-tenant) e pode ser
+    vinculado a veiculos ao longo do tempo (ver AtribuicaoVeiculo)."""
+    STATUS_CHOICES = [('ativo', 'Ativo'), ('inativo', 'Inativo')]
+    CNH_CATEGORIAS = [
+        ('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D'), ('E', 'E'),
+        ('AB', 'AB'), ('AC', 'AC'), ('AD', 'AD'), ('AE', 'AE'),
+    ]
+
+    organizacao = models.ForeignKey(
+        'contas.Organizacao', on_delete=models.CASCADE, related_name='motoristas'
+    )
+    nome = models.CharField(max_length=120)
+    cpf = models.CharField(max_length=14, blank=True)
+    cnh = models.CharField('Número da CNH', max_length=20, blank=True)
+    cnh_categoria = models.CharField(
+        max_length=2, choices=CNH_CATEGORIAS, blank=True)
+    cnh_validade = models.DateField(null=True, blank=True)
+    telefone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='ativo')
+    observacoes = models.TextField(blank=True)
+    data_cadastro = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['nome']
+        indexes = [models.Index(fields=['organizacao', 'status'])]
+
+    def __str__(self):
+        return self.nome
+
+    def cnh_status(self):
+        """Status da validade da CNH (mesma regra dos documentos)."""
+        if not self.cnh_validade:
+            return None
+        dias = (self.cnh_validade - timezone.now().date()).days
+        if dias < 0:
+            cor, texto = 'red', '🔴 Vencida'
+        elif dias <= 30:
+            cor, texto = 'yellow', '🟡 Vence em breve'
+        else:
+            cor, texto = 'green', '🟢 Em dia'
+        return {'cor': cor, 'texto': texto, 'dias': dias}
+
+    def atribuicao_atual(self):
+        return self.atribuicoes.filter(data_fim__isnull=True).order_by(
+            '-data_inicio').select_related('veiculo').first()
+
+    def veiculo_atual(self):
+        atrib = self.atribuicao_atual()
+        return atrib.veiculo if atrib else None
+
+
+class AtribuicaoVeiculo(models.Model):
+    """Vinculo de um motorista a um veiculo durante um periodo. Com data_fim
+    vazia, o vinculo esta em aberto (motorista atual do veiculo). Permite saber
+    qual motorista estava em qual veiculo em uma data qualquer."""
+    veiculo = models.ForeignKey(
+        Veiculo, on_delete=models.CASCADE, related_name='atribuicoes'
+    )
+    motorista = models.ForeignKey(
+        Motorista, on_delete=models.CASCADE, related_name='atribuicoes'
+    )
+    data_inicio = models.DateField(default=timezone.now)
+    data_fim = models.DateField(null=True, blank=True)
+    observacao = models.CharField(max_length=200, blank=True)
+    data_cadastro = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-data_inicio', '-id']
+        indexes = [
+            models.Index(fields=['veiculo', 'data_inicio']),
+            models.Index(fields=['motorista', 'data_inicio']),
+        ]
+
+    def __str__(self):
+        return f'{self.motorista} → {self.veiculo} (desde {self.data_inicio})'
+
+    @property
+    def ativa(self):
+        return self.data_fim is None
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.data_fim and self.data_fim < self.data_inicio:
+            raise ValidationError('A data de fim não pode ser anterior ao início.')

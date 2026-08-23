@@ -1,0 +1,79 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/detalhes.css' %}">
+
+<div class="container">
+    <div class="detalhes-header">
+        <a href="{% url 'motoristas' %}" class="btn-voltar">← Voltar</a>
+        <h1>{{ motorista.nome }}</h1>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="detalhes-grid">
+        <div class="detalhes-card">
+            <div class="detalhes-info">
+                <div class="info-row"><span class="info-label">CPF:</span><span class="info-value">{{ motorista.cpf|default:"—" }}</span></div>
+                <div class="info-row"><span class="info-label">CNH:</span><span class="info-value">{{ motorista.cnh|default:"—" }}{% if motorista.cnh_categoria %} · Cat. {{ motorista.cnh_categoria }}{% endif %}</span></div>
+                <div class="info-row">
+                    <span class="info-label">Validade CNH:</span>
+                    <span class="info-value">
+                        {% if motorista.cnh_validade %}{{ motorista.cnh_validade|date:"d/m/Y" }}
+                            {% if cnh %}<span class="variacao-{{ cnh.cor }}">· {{ cnh.texto }}</span>{% endif %}
+                        {% else %}—{% endif %}
+                    </span>
+                </div>
+                <div class="info-row"><span class="info-label">Telefone:</span><span class="info-value">{{ motorista.telefone|default:"—" }}</span></div>
+                <div class="info-row"><span class="info-label">E-mail:</span><span class="info-value">{{ motorista.email|default:"—" }}</span></div>
+                <div class="info-row"><span class="info-label">Status:</span><span class="badge badge-{{ motorista.status }}">{{ motorista.get_status_display }}</span></div>
+                <div class="info-row">
+                    <span class="info-label">Veículo atual:</span>
+                    <span class="info-value">
+                        {% if veiculo_atual %}<a href="{% url 'detalhes_veiculo' veiculo_atual.id %}">{{ veiculo_atual.marca }} {{ veiculo_atual.modelo }}{% if veiculo_atual.placa %} · {{ veiculo_atual.placa }}{% endif %}</a>
+                        {% else %}sem vínculo{% endif %}
+                    </span>
+                </div>
+            </div>
+            {% if motorista.observacoes %}
+                <p style="color:var(--text-muted);margin-top:14px;font-size:.9rem;"><strong>Observações:</strong> {{ motorista.observacoes }}</p>
+            {% endif %}
+            <div style="margin-top:16px;display:flex;gap:8px;">
+                <a href="{% url 'editar_motorista' motorista.id %}" class="btn btn-secondary btn-small">Editar</a>
+                <a href="{% url 'nova_atribuicao' %}" class="btn btn-primary btn-small">Vincular a veículo</a>
+                <form method="post" action="{% url 'excluir_motorista' motorista.id %}" onsubmit="return confirm('Excluir este motorista?')">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-small">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="custos-lista">
+        <h2>Histórico de veículos</h2>
+        {% if historico %}
+            <table class="custos-table">
+                <thead><tr><th>Veículo</th><th>Início</th><th>Fim</th><th>Observação</th></tr></thead>
+                <tbody>
+                    {% for a in historico %}
+                        <tr>
+                            <td><a href="{% url 'detalhes_veiculo' a.veiculo.id %}">{{ a.veiculo.marca }} {{ a.veiculo.modelo }}{% if a.veiculo.placa %} · {{ a.veiculo.placa }}{% endif %}</a></td>
+                            <td>{{ a.data_inicio|date:"d/m/Y" }}</td>
+                            <td>{% if a.data_fim %}{{ a.data_fim|date:"d/m/Y" }}{% else %}<span class="variacao-green">em aberto</span>{% endif %}</td>
+                            <td>{{ a.observacao }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="sem-custos">Nenhum vínculo registrado.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

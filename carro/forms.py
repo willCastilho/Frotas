@@ -2,8 +2,10 @@ from django import forms
 
 from carro.models import (
     Abastecimento,
+    AtribuicaoVeiculo,
     Custo,
     Documento,
+    Motorista,
     PlanoManutencao,
     RegistroQuilometragem,
     Veiculo,
@@ -147,4 +149,39 @@ class PlanoManutencaoForm(forms.ModelForm):
             raise forms.ValidationError(
                 'Informe ao menos um intervalo: por km ou por dias.'
             )
+        return dados
+
+
+class MotoristaForm(forms.ModelForm):
+    class Meta:
+        model = Motorista
+        fields = ['nome', 'cpf', 'cnh', 'cnh_categoria', 'cnh_validade',
+                  'telefone', 'email', 'status', 'observacoes']
+        widgets = {
+            'cnh_validade': _DATE,
+            'observacoes': forms.Textarea(attrs={'rows': 3}),
+        }
+
+
+class AtribuicaoVeiculoForm(forms.ModelForm):
+    """Vincula um motorista a um veiculo. As opcoes de veiculo e motorista sao
+    limitadas a organizacao do usuario."""
+    class Meta:
+        model = AtribuicaoVeiculo
+        fields = ['motorista', 'veiculo', 'data_inicio', 'data_fim', 'observacao']
+        widgets = {'data_inicio': _DATE, 'data_fim': _DATE}
+
+    def __init__(self, *args, organizacao=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if organizacao is not None:
+            self.fields['motorista'].queryset = Motorista.objects.filter(
+                organizacao=organizacao, status='ativo')
+            self.fields['veiculo'].queryset = Veiculo.objects.filter(
+                organizacao=organizacao)
+
+    def clean(self):
+        dados = super().clean()
+        inicio, fim = dados.get('data_inicio'), dados.get('data_fim')
+        if inicio and fim and fim < inicio:
+            self.add_error('data_fim', 'A data de fim não pode ser anterior ao início.')
         return dados

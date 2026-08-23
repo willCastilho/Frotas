@@ -26,4 +26,15 @@ urlpatterns = [
     path('dashboard/', carro_views.dashboard, name='dashboard'),
     path('relatorios/', carro_views.relatorios, name='relatorios'),
     path('relatorios/exportar/', carro_views.exportar_custos, name='exportar_custos'),
+    path('relatorios/motoristas/', carro_views.relatorio_motoristas, name='relatorio_motoristas'),
+
+    # Motoristas e vinculo motorista x veiculo
+    path('motoristas/', carro_views.motoristas, name='motoristas'),
+    path('motoristas/novo/', carro_views.novo_motorista, name='novo_motorista'),
+    path('motoristas/<int:motorista_id>/', carro_views.detalhes_motorista, name='detalhes_motorista'),
+    path('motoristas/<int:motorista_id>/editar/', carro_views.editar_motorista, name='editar_motorista'),
+    path('motoristas/<int:motorista_id>/excluir/', carro_views.excluir_motorista, name='excluir_motorista'),
+    path('atribuicao/nova/', carro_views.nova_atribuicao, name='nova_atribuicao'),
+    path('atribuicao/<int:pk>/encerrar/', carro_views.encerrar_atribuicao, name='encerrar_atribuicao'),
+    path('atribuicao/<int:pk>/excluir/', carro_views.excluir_atribuicao, name='excluir_atribuicao'),
 ]

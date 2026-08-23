@@ -22,6 +22,17 @@ from .frota import (
 )
 from .dashboard import dashboard
 from .relatorios import relatorios, exportar_custos
+from .motoristas import (
+    motoristas,
+    detalhes_motorista,
+    novo_motorista,
+    editar_motorista,
+    excluir_motorista,
+    nova_atribuicao,
+    encerrar_atribuicao,
+    excluir_atribuicao,
+    relatorio_motoristas,
+)
 
 __all__ = [
     'home',
@@ -43,4 +54,13 @@ __all__ = [
     'dashboard',
     'relatorios',
     'exportar_custos',
+    'motoristas',
+    'detalhes_motorista',
+    'novo_motorista',
+    'editar_motorista',
+    'excluir_motorista',
+    'nova_atribuicao',
+    'encerrar_atribuicao',
+    'excluir_atribuicao',
+    'relatorio_motoristas',
 ]

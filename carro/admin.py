@@ -48,3 +48,19 @@ class DocumentoAdmin(admin.ModelAdmin):
     search_fields = ('veiculo__modelo', 'veiculo__placa')
     date_hierarchy = 'vencimento'
 
+
+@admin.register(models.Motorista)
+class MotoristaAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'cnh', 'cnh_categoria', 'cnh_validade',
+                    'organizacao', 'status')
+    list_filter = ('organizacao', 'status', 'cnh_categoria')
+    search_fields = ('nome', 'cpf', 'cnh')
+
+
+@admin.register(models.AtribuicaoVeiculo)
+class AtribuicaoVeiculoAdmin(admin.ModelAdmin):
+    list_display = ('motorista', 'veiculo', 'data_inicio', 'data_fim')
+    list_filter = ('data_inicio',)
+    search_fields = ('motorista__nome', 'veiculo__modelo', 'veiculo__placa')
+    date_hierarchy = 'data_inicio'
+

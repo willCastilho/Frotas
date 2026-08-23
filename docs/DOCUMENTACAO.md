@@ -139,6 +139,14 @@ Prioridade: **Alta** essencial · **Média** importante · **Baixa** desejável.
 | RF-24 | Planos de manutenção por km e/ou data, com status (em dia/próxima/atrasada) | Alta |
 | RF-25 | Documentos com vencimento e status (vencido/vence em breve/em dia) | Alta |
 
+### Motoristas
+| ID | Requisito | Prioridade |
+|---|---|---|
+| RF-39 | CRUD de motoristas (nome, CPF, CNH, categoria, validade, contato, status) | Alta |
+| RF-40 | Alerta de validade da CNH (vencida/vence em breve/em dia) | Média |
+| RF-41 | Vincular motorista a veículo por período; troca encerra o vínculo anterior | Alta |
+| RF-42 | Relatório de qual motorista estava em qual veículo em uma data, com exportação CSV | Alta |
+
 ### Dashboard e relatórios
 | ID | Requisito | Prioridade |
 |---|---|---|

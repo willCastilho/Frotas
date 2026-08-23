@@ -1,0 +1,60 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>🧾 Motorista × Veículo</h1>
+        <p>Quem estava em qual veículo na data escolhida.</p>
+    </div>
+
+    <div class="painel-card">
+        <form method="get" class="filtro-relatorio">
+            <div class="form-group">
+                <label for="data">Data de referência</label>
+                <input type="date" name="data" id="data" value="{{ data }}">
+            </div>
+            <button type="submit" class="btn btn-primary">Consultar</button>
+            <a href="{% url 'relatorio_motoristas' %}?data={{ data }}&formato=csv" class="btn btn-secondary">Exportar CSV</a>
+        </form>
+    </div>
+
+    <div class="painel-card">
+        <h2>Vínculos ativos em {{ data }}</h2>
+        {% if alocacoes %}
+            <table class="alertas-table">
+                <thead>
+                    <tr><th>Veículo</th><th>Placa</th><th>Motorista</th><th>CNH</th><th>Desde</th><th>Até</th></tr>
+                </thead>
+                <tbody>
+                    {% for a in alocacoes %}
+                        <tr>
+                            <td><a href="{% url 'detalhes_veiculo' a.veiculo.id %}">{{ a.veiculo.marca }} {{ a.veiculo.modelo }}</a></td>
+                            <td>{{ a.veiculo.placa|default:"—" }}</td>
+                            <td><a href="{% url 'detalhes_motorista' a.motorista.id %}">{{ a.motorista.nome }}</a></td>
+                            <td>{{ a.motorista.cnh|default:"—" }}</td>
+                            <td>{{ a.data_inicio|date:"d/m/Y" }}</td>
+                            <td>{% if a.data_fim %}{{ a.data_fim|date:"d/m/Y" }}{% else %}em aberto{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vazio">Nenhum motorista vinculado nesta data.</p>
+        {% endif %}
+    </div>
+
+    {% if sem_motorista %}
+    <div class="painel-card">
+        <h2>Veículos sem motorista na data</h2>
+        <ul class="ranking">
+            {% for v in sem_motorista %}
+                <li><a href="{% url 'detalhes_veiculo' v.id %}">{{ v.marca }} {{ v.modelo }}{% if v.placa %} · {{ v.placa }}{% endif %}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock content %}
