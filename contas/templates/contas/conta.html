@@ -20,7 +20,7 @@
         <div class="painel-card">
             <h2>Organização</h2>
             {% if org.logo %}
-                <img src="{{ org.logo.url }}" alt="Logo" style="max-height:60px;margin-bottom:10px;">
+                <img src="{{ org.logo }}" alt="Logo" style="max-height:48px;margin-bottom:10px;">
             {% endif %}
             <p><strong>{{ org.nome }}</strong></p>
             <p class="vazio">Criada em {{ org.criado_em|date:"d/m/Y" }}</p>

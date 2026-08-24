@@ -19,7 +19,7 @@
     {% elif perfil_efetivo %}
         <a href="{% if perfil_efetivo.eh_gestor %}{% url 'dashboard' %}{% else %}{% url 'home' %}{% endif %}" class="topbar-brand">
             {% if perfil_efetivo.organizacao.logo %}
-                <img src="{{ perfil_efetivo.organizacao.logo.url }}" alt="{{ perfil_efetivo.organizacao.nome }}" class="topbar-logo">
+                <img src="{{ perfil_efetivo.organizacao.logo }}" alt="{{ perfil_efetivo.organizacao.nome }}" class="topbar-logo">
                 <span>{{ perfil_efetivo.organizacao.nome }}</span>
             {% else %}
                 🚗 {{ perfil_efetivo.organizacao.nome|default:"Gestão de Frotas" }}

@@ -986,10 +986,10 @@ class AdminCRUDTests(TestCase):
         Image.new('RGB', (10, 10), 'blue').save(buf, format='PNG')
         logo = SimpleUploadedFile('logo.png', buf.getvalue(), content_type='image/png')
         r = self.client.post(reverse('editar_organizacao', args=[org.id]), {
-            'nome': 'OrgLogo', 'assinatura_ativa': 'on', 'logo': logo})
+            'nome': 'OrgLogo', 'assinatura_ativa': 'on', 'logo_arquivo': logo})
         self.assertEqual(r.status_code, 302)
         org.refresh_from_db()
-        self.assertTrue(org.logo)
+        self.assertTrue(org.logo.startswith('data:image'))
 
     def test_gestor_nao_acessa_crud_admin(self):
         org = cria_org('OrgG')
@@ -1014,8 +1014,8 @@ class GestorIdentidadeTests(LogadoMixin, TestCase):
         buf = io.BytesIO()
         Image.new('RGB', (8, 8), 'green').save(buf, format='PNG')
         logo = SimpleUploadedFile('l.png', buf.getvalue(), content_type='image/png')
-        r = self.client.post(reverse('conta'), {'nome': 'Nova Marca', 'logo': logo})
+        r = self.client.post(reverse('conta'), {'nome': 'Nova Marca', 'logo_arquivo': logo})
         self.assertEqual(r.status_code, 302)
         self.org.refresh_from_db()
         self.assertEqual(self.org.nome, 'Nova Marca')
-        self.assertTrue(self.org.logo)
+        self.assertTrue(self.org.logo.startswith('data:image'))
