@@ -5,7 +5,7 @@ custos, manutenção e documentação.
 
 - **Stack:** Python 3.12 · Django 5.2 · PostgreSQL
 - **Arquitetura:** SaaS multi-tenant (isolamento por organização)
-- **Cobertura:** 87 testes automatizados
+- **Cobertura:** 95 testes automatizados
 
 > Versão visual (com fluxograma e diagramas): publicada como Artifact no Claude Code.
 
@@ -72,7 +72,7 @@ flowchart LR
     APP --> S3[Armazenamento S3/R2<br/>fotos e comprovantes]
     APP --> MAIL[E-mail<br/>API HTTP Brevo ou SMTP]
     APP --> SEN[Sentry]
-    GH[GitHub] --> CI[CI - GitHub Actions<br/>87 testes] --> APP
+    GH[GitHub] --> CI[CI - GitHub Actions<br/>95 testes] --> APP
 ```
 
 A aplicação é **stateless**: o estado vive no PostgreSQL e os arquivos no
@@ -129,6 +129,7 @@ Prioridade: **Alta** essencial · **Média** importante · **Baixa** desejável.
 | RF-47 | Impersonação: o admin global navega como qualquer usuário para testes, sem perder o próprio acesso | Média |
 | RF-48 | Registro de logs de todas as alterações (login, data/hora, ação, tipo), com tela para gestor (sua org) e admin (todo o sistema) | Alta |
 | RF-49 | Operador vinculado a um único veículo por vez, administrado pelo gestor | Alta |
+| RF-50 | Admin global cria, edita e exclui qualquer organização, usuário (incl. admin) e veículo pelo painel | Alta |
 | RF-11 | Associar organização a um plano com limite de veículos | Média |
 | RF-12 | Impedir cadastro de veículo ao atingir o limite do plano | Média |
 | RF-13 | Indicar status da assinatura (em dia/pendente) | Baixa |
@@ -201,7 +202,7 @@ Prioridade: **Alta** essencial · **Média** importante · **Baixa** desejável.
 | RNF-06 | Disponibilidade | Docker + Gunicorn; migrações no boot; deploy contínuo (Railway) |
 | RNF-07 | Observabilidade | Sentry (opcional) e logging |
 | RNF-08 | Backup | Rotina pg_dump agendável |
-| RNF-09 | Manutenibilidade | Apps Django separados; 87 testes; CI (GitHub Actions) |
+| RNF-09 | Manutenibilidade | Apps Django separados; 95 testes; CI (GitHub Actions) |
 | RNF-10 | Portabilidade | Config por variáveis de ambiente (12-factor); `DATABASE_URL` |
 | RNF-11 | Usabilidade | Tema escuro responsivo; feedback; confirmação em exclusões |
 | RNF-12 | Internacionalização | pt-BR; fuso America/Sao_Paulo |

@@ -24,7 +24,10 @@
     </div>
 
     <div class="painel-card">
-        <h2>Organizações</h2>
+        <div class="secao-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <h2>Organizações</h2>
+            <a href="{% url 'nova_organizacao_admin' %}" class="btn btn-small btn-primary">+ Nova organização</a>
+        </div>
         {% if orgs %}
             <table class="alertas-table">
                 <thead>
@@ -37,7 +40,7 @@
                             <td>{{ o.n_veiculos }}</td>
                             <td>{{ o.n_motoristas }}</td>
                             <td>{{ o.n_perfis }}</td>
-                            <td><a href="{% url 'admin_organizacao' o.id %}" class="btn btn-small btn-secondary">Usuários / simular</a></td>
+                            <td><a href="{% url 'admin_organizacao' o.id %}" class="btn btn-small btn-secondary">Gerenciar</a></td>
                         </tr>
                     {% endfor %}
                 </tbody>

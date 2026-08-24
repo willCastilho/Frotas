@@ -243,11 +243,16 @@ def painel_admin(request):
 @login_required
 @exige_admin_global
 def admin_organizacao(request, org_id):
-    """Usuarios de uma organizacao, para o admin escolher quem impersonar."""
+    """Hub de administracao de uma organizacao: usuarios e veiculos (CRUD),
+    alem de impersonar para testes."""
+    from carro.models import Veiculo
     org = get_object_or_404(Organizacao, id=org_id)
     perfis = PerfilUsuario.objects.filter(organizacao=org).select_related('user')
+    veiculos = Veiculo.objects.filter(organizacao=org)
+    convite = request.session.pop('convite', None)
     return render(request, 'contas/admin_organizacao.html',
-                  {'org': org, 'perfis': perfis})
+                  {'org': org, 'perfis': perfis, 'veiculos': veiculos,
+                   'convite': convite})
 
 
 @login_required
@@ -315,3 +320,183 @@ def logs_sistema(request):
         'escopo': 'Todo o sistema',
         'do_sistema': True,
     })
+
+
+# ---- CRUD de organizacoes (admin global) ----
+
+@login_required
+@exige_admin_global
+def nova_organizacao(request):
+    from contas.forms import OrganizacaoAdminForm
+    form = OrganizacaoAdminForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        org = form.save(commit=False)
+        if org.plano is None:
+            org.plano = _plano_padrao()
+        org.save()
+        messages.success(request, 'Organização criada.')
+        return redirect('admin_organizacao', org_id=org.id)
+    return render(request, 'contas/sistema_form.html',
+                  {'form': form, 'titulo': 'Nova organização',
+                   'voltar': reverse('painel_admin')})
+
+
+@login_required
+@exige_admin_global
+def editar_organizacao(request, org_id):
+    from contas.forms import OrganizacaoAdminForm
+    org = get_object_or_404(Organizacao, id=org_id)
+    form = OrganizacaoAdminForm(request.POST or None, instance=org)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Organização atualizada.')
+        return redirect('admin_organizacao', org_id=org.id)
+    return render(request, 'contas/sistema_form.html',
+                  {'form': form, 'titulo': f'Editar {org.nome}',
+                   'voltar': reverse('admin_organizacao', args=[org.id])})
+
+
+@login_required
+@exige_admin_global
+@require_POST
+def excluir_organizacao(request, org_id):
+    org = get_object_or_404(Organizacao, id=org_id)
+    org.delete()  # cascata remove veiculos, motoristas e perfis da org
+    messages.success(request, 'Organização excluída.')
+    return redirect('painel_admin')
+
+
+# ---- CRUD de usuarios (admin global) ----
+
+@login_required
+@exige_admin_global
+def novo_usuario_admin(request, org_id):
+    org = get_object_or_404(Organizacao, id=org_id)
+    form = ConvidarUsuarioForm(request.POST or None, organizacao=org,
+                               incluir_admin=True)
+    if request.method == 'POST' and form.is_valid():
+        papel = form.cleaned_data['papel']
+        with transaction.atomic():
+            novo = User.objects.create_user(
+                username=form.cleaned_data['username'],
+                email=form.cleaned_data['email'])
+            novo.set_unusable_password()
+            if papel == PerfilUsuario.PAPEL_ADMIN:
+                novo.is_staff = novo.is_superuser = True
+            novo.save()
+            PerfilUsuario.objects.create(
+                user=novo,
+                organizacao=None if papel == PerfilUsuario.PAPEL_ADMIN else org,
+                papel=papel)
+            motorista = form.cleaned_data.get('motorista')
+            if motorista is not None:
+                motorista.user = novo
+                motorista.save(update_fields=['user'])
+        link = link_definir_senha(request, novo)
+        enviar_convite(novo, link)
+        request.session['convite'] = {
+            'email': novo.email, 'link': link, 'smtp': _smtp_configurado()}
+        messages.success(request, 'Usuário criado. O link para definir senha está abaixo.')
+        return redirect('admin_organizacao', org_id=org.id)
+    return render(request, 'contas/sistema_form.html',
+                  {'form': form, 'titulo': f'Novo usuário · {org.nome}',
+                   'voltar': reverse('admin_organizacao', args=[org.id])})
+
+
+@login_required
+@exige_admin_global
+def editar_usuario_admin(request, perfil_id):
+    from contas.forms import PapelAdminForm
+    perfil = get_object_or_404(
+        PerfilUsuario.objects.select_related('user', 'organizacao'), id=perfil_id)
+    if request.method == 'POST':
+        form = PapelAdminForm(request.POST)
+        if form.is_valid():
+            novo_papel = form.cleaned_data['papel']
+            if (novo_papel == PerfilUsuario.PAPEL_OPERADOR
+                    and not hasattr(perfil.user, 'motorista')):
+                messages.error(request, 'Operador precisa estar vinculado a um motorista.')
+                destino = perfil.organizacao_id
+                return (redirect('admin_organizacao', org_id=destino)
+                        if destino else redirect('painel_admin'))
+            perfil.papel = novo_papel
+            if novo_papel == PerfilUsuario.PAPEL_ADMIN:
+                perfil.organizacao = None
+            perfil.save()
+            perfil.user.is_active = form.cleaned_data['ativo']
+            perfil.user.save(update_fields=['is_active'])
+            messages.success(request, 'Usuário atualizado.')
+            destino = perfil.organizacao_id
+            return (redirect('admin_organizacao', org_id=destino)
+                    if destino else redirect('painel_admin'))
+    form = PapelAdminForm(initial={'papel': perfil.papel,
+                                   'ativo': perfil.user.is_active})
+    voltar = (reverse('admin_organizacao', args=[perfil.organizacao_id])
+              if perfil.organizacao_id else reverse('painel_admin'))
+    return render(request, 'contas/sistema_form.html',
+                  {'form': form, 'titulo': f'Editar {perfil.user.get_username()}',
+                   'voltar': voltar})
+
+
+@login_required
+@exige_admin_global
+@require_POST
+def excluir_usuario_admin(request, perfil_id):
+    perfil = get_object_or_404(PerfilUsuario, id=perfil_id)
+    if perfil.user_id == request.user.id:
+        messages.error(request, 'Você não pode excluir a si mesmo.')
+        return redirect('painel_admin')
+    org_id = perfil.organizacao_id
+    perfil.user.delete()  # cascata remove o perfil
+    messages.success(request, 'Usuário excluído.')
+    return redirect('admin_organizacao', org_id=org_id) if org_id else redirect('painel_admin')
+
+
+# ---- CRUD de veiculos (admin global) ----
+
+@login_required
+@exige_admin_global
+def novo_veiculo_admin(request, org_id):
+    from carro.forms import VeiculoForm
+    org = get_object_or_404(Organizacao, id=org_id)
+    form = VeiculoForm(request.POST or None, request.FILES or None, organizacao=org)
+    if request.method == 'POST' and form.is_valid():
+        veiculo = form.save(commit=False)
+        veiculo.organizacao = org
+        veiculo.save()
+        messages.success(request, 'Veículo criado.')
+        return redirect('admin_organizacao', org_id=org.id)
+    return render(request, 'contas/sistema_form.html',
+                  {'form': form, 'titulo': f'Novo veículo · {org.nome}',
+                   'voltar': reverse('admin_organizacao', args=[org.id]),
+                   'multipart': True})
+
+
+@login_required
+@exige_admin_global
+def editar_veiculo_admin(request, veiculo_id):
+    from carro.forms import VeiculoForm
+    from carro.models import Veiculo
+    veiculo = get_object_or_404(Veiculo, id=veiculo_id)
+    form = VeiculoForm(request.POST or None, request.FILES or None,
+                       instance=veiculo, organizacao=veiculo.organizacao)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Veículo atualizado.')
+        return redirect('admin_organizacao', org_id=veiculo.organizacao_id)
+    return render(request, 'contas/sistema_form.html',
+                  {'form': form, 'titulo': f'Editar {veiculo}',
+                   'voltar': reverse('admin_organizacao', args=[veiculo.organizacao_id]),
+                   'multipart': True})
+
+
+@login_required
+@exige_admin_global
+@require_POST
+def excluir_veiculo_admin(request, veiculo_id):
+    from carro.models import Veiculo
+    veiculo = get_object_or_404(Veiculo, id=veiculo_id)
+    org_id = veiculo.organizacao_id
+    veiculo.delete()
+    messages.success(request, 'Veículo excluído.')
+    return redirect('admin_organizacao', org_id=org_id)

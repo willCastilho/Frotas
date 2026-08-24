@@ -7,28 +7,60 @@
 <div class="container">
     <div class="header">
         <h1>{{ org.nome }}</h1>
-        <p>Usuários da organização. Você pode simular qualquer um deles para testar, sem perder o acesso de administrador.</p>
+        <p>Administração da organização: usuários e veículos. "Entrar como" simula o usuário para testes.</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    {% if convite %}
+        <div class="painel-card convite-box">
+            <h2>🔗 Link de acesso para {{ convite.email }}</h2>
+            <p class="convite-hint">Envie este link ao usuário para ele definir a senha.</p>
+            <div class="convite-linha">
+                <input type="text" value="{{ convite.link }}" readonly onclick="this.select()">
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="painel-card periodo-filtro">
+        <a href="{% url 'painel_admin' %}" class="btn btn-secondary btn-small">← Painel</a>
+        <div style="display:flex;gap:8px;">
+            <a href="{% url 'editar_organizacao' org.id %}" class="btn btn-small btn-secondary">Editar organização</a>
+            <form method="post" action="{% url 'excluir_organizacao' org.id %}" onsubmit="return confirm('Excluir a organização e TODOS os seus dados?')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-small btn-danger">Excluir organização</button>
+            </form>
+        </div>
     </div>
 
     <div class="painel-card">
-        <a href="{% url 'painel_admin' %}" class="btn btn-secondary btn-small">← Voltar ao painel</a>
-    </div>
-
-    <div class="painel-card">
-        <h2>Usuários</h2>
+        <div class="secao-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <h2>Usuários</h2>
+            <a href="{% url 'novo_usuario_admin' org.id %}" class="btn btn-small btn-primary">+ Novo usuário</a>
+        </div>
         {% if perfis %}
             <table class="alertas-table">
-                <thead><tr><th>Usuário</th><th>E-mail</th><th>Papel</th><th>Ações</th></tr></thead>
+                <thead><tr><th>Usuário</th><th>E-mail</th><th>Papel</th><th>Ativo</th><th>Ações</th></tr></thead>
                 <tbody>
                     {% for p in perfis %}
                         <tr>
                             <td>{{ p.user.get_username }}</td>
                             <td>{{ p.user.email|default:"—" }}</td>
                             <td>{{ p.get_papel_display }}</td>
-                            <td>
+                            <td>{% if p.user.is_active %}Sim{% else %}<span class="variacao-red">Não</span>{% endif %}</td>
+                            <td style="display:flex;gap:6px;flex-wrap:wrap;">
                                 <form method="post" action="{% url 'impersonar' p.id %}" style="display:inline;">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-small btn-primary">Entrar como</button>
+                                    <button type="submit" class="btn btn-small btn-secondary">Entrar como</button>
+                                </form>
+                                <a href="{% url 'editar_usuario_admin' p.id %}" class="btn btn-small btn-secondary">Editar</a>
+                                <form method="post" action="{% url 'excluir_usuario_admin' p.id %}" style="display:inline;" onsubmit="return confirm('Excluir este usuário?')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-small btn-danger">Excluir</button>
                                 </form>
                             </td>
                         </tr>
@@ -37,6 +69,37 @@
             </table>
         {% else %}
             <p class="vazio">Esta organização não tem usuários.</p>
+        {% endif %}
+    </div>
+
+    <div class="painel-card">
+        <div class="secao-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <h2>Veículos</h2>
+            <a href="{% url 'novo_veiculo_admin' org.id %}" class="btn btn-small btn-primary">+ Novo veículo</a>
+        </div>
+        {% if veiculos %}
+            <table class="alertas-table">
+                <thead><tr><th>Marca / Modelo</th><th>Placa</th><th>Ano</th><th>Status</th><th>Ações</th></tr></thead>
+                <tbody>
+                    {% for v in veiculos %}
+                        <tr>
+                            <td>{{ v.marca }} {{ v.modelo }}</td>
+                            <td>{{ v.placa|default:"—" }}</td>
+                            <td>{{ v.ano }}</td>
+                            <td>{{ v.get_status_display }}</td>
+                            <td style="display:flex;gap:6px;flex-wrap:wrap;">
+                                <a href="{% url 'editar_veiculo_admin' v.id %}" class="btn btn-small btn-secondary">Editar</a>
+                                <form method="post" action="{% url 'excluir_veiculo_admin' v.id %}" style="display:inline;" onsubmit="return confirm('Excluir este veículo?')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-small btn-danger">Excluir</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vazio">Esta organização não tem veículos.</p>
         {% endif %}
     </div>
 </div>

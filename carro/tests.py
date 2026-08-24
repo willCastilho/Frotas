@@ -897,3 +897,90 @@ class LogsTests(LogadoMixin, TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, 'teste')      # login do autor
         self.assertContains(r, 'Criação')    # tipo da acao
+
+
+class AdminCRUDTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user('root', password='raiz12345')
+        PerfilUsuario.objects.create(
+            user=self.admin, organizacao=None, papel=PerfilUsuario.PAPEL_ADMIN)
+        self.client.login(username='root', password='raiz12345')
+
+    def test_cria_organizacao(self):
+        r = self.client.post(reverse('nova_organizacao_admin'), {
+            'nome': 'Nova Empresa', 'assinatura_ativa': 'on'})
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(Organizacao.objects.filter(nome='Nova Empresa').exists())
+
+    def test_edita_organizacao(self):
+        org = cria_org('Antiga')
+        r = self.client.post(reverse('editar_organizacao', args=[org.id]), {
+            'nome': 'Renomeada', 'assinatura_ativa': 'on'})
+        self.assertEqual(r.status_code, 302)
+        org.refresh_from_db()
+        self.assertEqual(org.nome, 'Renomeada')
+
+    def test_exclui_organizacao(self):
+        org = cria_org('ParaExcluir')
+        r = self.client.post(reverse('excluir_organizacao', args=[org.id]))
+        self.assertEqual(r.status_code, 302)
+        self.assertFalse(Organizacao.objects.filter(id=org.id).exists())
+
+    def test_cria_usuario_gestor(self):
+        org = cria_org('OrgU')
+        r = self.client.post(reverse('novo_usuario_admin', args=[org.id]), {
+            'username': 'g2', 'email': 'g2@ex.com',
+            'papel': PerfilUsuario.PAPEL_GESTOR})
+        self.assertEqual(r.status_code, 302)
+        u = User.objects.get(username='g2')
+        self.assertEqual(u.perfil.papel, PerfilUsuario.PAPEL_GESTOR)
+        self.assertEqual(u.perfil.organizacao, org)
+
+    def test_cria_usuario_admin_sem_org(self):
+        org = cria_org('OrgU2')
+        r = self.client.post(reverse('novo_usuario_admin', args=[org.id]), {
+            'username': 'root2', 'email': 'root2@ex.com',
+            'papel': PerfilUsuario.PAPEL_ADMIN})
+        self.assertEqual(r.status_code, 302)
+        u = User.objects.get(username='root2')
+        self.assertEqual(u.perfil.papel, PerfilUsuario.PAPEL_ADMIN)
+        self.assertIsNone(u.perfil.organizacao)
+        self.assertTrue(u.is_superuser)
+
+    def test_exclui_usuario(self):
+        org = cria_org('OrgU3')
+        alvo = User.objects.create_user('vitima', password='x')
+        p = PerfilUsuario.objects.create(
+            user=alvo, organizacao=org, papel=PerfilUsuario.PAPEL_GESTOR)
+        r = self.client.post(reverse('excluir_usuario_admin', args=[p.id]))
+        self.assertEqual(r.status_code, 302)
+        self.assertFalse(User.objects.filter(username='vitima').exists())
+
+    def test_cria_edita_exclui_veiculo(self):
+        org = cria_org('OrgV')
+        r = self.client.post(reverse('novo_veiculo_admin', args=[org.id]), {
+            'marca': 'Fiat', 'modelo': 'Mobi', 'ano': 2022, 'cor': 'Vermelho',
+            'data_compra': '2022-01-01', 'status': 'ativo'})
+        self.assertEqual(r.status_code, 302)
+        v = Veiculo.objects.get(modelo='Mobi')
+        self.assertEqual(v.organizacao, org)
+        # editar
+        self.client.post(reverse('editar_veiculo_admin', args=[v.id]), {
+            'marca': 'Fiat', 'modelo': 'Mobi Way', 'ano': 2022, 'cor': 'Vermelho',
+            'data_compra': '2022-01-01', 'status': 'ativo'})
+        v.refresh_from_db()
+        self.assertEqual(v.modelo, 'Mobi Way')
+        # excluir
+        self.client.post(reverse('excluir_veiculo_admin', args=[v.id]))
+        self.assertFalse(Veiculo.objects.filter(id=v.id).exists())
+
+    def test_gestor_nao_acessa_crud_admin(self):
+        org = cria_org('OrgG')
+        u = User.objects.create_user('gestorx', password='x12345678')
+        PerfilUsuario.objects.create(
+            user=u, organizacao=org, papel=PerfilUsuario.PAPEL_GESTOR)
+        self.client.logout()
+        self.client.login(username='gestorx', password='x12345678')
+        r = self.client.post(reverse('nova_organizacao_admin'), {'nome': 'Hack'})
+        self.assertEqual(r.status_code, 302)
+        self.assertFalse(Organizacao.objects.filter(nome='Hack').exists())

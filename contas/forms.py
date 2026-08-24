@@ -41,8 +41,11 @@ class ConvidarUsuarioForm(forms.Form):
         queryset=None, required=False, label='Motorista vinculado',
         help_text='Obrigatório para operador: liga este login a um motorista.')
 
-    def __init__(self, *args, organizacao=None, **kwargs):
+    def __init__(self, *args, organizacao=None, incluir_admin=False, **kwargs):
         super().__init__(*args, **kwargs)
+        # O admin global pode criar qualquer papel (incl. administrador).
+        if incluir_admin:
+            self.fields['papel'].choices = PerfilUsuario.PAPEL_CHOICES
         from carro.models import Motorista
         qs = Motorista.objects.none()
         if organizacao is not None:
@@ -62,6 +65,22 @@ class ConvidarUsuarioForm(forms.Form):
                 'motorista',
                 'Selecione o motorista que este operador representa.')
         return dados
+
+
+class OrganizacaoAdminForm(forms.ModelForm):
+    class Meta:
+        model = Organizacao
+        fields = ['nome', 'plano', 'assinatura_ativa', 'assinatura_valida_ate']
+        widgets = {
+            'assinatura_valida_ate': forms.DateInput(
+                attrs={'type': 'date'}, format='%Y-%m-%d'),
+        }
+
+
+class PapelAdminForm(forms.Form):
+    """Alteracao de papel/estado pelo admin global (inclui administrador)."""
+    papel = forms.ChoiceField(choices=PerfilUsuario.PAPEL_CHOICES, label='Papel')
+    ativo = forms.BooleanField(required=False, initial=True, label='Usuário ativo')
 
 
 class PapelForm(forms.Form):
