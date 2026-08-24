@@ -22,6 +22,9 @@ class Plano(models.Model):
 class Organizacao(models.Model):
     """Conta/empresa cliente. Todos os dados sao isolados por organizacao."""
     nome = models.CharField(max_length=120)
+    logo = models.ImageField(
+        upload_to='logos/', null=True, blank=True,
+        help_text='Logotipo exibido no topo do sistema (opcional).')
     criado_em = models.DateTimeField(default=timezone.now)
 
     plano = models.ForeignKey(

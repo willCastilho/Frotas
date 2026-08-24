@@ -195,10 +195,18 @@ def remover_usuario(request, perfil_id):
 @login_required
 @exige_gestor
 def conta(request):
+    from contas.forms import OrganizacaoIdentidadeForm
     org = organizacao_do(request.user)
+    form = OrganizacaoIdentidadeForm(
+        request.POST or None, request.FILES or None, instance=org)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Identidade da organização atualizada.')
+        return redirect('conta')
     planos = Plano.objects.filter(ativo=True)
     return render(request, 'contas/conta.html',
-                  {'org': org, 'planos': planos, 'perfil': perfil_do(request.user)})
+                  {'org': org, 'planos': planos,
+                   'perfil': perfil_do(request.user), 'form': form})
 
 
 def termos(request):
@@ -328,7 +336,7 @@ def logs_sistema(request):
 @exige_admin_global
 def nova_organizacao(request):
     from contas.forms import OrganizacaoAdminForm
-    form = OrganizacaoAdminForm(request.POST or None)
+    form = OrganizacaoAdminForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
         org = form.save(commit=False)
         if org.plano is None:
@@ -338,7 +346,7 @@ def nova_organizacao(request):
         return redirect('admin_organizacao', org_id=org.id)
     return render(request, 'contas/sistema_form.html',
                   {'form': form, 'titulo': 'Nova organização',
-                   'voltar': reverse('painel_admin')})
+                   'voltar': reverse('painel_admin'), 'multipart': True})
 
 
 @login_required
@@ -346,14 +354,15 @@ def nova_organizacao(request):
 def editar_organizacao(request, org_id):
     from contas.forms import OrganizacaoAdminForm
     org = get_object_or_404(Organizacao, id=org_id)
-    form = OrganizacaoAdminForm(request.POST or None, instance=org)
+    form = OrganizacaoAdminForm(request.POST or None, request.FILES or None, instance=org)
     if request.method == 'POST' and form.is_valid():
         form.save()
         messages.success(request, 'Organização atualizada.')
         return redirect('admin_organizacao', org_id=org.id)
     return render(request, 'contas/sistema_form.html',
                   {'form': form, 'titulo': f'Editar {org.nome}',
-                   'voltar': reverse('admin_organizacao', args=[org.id])})
+                   'voltar': reverse('admin_organizacao', args=[org.id]),
+                   'multipart': True})
 
 
 @login_required

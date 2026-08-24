@@ -10,12 +10,33 @@
         <p>Dados da organização e do plano.</p>
     </div>
 
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
     <div class="painel-grid">
         <div class="painel-card">
             <h2>Organização</h2>
+            {% if org.logo %}
+                <img src="{{ org.logo.url }}" alt="Logo" style="max-height:60px;margin-bottom:10px;">
+            {% endif %}
             <p><strong>{{ org.nome }}</strong></p>
             <p class="vazio">Criada em {{ org.criado_em|date:"d/m/Y" }}</p>
             <p>Seu papel: <strong>{{ perfil.get_papel_display }}</strong></p>
+            <form method="post" enctype="multipart/form-data" style="margin-top:14px;">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="form-group" style="margin-bottom:10px;">
+                        <label for="{{ field.id_for_label }}" style="display:block;font-size:.85rem;color:var(--text-muted);">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}<small style="color:var(--text-muted);">{{ field.help_text }}</small>{% endif %}
+                        {% for erro in field.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-small btn-primary">Salvar identidade</button>
+            </form>
         </div>
 
         <div class="painel-card">

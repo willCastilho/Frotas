@@ -70,11 +70,18 @@ class ConvidarUsuarioForm(forms.Form):
 class OrganizacaoAdminForm(forms.ModelForm):
     class Meta:
         model = Organizacao
-        fields = ['nome', 'plano', 'assinatura_ativa', 'assinatura_valida_ate']
+        fields = ['nome', 'logo', 'plano', 'assinatura_ativa', 'assinatura_valida_ate']
         widgets = {
             'assinatura_valida_ate': forms.DateInput(
                 attrs={'type': 'date'}, format='%Y-%m-%d'),
         }
+
+
+class OrganizacaoIdentidadeForm(forms.ModelForm):
+    """Identidade da organizacao editavel pelo gestor: nome e logotipo."""
+    class Meta:
+        model = Organizacao
+        fields = ['nome', 'logo']
 
 
 class PapelAdminForm(forms.Form):

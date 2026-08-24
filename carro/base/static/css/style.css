@@ -112,8 +112,12 @@ h3 { font-size: 1.05rem; }
     font-weight: 800;
     font-size: 1.12rem;
     letter-spacing: -0.02em;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
 }
 .topbar-brand:hover { text-decoration: none; }
+.topbar-logo { max-height: 32px; max-width: 160px; width: auto; border-radius: 6px; }
 
 .topbar-nav { display: flex; gap: 6px; flex-wrap: wrap; }
 .topbar-nav a {

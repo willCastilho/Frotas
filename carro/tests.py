@@ -974,6 +974,23 @@ class AdminCRUDTests(TestCase):
         self.client.post(reverse('excluir_veiculo_admin', args=[v.id]))
         self.assertFalse(Veiculo.objects.filter(id=v.id).exists())
 
+    def test_admin_sobe_logo_da_org(self):
+        import io
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest('Pillow ausente')
+        org = cria_org('OrgLogo')
+        buf = io.BytesIO()
+        Image.new('RGB', (10, 10), 'blue').save(buf, format='PNG')
+        logo = SimpleUploadedFile('logo.png', buf.getvalue(), content_type='image/png')
+        r = self.client.post(reverse('editar_organizacao', args=[org.id]), {
+            'nome': 'OrgLogo', 'assinatura_ativa': 'on', 'logo': logo})
+        self.assertEqual(r.status_code, 302)
+        org.refresh_from_db()
+        self.assertTrue(org.logo)
+
     def test_gestor_nao_acessa_crud_admin(self):
         org = cria_org('OrgG')
         u = User.objects.create_user('gestorx', password='x12345678')
@@ -984,3 +1001,21 @@ class AdminCRUDTests(TestCase):
         r = self.client.post(reverse('nova_organizacao_admin'), {'nome': 'Hack'})
         self.assertEqual(r.status_code, 302)
         self.assertFalse(Organizacao.objects.filter(nome='Hack').exists())
+
+
+class GestorIdentidadeTests(LogadoMixin, TestCase):
+    def test_gestor_atualiza_nome_e_logo(self):
+        import io
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest('Pillow ausente')
+        buf = io.BytesIO()
+        Image.new('RGB', (8, 8), 'green').save(buf, format='PNG')
+        logo = SimpleUploadedFile('l.png', buf.getvalue(), content_type='image/png')
+        r = self.client.post(reverse('conta'), {'nome': 'Nova Marca', 'logo': logo})
+        self.assertEqual(r.status_code, 302)
+        self.org.refresh_from_db()
+        self.assertEqual(self.org.nome, 'Nova Marca')
+        self.assertTrue(self.org.logo)
