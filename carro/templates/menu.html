@@ -17,7 +17,7 @@
             <a href="{% url 'logs_sistema' %}">Logs do sistema</a>
         </div>
     {% elif perfil_efetivo %}
-        <a href="{% if perfil_efetivo.eh_gestor %}{% url 'dashboard' %}{% else %}{% url 'home' %}{% endif %}" class="topbar-brand">🚗 Gestão de Frotas</a>
+        <a href="{% if perfil_efetivo.eh_gestor %}{% url 'dashboard' %}{% else %}{% url 'home' %}{% endif %}" class="topbar-brand">🚗 {{ perfil_efetivo.organizacao.nome|default:"Gestão de Frotas" }}</a>
         <div class="topbar-nav">
             {% if perfil_efetivo.eh_gestor %}
                 <a href="{% url 'dashboard' %}">Dashboard</a>
