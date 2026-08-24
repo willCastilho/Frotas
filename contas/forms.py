@@ -35,7 +35,19 @@ class CriarOrganizacaoForm(forms.ModelForm):
 class ConvidarUsuarioForm(forms.Form):
     username = forms.CharField(max_length=150, label='Usuário')
     email = forms.EmailField(label='E-mail')
-    papel = forms.ChoiceField(choices=PerfilUsuario.PAPEL_CHOICES, label='Papel')
+    papel = forms.ChoiceField(
+        choices=PerfilUsuario.PAPEIS_DA_ORGANIZACAO, label='Papel')
+    motorista = forms.ModelChoiceField(
+        queryset=None, required=False, label='Motorista vinculado',
+        help_text='Obrigatório para operador: liga este login a um motorista.')
+
+    def __init__(self, *args, organizacao=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from carro.models import Motorista
+        qs = Motorista.objects.none()
+        if organizacao is not None:
+            qs = Motorista.objects.filter(organizacao=organizacao, user__isnull=True)
+        self.fields['motorista'].queryset = qs
 
     def clean_username(self):
         username = self.cleaned_data['username']
@@ -43,6 +55,15 @@ class ConvidarUsuarioForm(forms.Form):
             raise forms.ValidationError('Este nome de usuário já existe.')
         return username
 
+    def clean(self):
+        dados = super().clean()
+        if dados.get('papel') == PerfilUsuario.PAPEL_OPERADOR and not dados.get('motorista'):
+            self.add_error(
+                'motorista',
+                'Selecione o motorista que este operador representa.')
+        return dados
+
 
 class PapelForm(forms.Form):
-    papel = forms.ChoiceField(choices=PerfilUsuario.PAPEL_CHOICES, label='Papel')
+    papel = forms.ChoiceField(
+        choices=PerfilUsuario.PAPEIS_DA_ORGANIZACAO, label='Papel')

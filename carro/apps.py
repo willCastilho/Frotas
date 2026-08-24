@@ -11,13 +11,15 @@ class CarroConfig(AppConfig):
 
         from .models import (
             Abastecimento,
+            AtribuicaoVeiculo,
             Custo,
             Documento,
+            Motorista,
             PlanoManutencao,
             RegistroQuilometragem,
             Veiculo,
         )
 
-        for modelo in (Veiculo, Custo, Abastecimento,
-                       RegistroQuilometragem, PlanoManutencao, Documento):
+        for modelo in (Veiculo, Custo, Abastecimento, RegistroQuilometragem,
+                       PlanoManutencao, Documento, Motorista, AtribuicaoVeiculo):
             auditlog.register(modelo)

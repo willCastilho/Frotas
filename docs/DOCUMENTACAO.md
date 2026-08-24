@@ -5,7 +5,7 @@ custos, manutenção e documentação.
 
 - **Stack:** Python 3.12 · Django 5.2 · PostgreSQL
 - **Arquitetura:** SaaS multi-tenant (isolamento por organização)
-- **Cobertura:** 74 testes automatizados
+- **Cobertura:** 87 testes automatizados
 
 > Versão visual (com fluxograma e diagramas): publicada como Artifact no Claude Code.
 
@@ -27,15 +27,16 @@ saber quem estava em qual veículo em qualquer data.
 É **multi-tenant**: cada organização vê apenas os próprios dados, com controle
 de acesso por papéis — adequado tanto para uso interno quanto para venda (SaaS).
 
-## 2. Atores e perfis (RBAC por organização)
+## 2. Atores e perfis (RBAC)
 
 | Papel | Descrição | Permissões |
 |---|---|---|
 | Visitante | Não autenticado | Cadastro, login, recuperação de senha, páginas legais |
-| Administrador | Dono da conta | Tudo: usuários, papéis, plano e dados da frota |
-| Gestor | Operação da frota | Cria/edita/visualiza dados; recebe alertas |
-| Operador | Registro do dia a dia | Lança custos, abastecimentos e manutenção |
-| Consulta | Somente leitura | Visualiza dados, dashboard e relatórios |
+| Administrador do sistema | Operador global da plataforma (manutenção) | Sem organização própria. Painel com contagens agregadas (organizações, veículos, motoristas, usuários), **sem acesso aos dados sensíveis** de cada conta. Pode **impersonar** qualquer usuário para testes, sem perder o acesso de administrador. Vê os logs de todo o sistema. |
+| Gestor | Administrador da própria organização | Cria usuários (até gestor), cadastra veículos e motoristas, gerencia os vínculos motorista↔veículo, alimenta o sistema e vê dashboard, relatórios e logs da organização. |
+| Operador | Motorista | Vê apenas o próprio veículo (1 por vez) e lança nele abastecimento, quilometragem e custo. Não edita nem exclui, e não acessa outras telas. |
+
+> O administrador global é provisionado por linha de comando / Django admin. O gestor não pode criar administradores; o vínculo operador↔veículo (1:1) é administrado pelo gestor.
 
 ## 3. Fluxograma de uso
 
@@ -71,7 +72,7 @@ flowchart LR
     APP --> S3[Armazenamento S3/R2<br/>fotos e comprovantes]
     APP --> MAIL[E-mail<br/>API HTTP Brevo ou SMTP]
     APP --> SEN[Sentry]
-    GH[GitHub] --> CI[CI - GitHub Actions<br/>74 testes] --> APP
+    GH[GitHub] --> CI[CI - GitHub Actions<br/>87 testes] --> APP
 ```
 
 A aplicação é **stateless**: o estado vive no PostgreSQL e os arquivos no
@@ -110,7 +111,7 @@ Prioridade: **Alta** essencial · **Média** importante · **Baixa** desejável.
 ### Autenticação e conta
 | ID | Requisito | Prioridade |
 |---|---|---|
-| RF-01 | Cadastro autosserviço (usuário + organização + perfil admin), com aceite LGPD | Alta |
+| RF-01 | Cadastro autosserviço (usuário + organização + perfil gestor), com aceite LGPD | Alta |
 | RF-02 | Login e logout | Alta |
 | RF-03 | Recuperação de senha por e-mail (link com expiração) | Alta |
 | RF-04 | Onboarding: usuário sem organização é direcionado a criar uma | Alta |
@@ -123,7 +124,11 @@ Prioridade: **Alta** essencial · **Média** importante · **Baixa** desejável.
 | ID | Requisito | Prioridade |
 |---|---|---|
 | RF-09 | Isolar dados por organização | Alta |
-| RF-10 | Controle de acesso por papéis (bloqueio de escrita para Consulta) | Alta |
+| RF-10 | Controle de acesso por papéis: gestor administra a organização; operador só lê/alimenta o próprio veículo | Alta |
+| RF-46 | Painel do administrador global com contagens agregadas, sem dados sensíveis das organizações | Alta |
+| RF-47 | Impersonação: o admin global navega como qualquer usuário para testes, sem perder o próprio acesso | Média |
+| RF-48 | Registro de logs de todas as alterações (login, data/hora, ação, tipo), com tela para gestor (sua org) e admin (todo o sistema) | Alta |
+| RF-49 | Operador vinculado a um único veículo por vez, administrado pelo gestor | Alta |
 | RF-11 | Associar organização a um plano com limite de veículos | Média |
 | RF-12 | Impedir cadastro de veículo ao atingir o limite do plano | Média |
 | RF-13 | Indicar status da assinatura (em dia/pendente) | Baixa |
@@ -196,7 +201,7 @@ Prioridade: **Alta** essencial · **Média** importante · **Baixa** desejável.
 | RNF-06 | Disponibilidade | Docker + Gunicorn; migrações no boot; deploy contínuo (Railway) |
 | RNF-07 | Observabilidade | Sentry (opcional) e logging |
 | RNF-08 | Backup | Rotina pg_dump agendável |
-| RNF-09 | Manutenibilidade | Apps Django separados; 74 testes; CI (GitHub Actions) |
+| RNF-09 | Manutenibilidade | Apps Django separados; 87 testes; CI (GitHub Actions) |
 | RNF-10 | Portabilidade | Config por variáveis de ambiente (12-factor); `DATABASE_URL` |
 | RNF-11 | Usabilidade | Tema escuro responsivo; feedback; confirmação em exclusões |
 | RNF-12 | Internacionalização | pt-BR; fuso America/Sao_Paulo |

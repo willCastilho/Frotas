@@ -77,6 +77,20 @@ h3 { font-size: 1.05rem; }
 }
 
 /* ------------------------------------------------------------------ Topbar */
+.simulacao-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 8px 24px;
+    background: var(--warn, #b7791f);
+    color: #1a1205;
+    font-size: .88rem;
+    font-weight: 600;
+}
+.simulacao-bar strong { color: #1a1205; }
+
 .topbar {
     display: flex;
     align-items: center;

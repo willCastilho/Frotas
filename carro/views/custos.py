@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 
 from carro.forms import CustoForm
 from carro.models import Custo, Veiculo, somar_meses
-from contas.utils import exige_escrita, organizacao_do
+from contas.utils import exige_escrita, organizacao_do, pode_lancar_no_veiculo
 
 
 def _veiculo_da_org(request, veiculo_id):
@@ -58,9 +58,12 @@ def _gerar_serie(custo, veiculo, recorrencia, ocorrencias):
 
 
 @login_required
-@exige_escrita
 def novo_custo(request, veiculo_id):
     veiculo = _veiculo_da_org(request, veiculo_id)
+    # Gestor lanca em qualquer veiculo da org; operador so no seu veiculo.
+    if not pode_lancar_no_veiculo(request.user, veiculo):
+        messages.error(request, 'Você não tem permissão para lançar neste veículo.')
+        return redirect('home')
     form = CustoForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
         custo = form.save(commit=False)

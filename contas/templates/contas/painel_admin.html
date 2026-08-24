@@ -1,0 +1,50 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>🛠️ Painel do Administrador do Sistema</h1>
+        <p>Visão agregada da plataforma. Sem acesso aos dados sensíveis de cada organização.</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="kpi-grid">
+        <div class="kpi-card"><span class="kpi-valor">{{ total_orgs }}</span><span class="kpi-label">Organizações</span></div>
+        <div class="kpi-card"><span class="kpi-valor">{{ total_veiculos }}</span><span class="kpi-label">Veículos</span></div>
+        <div class="kpi-card"><span class="kpi-valor">{{ total_motoristas }}</span><span class="kpi-label">Motoristas</span></div>
+        <div class="kpi-card"><span class="kpi-valor">{{ total_usuarios }}</span><span class="kpi-label">Usuários</span></div>
+    </div>
+
+    <div class="painel-card">
+        <h2>Organizações</h2>
+        {% if orgs %}
+            <table class="alertas-table">
+                <thead>
+                    <tr><th>Organização</th><th>Veículos</th><th>Motoristas</th><th>Usuários</th><th>Ações</th></tr>
+                </thead>
+                <tbody>
+                    {% for o in orgs %}
+                        <tr>
+                            <td>{{ o.nome }}</td>
+                            <td>{{ o.n_veiculos }}</td>
+                            <td>{{ o.n_motoristas }}</td>
+                            <td>{{ o.n_perfis }}</td>
+                            <td><a href="{% url 'admin_organizacao' o.id %}" class="btn btn-small btn-secondary">Usuários / simular</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vazio">Nenhuma organização cadastrada.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

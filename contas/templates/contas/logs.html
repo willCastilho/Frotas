@@ -1,0 +1,36 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>📜 Registro de atividades</h1>
+        <p>{{ escopo }} — quem alterou, quando e o quê (últimos 200 registros).</p>
+    </div>
+
+    <div class="painel-card">
+        {% if logs %}
+            <table class="alertas-table">
+                <thead>
+                    <tr><th>Data / hora</th><th>Login</th><th>Ação</th><th>Tipo</th><th>Registro</th></tr>
+                </thead>
+                <tbody>
+                    {% for l in logs %}
+                        <tr>
+                            <td>{{ l.quando|date:"d/m/Y H:i" }}</td>
+                            <td>{{ l.login }}</td>
+                            <td>{{ l.acao }}</td>
+                            <td>{{ l.tipo }}</td>
+                            <td>{{ l.objeto }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vazio">Nenhuma atividade registrada ainda.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

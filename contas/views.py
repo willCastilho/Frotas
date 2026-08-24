@@ -5,11 +5,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.db import transaction
+from django.db import models, transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+from django.views.decorators.http import require_POST
 
 from contas.forms import (
     ConvidarUsuarioForm,
@@ -18,7 +19,15 @@ from contas.forms import (
     SignupForm,
 )
 from contas.models import Organizacao, PerfilUsuario, Plano
-from contas.utils import exige_admin, organizacao_do, perfil_do
+from contas.utils import (
+    IMPERSONAR_KEY,
+    esta_impersonando,
+    exige_admin_global,
+    exige_gestor,
+    organizacao_do,
+    perfil_do,
+    perfil_real_do,
+)
 
 
 def _plano_padrao():
@@ -77,7 +86,7 @@ def cadastro(request):
             org = Organizacao.objects.create(
                 nome=form.cleaned_data['nome_organizacao'], plano=_plano_padrao())
             PerfilUsuario.objects.create(
-                user=user, organizacao=org, papel=PerfilUsuario.PAPEL_ADMIN)
+                user=user, organizacao=org, papel=PerfilUsuario.PAPEL_GESTOR)
         login(request, user)
         messages.success(request, 'Conta criada com sucesso! Bem-vindo.')
         return redirect('home')
@@ -95,17 +104,17 @@ def criar_organizacao(request):
         org.plano = _plano_padrao()
         org.save()
         PerfilUsuario.objects.create(
-            user=request.user, organizacao=org, papel=PerfilUsuario.PAPEL_ADMIN)
+            user=request.user, organizacao=org, papel=PerfilUsuario.PAPEL_GESTOR)
         messages.success(request, 'Organização criada com sucesso!')
         return redirect('home')
     return render(request, 'contas/criar_organizacao.html', {'form': form})
 
 
 @login_required
-@exige_admin
+@exige_gestor
 def usuarios(request):
     org = organizacao_do(request.user)
-    form = ConvidarUsuarioForm(request.POST or None)
+    form = ConvidarUsuarioForm(request.POST or None, organizacao=org)
     if request.method == 'POST' and form.is_valid():
         with transaction.atomic():
             novo = User.objects.create_user(
@@ -116,6 +125,11 @@ def usuarios(request):
             novo.save()
             PerfilUsuario.objects.create(
                 user=novo, organizacao=org, papel=form.cleaned_data['papel'])
+            # Operador: liga o login ao motorista selecionado.
+            motorista = form.cleaned_data.get('motorista')
+            if motorista is not None:
+                motorista.user = novo
+                motorista.save(update_fields=['user'])
 
         # Gera o link de definicao de senha e tenta enviar por e-mail. O link
         # tambem fica visivel na tela (garante o convite mesmo sem SMTP).
@@ -144,21 +158,29 @@ def usuarios(request):
 
 
 @login_required
-@exige_admin
+@exige_gestor
 def alterar_papel(request, perfil_id):
     org = organizacao_do(request.user)
     membro = get_object_or_404(PerfilUsuario, id=perfil_id, organizacao=org)
     if request.method == 'POST':
         form = PapelForm(request.POST)
         if form.is_valid():
-            membro.papel = form.cleaned_data['papel']
-            membro.save()
-            messages.success(request, 'Papel atualizado.')
+            novo_papel = form.cleaned_data['papel']
+            if (novo_papel == PerfilUsuario.PAPEL_OPERADOR
+                    and not hasattr(membro.user, 'motorista')):
+                messages.error(
+                    request,
+                    'Para ser operador, o usuário precisa estar vinculado a um '
+                    'motorista. Vincule-o em Motoristas antes.')
+            else:
+                membro.papel = novo_papel
+                membro.save()
+                messages.success(request, 'Papel atualizado.')
     return redirect('usuarios')
 
 
 @login_required
-@exige_admin
+@exige_gestor
 def remover_usuario(request, perfil_id):
     org = organizacao_do(request.user)
     membro = get_object_or_404(PerfilUsuario, id=perfil_id, organizacao=org)
@@ -171,6 +193,7 @@ def remover_usuario(request, perfil_id):
 
 
 @login_required
+@exige_gestor
 def conta(request):
     org = organizacao_do(request.user)
     planos = Plano.objects.filter(ativo=True)
@@ -184,3 +207,111 @@ def termos(request):
 
 def privacidade(request):
     return render(request, 'contas/privacidade.html')
+
+
+# ---------------------------------------------------------------------------
+# Administrador global do sistema
+# ---------------------------------------------------------------------------
+
+ACOES_LOG = {0: 'Criação', 1: 'Alteração', 2: 'Exclusão', 3: 'Acesso'}
+
+
+@login_required
+@exige_admin_global
+def painel_admin(request):
+    """Painel do admin global: apenas contagens agregadas (sem dados sensiveis
+    das organizacoes) e a lista de organizacoes para impersonar."""
+    from carro.models import Motorista, Veiculo
+
+    orgs = (
+        Organizacao.objects.annotate(
+            n_veiculos=models.Count('veiculos', distinct=True),
+            n_perfis=models.Count('perfis', distinct=True),
+            n_motoristas=models.Count('motoristas', distinct=True),
+        ).order_by('nome')
+    )
+    context = {
+        'total_orgs': Organizacao.objects.count(),
+        'total_veiculos': Veiculo.objects.count(),
+        'total_motoristas': Motorista.objects.count(),
+        'total_usuarios': PerfilUsuario.objects.count(),
+        'orgs': orgs,
+    }
+    return render(request, 'contas/painel_admin.html', context)
+
+
+@login_required
+@exige_admin_global
+def admin_organizacao(request, org_id):
+    """Usuarios de uma organizacao, para o admin escolher quem impersonar."""
+    org = get_object_or_404(Organizacao, id=org_id)
+    perfis = PerfilUsuario.objects.filter(organizacao=org).select_related('user')
+    return render(request, 'contas/admin_organizacao.html',
+                  {'org': org, 'perfis': perfis})
+
+
+@login_required
+@exige_admin_global
+@require_POST
+def impersonar(request, perfil_id):
+    perfil = get_object_or_404(
+        PerfilUsuario.objects.exclude(papel=PerfilUsuario.PAPEL_ADMIN),
+        id=perfil_id)
+    request.session[IMPERSONAR_KEY] = perfil.id
+    messages.info(
+        request,
+        f'Você está navegando como {perfil.user.get_username()} '
+        f'({perfil.get_papel_display()}). Use "Sair da simulação" para voltar.')
+    return redirect('home')
+
+
+@login_required
+@require_POST
+def sair_impersonacao(request):
+    request.session.pop(IMPERSONAR_KEY, None)
+    messages.success(request, 'Você voltou ao painel do administrador.')
+    return redirect('painel_admin')
+
+
+def _logs_qs(organizacao=None):
+    from auditlog.models import LogEntry
+    qs = LogEntry.objects.select_related('actor', 'content_type').order_by('-timestamp')
+    if organizacao is not None:
+        # Registros feitos por usuarios da organizacao.
+        qs = qs.filter(actor__perfil__organizacao=organizacao)
+    return qs
+
+
+def _monta_logs(qs, limite=200):
+    logs = []
+    for e in qs[:limite]:
+        logs.append({
+            'quando': e.timestamp,
+            'login': e.actor.get_username() if e.actor else '—',
+            'acao': ACOES_LOG.get(e.action, str(e.action)),
+            'tipo': e.content_type.name if e.content_type else '',
+            'objeto': e.object_repr,
+        })
+    return logs
+
+
+@login_required
+@exige_gestor
+def logs(request):
+    """Registro de alteracoes da organizacao (login, data/hora, tipo)."""
+    org = organizacao_do(request.user)
+    return render(request, 'contas/logs.html', {
+        'logs': _monta_logs(_logs_qs(org)),
+        'escopo': f'Organização · {org.nome}' if org else 'Organização',
+    })
+
+
+@login_required
+@exige_admin_global
+def logs_sistema(request):
+    """Registro de alteracoes de todo o sistema (admin global)."""
+    return render(request, 'contas/logs.html', {
+        'logs': _monta_logs(_logs_qs()),
+        'escopo': 'Todo o sistema',
+        'do_sistema': True,
+    })

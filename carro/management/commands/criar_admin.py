@@ -22,26 +22,26 @@ class Command(BaseCommand):
         if User.objects.filter(username=username).exists():
             self.stdout.write(
                 self.style.SUCCESS(f'Superusuario "{username}" ja existe.'))
-            self._garantir_organizacao(User.objects.get(username=username))
+            self._garantir_admin_global(User.objects.get(username=username))
             return
 
         user = User.objects.create_superuser(
             username=username, email=email, password=password)
-        self._garantir_organizacao(user)
+        self._garantir_admin_global(user)
         self.stdout.write(
             self.style.SUCCESS(f'Superusuario "{username}" criado.'))
 
-    def _garantir_organizacao(self, user):
-        """Garante que o superusuario tenha uma organizacao/perfil (admin)."""
-        from contas.models import Organizacao, PerfilUsuario, Plano
+    def _garantir_admin_global(self, user):
+        """Garante que o superusuario seja o administrador GLOBAL do sistema
+        (perfil admin, sem organizacao)."""
+        from contas.models import PerfilUsuario
 
-        if PerfilUsuario.objects.filter(user=user).exists():
-            return
-        plano, _ = Plano.objects.get_or_create(
-            slug='padrao',
-            defaults={'nome': 'Padrão', 'preco_mensal': 0, 'limite_veiculos': 0})
-        org, _ = Organizacao.objects.get_or_create(
-            nome='Organização Padrão', defaults={'plano': plano})
-        PerfilUsuario.objects.create(
-            user=user, organizacao=org, papel=PerfilUsuario.PAPEL_ADMIN)
-        self.stdout.write(self.style.SUCCESS('Organizacao/perfil garantidos.'))
+        perfil, _ = PerfilUsuario.objects.get_or_create(
+            user=user,
+            defaults={'papel': PerfilUsuario.PAPEL_ADMIN, 'organizacao': None})
+        # Promove a admin global caso ja exista com outro papel/organizacao.
+        if perfil.papel != PerfilUsuario.PAPEL_ADMIN or perfil.organizacao_id:
+            perfil.papel = PerfilUsuario.PAPEL_ADMIN
+            perfil.organizacao = None
+            perfil.save(update_fields=['papel', 'organizacao'])
+        self.stdout.write(self.style.SUCCESS('Admin global garantido.'))

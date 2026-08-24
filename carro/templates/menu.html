@@ -1,17 +1,38 @@
 {% if user.is_authenticated %}
+{% if impersonando %}
+<div class="simulacao-bar">
+    <span>🔎 Simulando <strong>{{ perfil_efetivo.user.get_username }}</strong>
+        ({{ perfil_efetivo.get_papel_display }}){% if perfil_efetivo.organizacao %} · {{ perfil_efetivo.organizacao.nome }}{% endif %}</span>
+    <form method="post" action="{% url 'sair_impersonacao' %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-small btn-danger">Sair da simulação</button>
+    </form>
+</div>
+{% endif %}
 <nav class="topbar">
-    <a href="{% if user.perfil %}{% url 'dashboard' %}{% else %}{% url 'criar_organizacao' %}{% endif %}" class="topbar-brand">🚗 Gestão de Frotas</a>
-    {% if user.perfil %}
+    {% if perfil_real.eh_admin and not impersonando %}
+        <a href="{% url 'painel_admin' %}" class="topbar-brand">🛠️ Admin do Sistema</a>
         <div class="topbar-nav">
-            <a href="{% url 'dashboard' %}">Dashboard</a>
-            <a href="{% url 'home' %}">Veículos</a>
-            <a href="{% url 'motoristas' %}">Motoristas</a>
-            <a href="{% url 'relatorios' %}">Relatórios</a>
-            <a href="{% url 'conta' %}">Conta</a>
-            {% if user.perfil.pode_administrar %}
+            <a href="{% url 'painel_admin' %}">Painel</a>
+            <a href="{% url 'logs_sistema' %}">Logs do sistema</a>
+        </div>
+    {% elif perfil_efetivo %}
+        <a href="{% if perfil_efetivo.eh_gestor %}{% url 'dashboard' %}{% else %}{% url 'home' %}{% endif %}" class="topbar-brand">🚗 Gestão de Frotas</a>
+        <div class="topbar-nav">
+            {% if perfil_efetivo.eh_gestor %}
+                <a href="{% url 'dashboard' %}">Dashboard</a>
+                <a href="{% url 'home' %}">Veículos</a>
+                <a href="{% url 'motoristas' %}">Motoristas</a>
+                <a href="{% url 'relatorios' %}">Relatórios</a>
                 <a href="{% url 'usuarios' %}">Usuários</a>
+                <a href="{% url 'logs' %}">Logs</a>
+                <a href="{% url 'conta' %}">Conta</a>
+            {% else %}
+                <a href="{% url 'home' %}">Meu veículo</a>
             {% endif %}
         </div>
+    {% else %}
+        <a href="{% url 'criar_organizacao' %}" class="topbar-brand">🚗 Gestão de Frotas</a>
     {% endif %}
     <div class="topbar-user">
         <span>Olá, {{ user.get_username }}</span>

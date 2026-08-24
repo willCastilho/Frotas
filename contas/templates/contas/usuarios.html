@@ -58,7 +58,7 @@
                             <form method="post" action="{% url 'alterar_papel' m.id %}" style="display:flex;gap:6px;align-items:center;">
                                 {% csrf_token %}
                                 <select name="papel">
-                                    {% for val, lab in m.PAPEL_CHOICES %}
+                                    {% for val, lab in m.PAPEIS_DA_ORGANIZACAO %}
                                         <option value="{{ val }}" {% if m.papel == val %}selected{% endif %}>{{ lab }}</option>
                                     {% endfor %}
                                 </select>

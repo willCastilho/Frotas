@@ -7,7 +7,12 @@ from django.views.decorators.http import require_POST
 
 from carro.forms import VeiculoForm
 from carro.models import Custo, Veiculo, comparacao_custos
-from contas.utils import exige_escrita, organizacao_do
+from contas.utils import (
+    exige_escrita,
+    organizacao_do,
+    perfil_do,
+    veiculo_do_operador,
+)
 
 VEICULOS_POR_PAGINA = 9
 
@@ -19,6 +24,15 @@ def _veiculos_da_org(request):
 
 @login_required
 def home(request):
+    # Operador nao ve a lista da frota: vai direto ao seu veiculo.
+    perfil = perfil_do(request.user)
+    if perfil and perfil.eh_operador:
+        veiculo = veiculo_do_operador(request.user)
+        if veiculo:
+            return redirect('detalhes_veiculo', veiculo_id=veiculo.id)
+        return render(request, 'operador_sem_veiculo.html',
+                      {'perfil': perfil})
+
     status_filter = request.GET.get('status', 'todos')
     search_query = request.GET.get('search', '').strip()
 
@@ -73,6 +87,13 @@ def home(request):
 @login_required
 def detalhes_veiculo(request, veiculo_id):
     veiculo = get_object_or_404(_veiculos_da_org(request), id=veiculo_id)
+    # Operador so acessa o proprio veiculo.
+    perfil = perfil_do(request.user)
+    if perfil and perfil.eh_operador:
+        meu = veiculo_do_operador(request.user)
+        if not meu or meu.id != veiculo.id:
+            messages.error(request, 'Você só pode acessar o seu veículo.')
+            return redirect('home')
     custos = Custo.objects.filter(veiculo=veiculo).order_by('-data')
 
     km_atual = veiculo.km_atual()

@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 
 from carro.forms import AtribuicaoVeiculoForm, MotoristaForm
 from carro.models import AtribuicaoVeiculo, Motorista, Veiculo
-from contas.utils import exige_escrita, organizacao_do
+from contas.utils import exige_escrita, exige_gestor, organizacao_do
 
 
 def _motoristas_da_org(request):
@@ -17,6 +17,7 @@ def _motoristas_da_org(request):
 
 
 @login_required
+@exige_gestor
 def motoristas(request):
     busca = request.GET.get('busca', '').strip()
     lista = _motoristas_da_org(request)
@@ -31,6 +32,7 @@ def motoristas(request):
 
 
 @login_required
+@exige_gestor
 def detalhes_motorista(request, motorista_id):
     motorista = get_object_or_404(_motoristas_da_org(request), id=motorista_id)
     historico = motorista.atribuicoes.select_related('veiculo').all()
@@ -83,7 +85,9 @@ def excluir_motorista(request, motorista_id):
 @exige_escrita
 def nova_atribuicao(request):
     """Vincula um motorista a um veiculo. Ao abrir um vinculo (sem data de fim),
-    encerra automaticamente o vinculo anterior em aberto do mesmo veiculo."""
+    encerra automaticamente o vinculo anterior em aberto tanto do mesmo veiculo
+    quanto do mesmo motorista (cada veiculo tem um motorista e cada motorista
+    tem um veiculo por vez)."""
     org = organizacao_do(request.user)
     inicial = {}
     veiculo_id = request.GET.get('veiculo')
@@ -93,11 +97,13 @@ def nova_atribuicao(request):
     if request.method == 'POST' and form.is_valid():
         atrib = form.save()
         if atrib.data_fim is None:
-            # Encerra o vinculo anterior em aberto deste veiculo (troca de motorista).
-            anteriores = AtribuicaoVeiculo.objects.filter(
-                veiculo=atrib.veiculo, data_fim__isnull=True
-            ).exclude(pk=atrib.pk)
-            anteriores.update(data_fim=atrib.data_inicio - timedelta(days=1))
+            from django.db.models import Q
+            # Encerra vinculos abertos do mesmo veiculo OU do mesmo motorista.
+            AtribuicaoVeiculo.objects.filter(
+                Q(veiculo=atrib.veiculo) | Q(motorista=atrib.motorista),
+                data_fim__isnull=True,
+            ).exclude(pk=atrib.pk).update(
+                data_fim=atrib.data_inicio - timedelta(days=1))
         messages.success(request, 'Motorista vinculado ao veículo.')
         return redirect('detalhes_veiculo', veiculo_id=atrib.veiculo_id)
     return render(request, 'motoristas/form.html',
@@ -141,6 +147,7 @@ def _alocacoes_na_data(org, data):
 
 
 @login_required
+@exige_gestor
 def relatorio_motoristas(request):
     """Mostra qual motorista estava em qual veiculo em uma data de referencia."""
     org = organizacao_do(request.user)

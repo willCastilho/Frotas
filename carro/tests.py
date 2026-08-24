@@ -35,7 +35,8 @@ def cria_veiculo(org=None, **kwargs):
 
 
 class LogadoMixin:
-    papel = PerfilUsuario.PAPEL_ADMIN
+    # Gestor = administrador da organizacao (perfil padrao dos testes).
+    papel = PerfilUsuario.PAPEL_GESTOR
 
     def setUp(self):
         self.org = cria_org('Org do Teste')
@@ -84,7 +85,7 @@ class IsolamentoTests(TestCase):
         self.org_b = cria_org('B')
         self.user_b = User.objects.create_user('userb', password='senha12345')
         PerfilUsuario.objects.create(
-            user=self.user_b, organizacao=self.org_b, papel='admin')
+            user=self.user_b, organizacao=self.org_b, papel='gestor')
         self.client.login(username='userb', password='senha12345')
 
     def test_nao_ve_veiculo_de_outra_org(self):
@@ -112,7 +113,7 @@ class CadastroOnboardingTests(TestCase):
         user = User.objects.get(username='novoemp')
         self.assertTrue(hasattr(user, 'perfil'))
         self.assertEqual(user.perfil.organizacao.nome, 'Empresa X')
-        self.assertEqual(user.perfil.papel, 'admin')
+        self.assertEqual(user.perfil.papel, 'gestor')
 
     def test_usuario_sem_org_vai_para_onboarding(self):
         User.objects.create_user('semorg', password='senha12345')
@@ -123,9 +124,9 @@ class CadastroOnboardingTests(TestCase):
 
 
 class RBACTests(LogadoMixin, TestCase):
-    papel = PerfilUsuario.PAPEL_CONSULTA
+    papel = PerfilUsuario.PAPEL_OPERADOR
 
-    def test_consulta_nao_cria_veiculo(self):
+    def test_operador_nao_cria_veiculo(self):
         r = self.client.post(reverse('novo_veiculo'), {
             'marca': 'Fiat', 'modelo': 'Uno', 'ano': 2015, 'cor': 'Branco',
             'data_compra': '2020-01-01', 'status': 'ativo',
@@ -133,8 +134,14 @@ class RBACTests(LogadoMixin, TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertEqual(Veiculo.objects.count(), 0)
 
-    def test_consulta_ve_a_home(self):
-        self.assertEqual(self.client.get(reverse('home')).status_code, 200)
+    def test_operador_sem_veiculo_ve_aviso(self):
+        r = self.client.get(reverse('home'))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Nenhum veículo vinculado')
+
+    def test_operador_nao_acessa_dashboard(self):
+        r = self.client.get(reverse('dashboard'))
+        self.assertEqual(r.status_code, 302)
 
 
 class LimitePlanoTests(LogadoMixin, TestCase):
@@ -734,7 +741,7 @@ class BrevoBackendTests(TestCase):
 class ConviteUsuarioTests(LogadoMixin, TestCase):
     def _convidar(self, **over):
         dados = {'username': 'convidado', 'email': 'novo@ex.com',
-                 'papel': PerfilUsuario.PAPEL_OPERADOR}
+                 'papel': PerfilUsuario.PAPEL_GESTOR}
         dados.update(over)
         return self.client.post(reverse('usuarios'), dados, follow=True)
 
@@ -744,7 +751,23 @@ class ConviteUsuarioTests(LogadoMixin, TestCase):
         novo = User.objects.get(username='convidado')
         self.assertFalse(novo.has_usable_password())
         self.assertEqual(novo.perfil.organizacao, self.org)
+        self.assertEqual(novo.perfil.papel, PerfilUsuario.PAPEL_GESTOR)
+
+    def test_convite_operador_liga_motorista(self):
+        from carro.models import Motorista
+        m = Motorista.objects.create(organizacao=self.org, nome='Zé')
+        r = self._convidar(username='ze', email='ze@ex.com',
+                           papel=PerfilUsuario.PAPEL_OPERADOR, motorista=m.id)
+        self.assertEqual(r.status_code, 200)
+        novo = User.objects.get(username='ze')
         self.assertEqual(novo.perfil.papel, PerfilUsuario.PAPEL_OPERADOR)
+        m.refresh_from_db()
+        self.assertEqual(m.user_id, novo.id)
+
+    def test_convite_operador_exige_motorista(self):
+        r = self._convidar(username='semmoto', email='sm@ex.com',
+                           papel=PerfilUsuario.PAPEL_OPERADOR)
+        self.assertFalse(User.objects.filter(username='semmoto').exists())
 
     def test_convite_mostra_link_na_tela(self):
         r = self._convidar()
@@ -774,3 +797,103 @@ class ConviteUsuarioTests(LogadoMixin, TestCase):
         # A pagina de confirmacao redireciona para o formulario 'set-password'.
         r = self.client.get(url, follow=True)
         self.assertEqual(r.status_code, 200)
+
+
+class AdminGlobalTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user('root', password='raiz12345')
+        PerfilUsuario.objects.create(
+            user=self.admin, organizacao=None, papel=PerfilUsuario.PAPEL_ADMIN)
+        self.client.login(username='root', password='raiz12345')
+
+    def test_painel_renderiza(self):
+        r = self.client.get(reverse('painel_admin'))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Administrador do Sistema')
+
+    def test_dashboard_redireciona_para_painel(self):
+        r = self.client.get(reverse('dashboard'))
+        self.assertRedirects(r, reverse('painel_admin'))
+
+    def test_impersonar_e_sair(self):
+        org = cria_org('OrgX')
+        u = User.objects.create_user('gestor1', password='x')
+        p = PerfilUsuario.objects.create(
+            user=u, organizacao=org, papel=PerfilUsuario.PAPEL_GESTOR)
+        self.client.post(reverse('impersonar', args=[p.id]))
+        # Navegando como gestor: dashboard acessivel e org efetiva = OrgX.
+        r = self.client.get(reverse('dashboard'))
+        self.assertEqual(r.status_code, 200)
+        self.client.post(reverse('sair_impersonacao'))
+        r2 = self.client.get(reverse('dashboard'))
+        self.assertRedirects(r2, reverse('painel_admin'))
+
+    def test_nao_impersona_outro_admin(self):
+        outro = User.objects.create_user('root2', password='x')
+        p = PerfilUsuario.objects.create(
+            user=outro, organizacao=None, papel=PerfilUsuario.PAPEL_ADMIN)
+        r = self.client.post(reverse('impersonar', args=[p.id]))
+        self.assertEqual(r.status_code, 404)
+
+
+class OperadorVeiculoTests(TestCase):
+    def setUp(self):
+        from carro.models import AtribuicaoVeiculo, Motorista
+        self.org = cria_org('OrgOp')
+        self.veiculo = cria_veiculo(org=self.org, modelo='Meu')
+        self.outro = cria_veiculo(org=self.org, modelo='Alheio')
+        self.user = User.objects.create_user('op', password='operad12345')
+        PerfilUsuario.objects.create(
+            user=self.user, organizacao=self.org, papel=PerfilUsuario.PAPEL_OPERADOR)
+        self.motorista = Motorista.objects.create(
+            organizacao=self.org, nome='Op', user=self.user)
+        AtribuicaoVeiculo.objects.create(
+            veiculo=self.veiculo, motorista=self.motorista, data_inicio=date.today())
+        self.client.login(username='op', password='operad12345')
+
+    def test_home_vai_para_seu_veiculo(self):
+        r = self.client.get(reverse('home'))
+        self.assertRedirects(r, reverse('detalhes_veiculo', args=[self.veiculo.id]))
+
+    def test_nao_acessa_outro_veiculo(self):
+        r = self.client.get(reverse('detalhes_veiculo', args=[self.outro.id]))
+        self.assertEqual(r.status_code, 302)
+
+    def test_lanca_abastecimento_no_seu_veiculo(self):
+        r = self.client.post(reverse('novo_abastecimento', args=[self.veiculo.id]), {
+            'data': '2026-01-01', 'quilometragem': 1000, 'litros': 40,
+            'valor_total': 200, 'tipo_combustivel': 'gasolina'})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.veiculo.abastecimentos.count(), 1)
+
+    def test_nao_lanca_no_veiculo_alheio(self):
+        self.client.post(reverse('novo_abastecimento', args=[self.outro.id]), {
+            'data': '2026-01-01', 'quilometragem': 1000, 'litros': 40,
+            'valor_total': 200, 'tipo_combustivel': 'gasolina'})
+        self.assertEqual(self.outro.abastecimentos.count(), 0)
+
+
+class UmVeiculoPorMotoristaTests(LogadoMixin, TestCase):
+    def test_novo_vinculo_fecha_o_anterior_do_motorista(self):
+        from carro.models import AtribuicaoVeiculo, Motorista
+        v1 = self.cria_veiculo(modelo='V1')
+        v2 = self.cria_veiculo(modelo='V2')
+        m = Motorista.objects.create(organizacao=self.org, nome='M')
+        self.client.post(reverse('nova_atribuicao'), {
+            'motorista': m.id, 'veiculo': v1.id, 'data_inicio': date.today().isoformat()})
+        self.client.post(reverse('nova_atribuicao'), {
+            'motorista': m.id, 'veiculo': v2.id, 'data_inicio': date.today().isoformat()})
+        abertos = AtribuicaoVeiculo.objects.filter(motorista=m, data_fim__isnull=True)
+        self.assertEqual(abertos.count(), 1)
+        self.assertEqual(m.veiculo_atual(), v2)
+
+
+class LogsTests(LogadoMixin, TestCase):
+    def test_log_registra_criacao_com_login(self):
+        self.client.post(reverse('novo_veiculo'), {
+            'marca': 'Fiat', 'modelo': 'Uno', 'ano': 2015, 'cor': 'Branco',
+            'data_compra': '2020-01-01', 'status': 'ativo'})
+        r = self.client.get(reverse('logs'))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'teste')      # login do autor
+        self.assertContains(r, 'Criação')    # tipo da acao

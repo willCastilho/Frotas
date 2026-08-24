@@ -1,0 +1,43 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>{{ org.nome }}</h1>
+        <p>Usuários da organização. Você pode simular qualquer um deles para testar, sem perder o acesso de administrador.</p>
+    </div>
+
+    <div class="painel-card">
+        <a href="{% url 'painel_admin' %}" class="btn btn-secondary btn-small">← Voltar ao painel</a>
+    </div>
+
+    <div class="painel-card">
+        <h2>Usuários</h2>
+        {% if perfis %}
+            <table class="alertas-table">
+                <thead><tr><th>Usuário</th><th>E-mail</th><th>Papel</th><th>Ações</th></tr></thead>
+                <tbody>
+                    {% for p in perfis %}
+                        <tr>
+                            <td>{{ p.user.get_username }}</td>
+                            <td>{{ p.user.email|default:"—" }}</td>
+                            <td>{{ p.get_papel_display }}</td>
+                            <td>
+                                <form method="post" action="{% url 'impersonar' p.id %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-small btn-primary">Entrar como</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vazio">Esta organização não tem usuários.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

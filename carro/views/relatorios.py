@@ -7,6 +7,7 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from carro.models import Custo
+from contas.utils import exige_gestor
 
 
 def _exportar_pdf(custos, inicio, fim, rotulos):
@@ -83,6 +84,7 @@ def _custos_filtrados(request):
 
 
 @login_required
+@exige_gestor
 def relatorios(request):
     custos, inicio, fim = _custos_filtrados(request)
 
@@ -112,6 +114,7 @@ def relatorios(request):
 
 
 @login_required
+@exige_gestor
 def exportar_custos(request):
     custos, inicio, fim = _custos_filtrados(request)
     custos = custos.order_by('data')

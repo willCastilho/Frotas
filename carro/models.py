@@ -521,6 +521,12 @@ class Motorista(models.Model):
     organizacao = models.ForeignKey(
         'contas.Organizacao', on_delete=models.CASCADE, related_name='motoristas'
     )
+    # Login do operador vinculado a este motorista (opcional): quando presente,
+    # o operador enxerga e alimenta apenas o veiculo atribuido a este motorista.
+    user = models.OneToOneField(
+        'auth.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='motorista'
+    )
     nome = models.CharField(max_length=120)
     cpf = models.CharField(max_length=14, blank=True)
     cnh = models.CharField('Número da CNH', max_length=20, blank=True)

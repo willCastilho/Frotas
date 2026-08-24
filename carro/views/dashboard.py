@@ -8,7 +8,7 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from carro.models import Custo, Documento, PlanoManutencao, Veiculo
-from contas.utils import organizacao_do
+from contas.utils import exige_gestor, organizacao_do
 
 
 MESES_LONGOS_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -177,6 +177,7 @@ def _projecao_fechamento(custo_ate_agora):
 
 
 @login_required
+@exige_gestor
 def dashboard(request):
     org = organizacao_do(request.user)
     inicio, fim, periodo_rotulo, periodo_preset, eh_mes_atual = _periodo_do_request(request)
