@@ -195,6 +195,7 @@ def dashboard(request):
     for row in custos_periodo.values('tipo').annotate(total=Sum('valor')).order_by('-total'):
         valor = float(row['total'] or 0)
         por_categoria.append({
+            'tipo': row['tipo'],
             'rotulo': ROTULOS_TIPO.get(row['tipo'], row['tipo']),
             'total': valor,
             'pct': round(valor / total_cat * 100),
@@ -223,6 +224,7 @@ def dashboard(request):
         'patrimonio': _patrimonio(org),
         'custos_meses': _custos_ultimos_meses(org, 6),
         'por_categoria': por_categoria,
+        'ano_corrente': timezone.now().year,
         'ranking': ranking,
         'agenda_90': _agenda_90_dias(org, kms),
     }

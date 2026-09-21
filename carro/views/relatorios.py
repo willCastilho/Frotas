@@ -76,24 +76,30 @@ def _custos_filtrados(request):
         veiculo__organizacao=organizacao_do(request.user))
     inicio = request.GET.get('inicio')
     fim = request.GET.get('fim')
+    tipo = request.GET.get('tipo')
     if inicio:
         custos = custos.filter(data__gte=inicio)
     if fim:
         custos = custos.filter(data__lte=fim)
-    return custos, inicio, fim
+    if tipo and tipo in dict(Custo.TIPO_CHOICES):
+        custos = custos.filter(tipo=tipo)
+    else:
+        tipo = ''
+    return custos, inicio, fim, tipo
 
 
 @login_required
 @exige_gestor
 def relatorios(request):
-    custos, inicio, fim = _custos_filtrados(request)
+    custos, inicio, fim, tipo = _custos_filtrados(request)
+
+    rotulos = dict(Custo.TIPO_CHOICES)
 
     por_categoria = list(
         custos.values('tipo').annotate(total=Sum('valor')).order_by('-total')
     )
     total_geral = custos.aggregate(t=Sum('valor'))['t'] or 0
 
-    rotulos = dict(Custo.TIPO_CHOICES)
     for item in por_categoria:
         item['rotulo'] = rotulos.get(item['tipo'], item['tipo'])
         item['pct'] = round(float(item['total']) / float(total_geral) * 100) if total_geral else 0
@@ -109,6 +115,9 @@ def relatorios(request):
         'total_geral': total_geral,
         'inicio': inicio or '',
         'fim': fim or '',
+        'tipo': tipo,
+        'tipo_rotulo': rotulos.get(tipo, ''),
+        'tipos': Custo.TIPO_CHOICES,
     }
     return render(request, 'relatorios.html', context)
 
@@ -116,7 +125,7 @@ def relatorios(request):
 @login_required
 @exige_gestor
 def exportar_custos(request):
-    custos, inicio, fim = _custos_filtrados(request)
+    custos, inicio, fim, tipo = _custos_filtrados(request)
     custos = custos.order_by('data')
     formato = request.GET.get('formato', 'csv')
     cabecalho = ['Data', 'Veículo', 'Tipo', 'Descrição', 'Valor']

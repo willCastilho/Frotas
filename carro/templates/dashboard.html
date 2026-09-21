@@ -112,15 +112,19 @@
             <div class="painel-card">
                 <h2>Custos por categoria · {{ periodo_rotulo }}</h2>
                 {% if por_categoria %}
-                    <div class="categorias">
+                    <div class="cat-cards">
                         {% for c in por_categoria %}
-                            <div class="cat-row">
+                            <a class="cat-card"
+                               href="{% url 'relatorios' %}?tipo={{ c.tipo }}&inicio={{ ano_corrente|stringformat:'d' }}-01-01&fim={{ ano_corrente|stringformat:'d' }}-12-31"
+                               title="Ver o total de {{ c.rotulo }} em {{ ano_corrente|stringformat:'d' }}">
                                 <div class="cat-top">
                                     <span class="cat-nome">{{ c.rotulo }}</span>
-                                    <span class="cat-valor">R$ {{ c.total|floatformat:2 }} · {{ c.pct }}%</span>
+                                    <span class="cat-valor">{{ c.pct }}%</span>
                                 </div>
+                                <div class="cat-total">R$ {{ c.total|floatformat:2 }}</div>
                                 <div class="cat-bar"><div class="cat-bar-fill" style="width: {{ c.pct }}%;"></div></div>
-                            </div>
+                                <span class="cat-link">Ver total de {{ ano_corrente|stringformat:'d' }} →</span>
+                            </a>
                         {% endfor %}
                     </div>
                 {% else %}
