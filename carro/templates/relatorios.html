@@ -7,8 +7,13 @@
 <div class="container">
     <div class="header">
         <h1>📑 Relatórios de Custos</h1>
-        {% if tipo_rotulo %}
-            <p>Categoria: <strong>{{ tipo_rotulo }}</strong> · total no período: <strong>R$ {{ total_geral|floatformat:2 }}</strong></p>
+        {% if veiculo_rotulo or tipo_rotulo %}
+            <p>
+                {% if veiculo_rotulo %}Veículo: <strong>{{ veiculo_rotulo }}</strong>{% endif %}
+                {% if veiculo_rotulo and tipo_rotulo %} · {% endif %}
+                {% if tipo_rotulo %}Categoria: <strong>{{ tipo_rotulo }}</strong>{% endif %}
+                · total no período: <strong>R$ {{ total_geral|floatformat:2 }}</strong>
+            </p>
         {% else %}
             <p>Filtre por período e categoria e exporte os dados</p>
         {% endif %}
@@ -18,8 +23,15 @@
         <a href="{% url 'relatorio_motoristas' %}" class="btn btn-secondary">🧾 Relatório Motorista × Veículo (por data)</a>
     </div>
 
+    {% if veiculo %}
+        <div class="painel-card">
+            <a href="?inicio={{ inicio }}&fim={{ fim }}&tipo={{ tipo }}" class="btn btn-secondary">✕ Remover filtro de veículo ({{ veiculo_rotulo }})</a>
+        </div>
+    {% endif %}
+
     <div class="painel-card">
         <form method="get" class="filtro-relatorio">
+            {% if veiculo %}<input type="hidden" name="veiculo" value="{{ veiculo }}">{% endif %}
             <div class="form-group">
                 <label for="inicio">De</label>
                 <input type="date" name="inicio" id="inicio" value="{{ inicio }}">
@@ -38,9 +50,9 @@
                 </select>
             </div>
             <button type="submit" class="btn btn-primary">Filtrar</button>
-            <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&tipo={{ tipo }}&formato=csv" class="btn btn-secondary">Exportar CSV</a>
-            <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&tipo={{ tipo }}&formato=xlsx" class="btn btn-secondary">Exportar Excel</a>
-            <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&tipo={{ tipo }}&formato=pdf" class="btn btn-secondary">Exportar PDF</a>
+            <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&tipo={{ tipo }}&veiculo={{ veiculo }}&formato=csv" class="btn btn-secondary">Exportar CSV</a>
+            <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&tipo={{ tipo }}&veiculo={{ veiculo }}&formato=xlsx" class="btn btn-secondary">Exportar Excel</a>
+            <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&tipo={{ tipo }}&veiculo={{ veiculo }}&formato=pdf" class="btn btn-secondary">Exportar PDF</a>
         </form>
     </div>
 
@@ -71,12 +83,13 @@
         <div class="painel-card">
             <h2>Por veículo</h2>
             {% if por_veiculo %}
+                <p class="vazio" style="margin-top:0;">Clique em um veículo para ver as categorias de gasto dele.</p>
                 <table class="alertas-table">
                     <thead><tr><th>Veículo</th><th>Total</th></tr></thead>
                     <tbody>
                         {% for v in por_veiculo %}
                             <tr>
-                                <td>{{ v.veiculo__marca }} {{ v.veiculo__modelo }}</td>
+                                <td><a href="?veiculo={{ v.veiculo__id }}&inicio={{ inicio }}&fim={{ fim }}&tipo={{ tipo }}">{{ v.veiculo__marca }} {{ v.veiculo__modelo }}</a></td>
                                 <td>R$ {{ v.total|floatformat:2 }}</td>
                             </tr>
                         {% endfor %}

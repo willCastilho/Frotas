@@ -77,6 +77,7 @@ def _custos_filtrados(request):
     inicio = request.GET.get('inicio')
     fim = request.GET.get('fim')
     tipo = request.GET.get('tipo')
+    veiculo = request.GET.get('veiculo')
     if inicio:
         custos = custos.filter(data__gte=inicio)
     if fim:
@@ -85,13 +86,20 @@ def _custos_filtrados(request):
         custos = custos.filter(tipo=tipo)
     else:
         tipo = ''
-    return custos, inicio, fim, tipo
+    if veiculo:
+        try:
+            custos = custos.filter(veiculo_id=int(veiculo))
+        except (TypeError, ValueError):
+            veiculo = ''
+    else:
+        veiculo = ''
+    return custos, inicio, fim, tipo, veiculo
 
 
 @login_required
 @exige_gestor
 def relatorios(request):
-    custos, inicio, fim, tipo = _custos_filtrados(request)
+    custos, inicio, fim, tipo, veiculo = _custos_filtrados(request)
 
     rotulos = dict(Custo.TIPO_CHOICES)
 
@@ -105,9 +113,20 @@ def relatorios(request):
         item['pct'] = round(float(item['total']) / float(total_geral) * 100) if total_geral else 0
 
     por_veiculo = list(
-        custos.values('veiculo__marca', 'veiculo__modelo')
+        custos.values('veiculo__id', 'veiculo__marca', 'veiculo__modelo')
         .annotate(total=Sum('valor')).order_by('-total')
     )
+
+    veiculo_rotulo = ''
+    if veiculo:
+        from carro.models import Veiculo
+        from contas.utils import organizacao_do
+        v = Veiculo.objects.filter(
+            id=veiculo, organizacao=organizacao_do(request.user)).first()
+        if v:
+            veiculo_rotulo = f'{v.marca} {v.modelo}'
+        else:
+            veiculo = ''
 
     context = {
         'por_categoria': por_categoria,
@@ -118,6 +137,8 @@ def relatorios(request):
         'tipo': tipo,
         'tipo_rotulo': rotulos.get(tipo, ''),
         'tipos': Custo.TIPO_CHOICES,
+        'veiculo': veiculo,
+        'veiculo_rotulo': veiculo_rotulo,
     }
     return render(request, 'relatorios.html', context)
 
@@ -125,7 +146,7 @@ def relatorios(request):
 @login_required
 @exige_gestor
 def exportar_custos(request):
-    custos, inicio, fim, tipo = _custos_filtrados(request)
+    custos, inicio, fim, tipo, veiculo = _custos_filtrados(request)
     custos = custos.order_by('data')
     formato = request.GET.get('formato', 'csv')
     cabecalho = ['Data', 'Veículo', 'Tipo', 'Descrição', 'Valor']

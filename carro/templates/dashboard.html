@@ -138,7 +138,8 @@
                     <ul class="ranking">
                         {% for v in ranking %}
                             <li>
-                                <a href="{% url 'detalhes_veiculo' v.id %}">{{ v.marca }} {{ v.modelo }}</a>
+                                <a href="{% url 'relatorios' %}?veiculo={{ v.id }}&inicio={{ ano_corrente|stringformat:'d' }}-01-01&fim={{ ano_corrente|stringformat:'d' }}-12-31"
+                                   title="Ver as categorias de gasto de {{ v.marca }} {{ v.modelo }} em {{ ano_corrente|stringformat:'d' }}">{{ v.marca }} {{ v.modelo }}</a>
                                 <span>R$ {{ v.total|floatformat:2 }}</span>
                             </li>
                         {% endfor %}

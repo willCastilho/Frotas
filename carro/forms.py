@@ -132,8 +132,12 @@ class RegistroQuilometragemForm(forms.ModelForm):
 class DocumentoForm(forms.ModelForm):
     class Meta:
         model = Documento
-        fields = ['tipo', 'vencimento', 'observacao']
+        fields = ['tipo', 'vencimento', 'valor', 'observacao']
         widgets = {'vencimento': _DATE}
+        labels = {'valor': 'Valor da taxa (R$)'}
+        help_texts = {
+            'valor': 'Opcional. Se informado, entra como custo do veículo.'
+        }
 
 
 class PlanoManutencaoForm(forms.ModelForm):

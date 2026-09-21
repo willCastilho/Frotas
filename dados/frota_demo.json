@@ -883,7 +883,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2027-03-15",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 214.55
         }
       ],
       "abastecimentos": [
@@ -6465,7 +6466,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2026-11-06",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 231.9
         }
       ],
       "abastecimentos": [
@@ -11164,7 +11166,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2027-04-17",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 198.4
         }
       ],
       "abastecimentos": [
@@ -13417,7 +13420,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2027-01-22",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 246.1
         }
       ],
       "abastecimentos": [
@@ -17378,7 +17382,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2027-02-11",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 187.75
         }
       ],
       "abastecimentos": [
@@ -23609,7 +23614,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2027-03-24",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 223.3
         }
       ],
       "abastecimentos": [
@@ -27621,7 +27627,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2027-03-27",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 205.6
         }
       ],
       "abastecimentos": [
@@ -31119,7 +31126,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2026-12-20",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 238.85
         }
       ],
       "abastecimentos": [
@@ -32888,7 +32896,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2027-01-04",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 192.2
         }
       ],
       "abastecimentos": [
@@ -33771,7 +33780,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2027-04-18",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 219.45
         }
       ],
       "abastecimentos": [
@@ -34678,7 +34688,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2026-10-21",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 251.0
         }
       ],
       "abastecimentos": [
@@ -37264,7 +37275,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2026-11-02",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 176.9
         }
       ],
       "abastecimentos": [
@@ -39620,7 +39632,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2027-03-25",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 209.15
         }
       ],
       "abastecimentos": [
@@ -43779,7 +43792,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2026-11-08",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 244.7
         }
       ],
       "abastecimentos": [
@@ -48499,7 +48513,8 @@
         {
           "tipo": "licenciamento",
           "vencimento": "2026-09-09",
-          "observacao": "Licenciamento anual"
+          "observacao": "Licenciamento anual",
+          "valor": 183.35
         }
       ],
       "abastecimentos": [

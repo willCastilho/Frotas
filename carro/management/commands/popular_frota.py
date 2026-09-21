@@ -318,15 +318,42 @@ class Command(BaseCommand):
         ]
         PlanoManutencao.objects.bulk_create(planos, batch_size=500)
 
+        docs_src = [d for d in item.get('documentos', []) if d.get('vencimento')]
+        rotulos_doc = dict(Documento.TIPO_CHOICES)
+        custos_doc = []            # Custo espelhado de cada documento (ou None)
+        valor_docs = Decimal('0.00')
+        for d in docs_src:
+            valor = d.get('valor')
+            if valor in (None, '', 0):
+                custos_doc.append(None)
+                continue
+            tipo_doc = d.get('tipo', 'outro')
+            valor_dec = Decimal(str(valor))
+            valor_docs += valor_dec
+            obs = d.get('observacao', '')
+            rotulo = rotulos_doc.get(tipo_doc, tipo_doc)
+            custos_doc.append(Custo(
+                veiculo=veiculo,
+                tipo=Documento.TIPO_PARA_CUSTO.get(tipo_doc, 'outro'),
+                valor=valor_dec,
+                data=d['vencimento'],
+                descricao=f'{rotulo} — {obs}' if obs else rotulo,
+            ))
+        criados_doc = Custo.objects.bulk_create(
+            [c for c in custos_doc if c is not None], batch_size=500)
+        it = iter(criados_doc)
+        custos_doc = [next(it) if c is not None else None for c in custos_doc]
+
         documentos = [
             Documento(
                 veiculo=veiculo,
-                tipo=doc.get('tipo', 'outro'),
-                vencimento=doc['vencimento'],
-                observacao=doc.get('observacao', ''),
+                tipo=d.get('tipo', 'outro'),
+                vencimento=d['vencimento'],
+                valor=Decimal(str(d['valor'])) if d.get('valor') else None,
+                observacao=d.get('observacao', ''),
+                custo=custo,
             )
-            for doc in item.get('documentos', [])
-            if doc.get('vencimento')
+            for d, custo in zip(docs_src, custos_doc)
         ]
         Documento.objects.bulk_create(documentos, batch_size=500)
 
@@ -337,10 +364,11 @@ class Command(BaseCommand):
         else:
             valor_combustivel = Decimal('0.00')
 
-        valor = sum((c.valor for c in custos), Decimal('0.00')) + valor_combustivel
-        contagem = {'custos': len(custos) + n_abast, 'km': len(leituras),
-                    'planos': len(planos), 'abast': n_abast,
-                    'documentos': len(documentos)}
+        valor = (sum((c.valor for c in custos), Decimal('0.00'))
+                 + valor_combustivel + valor_docs)
+        contagem = {'custos': len(custos) + n_abast + len(criados_doc),
+                    'km': len(leituras), 'planos': len(planos),
+                    'abast': n_abast, 'documentos': len(documentos)}
         return veiculo, contagem, valor
 
     def _criar_abastecimentos(self, veiculo, registros):

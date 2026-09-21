@@ -242,6 +242,7 @@ class Custo(models.Model):
     TIPO_CHOICES = [
         ('combustivel', '⛽ Combustível'),
         ('manutencao', '⚙️ Manutenção'),
+        ('licenciamento', '📄 Licenciamento'),
         ('seguro', '🛡️ Seguro'),
         ('ipva', '💰 IPVA'),
         ('lavagem', '💧 Lavagem'),
@@ -250,9 +251,12 @@ class Custo(models.Model):
         ('outro', '📌 Outro'),
     ]
 
-    # Tipos que o usuario pode lancar manualmente (combustivel entra so via
-    # Abastecimento, para nao contar em dobro).
-    TIPO_CHOICES_MANUAL = [c for c in TIPO_CHOICES if c[0] != 'combustivel']
+    # Tipos que o usuario NAO lanca manualmente: combustivel entra so via
+    # Abastecimento e licenciamento so via Documento (a taxa do documento vira
+    # Custo automaticamente), para nao contar em dobro.
+    TIPO_CHOICES_MANUAL = [
+        c for c in TIPO_CHOICES if c[0] not in ('combustivel', 'licenciamento')
+    ]
 
     FORMA_PAGAMENTO_CHOICES = [
         ('dinheiro', 'Dinheiro'),
@@ -480,12 +484,31 @@ class Documento(models.Model):
         ('outro', 'Outro'),
     ]
 
+    # Cada tipo de documento vira um Custo desta categoria (a taxa paga).
+    TIPO_PARA_CUSTO = {
+        'licenciamento': 'licenciamento',
+        'crlv': 'licenciamento',
+        'seguro': 'seguro',
+        'ipva': 'ipva',
+        'multa': 'multa',
+        'outro': 'outro',
+    }
+
     veiculo = models.ForeignKey(
         Veiculo, on_delete=models.CASCADE, related_name='documentos'
     )
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
     vencimento = models.DateField()
+    valor = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text='Taxa paga pelo documento (opcional). Vira um custo do veiculo.'
+    )
     observacao = models.CharField(max_length=200, blank=True)
+    # Custo espelhado da taxa do documento (fonte unica -> sem contagem dupla).
+    custo = models.OneToOneField(
+        'Custo', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='documento'
+    )
     data_cadastro = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -494,6 +517,40 @@ class Documento(models.Model):
 
     def __str__(self):
         return f"{self.veiculo} - {self.get_tipo_display()} ({self.vencimento})"
+
+    def custo_tipo(self):
+        return self.TIPO_PARA_CUSTO.get(self.tipo, 'outro')
+
+    def descricao_custo(self):
+        base = self.get_tipo_display()
+        return f'{base} — {self.observacao}' if self.observacao else base
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Espelha a taxa do documento em um Custo; se nao ha valor, remove o
+        # custo que porventura exista.
+        if self.valor and self.valor > 0:
+            custo = self.custo or Custo()
+            custo.veiculo = self.veiculo
+            custo.tipo = self.custo_tipo()
+            custo.valor = self.valor
+            custo.data = self.vencimento
+            custo.descricao = self.descricao_custo()
+            custo.save()
+            if self.custo_id != custo.id:
+                self.custo = custo
+                super().save(update_fields=['custo'])
+        elif self.custo_id:
+            custo = self.custo
+            self.custo = None
+            super().save(update_fields=['custo'])
+            custo.delete()
+
+    def delete(self, *args, **kwargs):
+        custo = self.custo
+        super().delete(*args, **kwargs)
+        if custo:
+            custo.delete()
 
     def dias_restantes(self):
         return (self.vencimento - timezone.now().date()).days
