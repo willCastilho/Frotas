@@ -85,7 +85,7 @@
                         <tr>
                             <td>{{ v.marca }} {{ v.modelo }}</td>
                             <td>{{ v.placa|default:"—" }}</td>
-                            <td>{{ v.ano }}</td>
+                            <td>{{ v.ano|stringformat:"d" }}</td>
                             <td>{{ v.get_status_display }}</td>
                             <td style="display:flex;gap:6px;flex-wrap:wrap;">
                                 <a href="{% url 'editar_veiculo_admin' v.id %}" class="btn btn-small btn-secondary">Editar</a>

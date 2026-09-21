@@ -179,6 +179,9 @@ TIME_ZONE = 'America/Sao_Paulo'
 
 USE_I18N = True
 
+# Separador de milhar nos numeros (pt-BR): R$ 45.296,68.
+USE_THOUSAND_SEPARATOR = True
+
 USE_TZ = True
 
 
