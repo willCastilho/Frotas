@@ -76,6 +76,17 @@ class HomeTests(LogadoMixin, TestCase):
         resposta = self.client.get(reverse('home'))
         self.assertEqual(resposta.context['page_obj'].paginator.num_pages, 2)
 
+    def test_card_mostra_acumulado_da_vida(self):
+        v = self.cria_veiculo()
+        Custo.objects.create(veiculo=v, tipo='manutencao', descricao='Antigo',
+                             valor=100, data='2020-01-01')
+        Custo.objects.create(veiculo=v, tipo='seguro', descricao='Recente',
+                             valor=250, data=date.today())
+        r = self.client.get(reverse('home'))
+        self.assertContains(r, 'Acumulado (vida do veículo)')
+        # Soma histórica dos dois custos (100 + 250).
+        self.assertEqual(r.context['carros'][0]['total_vida'], 350.0)
+
 
 class IsolamentoTests(TestCase):
     """Garante o isolamento multi-tenant: uma organizacao nao ve dados de outra."""

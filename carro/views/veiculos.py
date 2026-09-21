@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -36,7 +36,10 @@ def home(request):
     status_filter = request.GET.get('status', 'todos')
     search_query = request.GET.get('search', '').strip()
 
-    carros = _veiculos_da_org(request).com_custos_mensais().order_by('marca', 'modelo')
+    carros = (_veiculos_da_org(request)
+              .com_custos_mensais()
+              .annotate(total_vida=Sum('custos__valor'))
+              .order_by('marca', 'modelo'))
 
     if status_filter != 'todos':
         carros = carros.filter(status=status_filter)
@@ -55,12 +58,6 @@ def home(request):
     for carro in page_obj:
         atual = float(carro.custo_atual or 0)
         anterior = float(carro.custo_anterior or 0)
-        meta = float(carro.meta_custo_mensal or 0)
-        meta_info = None
-        if meta > 0:
-            pct = round(atual / meta * 100)
-            cor = 'green' if pct < 80 else 'yellow' if pct <= 100 else 'red'
-            meta_info = {'meta': meta, 'pct': pct, 'pct_barra': min(pct, 100), 'cor': cor}
         carros_com_custos.append({
             'id': carro.id,
             'marca': carro.marca,
@@ -72,7 +69,7 @@ def home(request):
             'picture': carro.picture,
             'custo_mes_atual': atual,
             'comparacao': comparacao_custos(atual, anterior),
-            'meta': meta_info,
+            'total_vida': float(carro.total_vida or 0),
         })
 
     context = {
