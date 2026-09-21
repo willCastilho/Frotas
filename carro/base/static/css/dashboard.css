@@ -192,6 +192,8 @@
     opacity: .85;
 }
 .cat-card:hover .cat-link { opacity: 1; }
+.cat-card .cat-obs { display: block; color: var(--text-muted); font-size: .74rem; }
+.cat-card-doc { border-left: 3px solid var(--primary); }
 
 /* Caixa de convite (link de definição de senha) */
 .convite-box { border-left: 4px solid var(--primary); }

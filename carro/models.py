@@ -1,5 +1,6 @@
 # carro/models.py
 from datetime import date, timedelta
+from decimal import Decimal, InvalidOperation
 
 from django.db import models
 from django.db.models import Q, Sum
@@ -217,6 +218,24 @@ class Veiculo(models.Model):
         atrib = self.atribuicao_atual()
         return atrib.motorista if atrib else None
 
+    def pendencias_documentais(self):
+        """Pendencias que travam o lancamento de dados no veiculo: documentos
+        do veiculo ja vencidos e a CNH vencida do motorista atualmente
+        vinculado. Retorna lista de descricoes (vazia = sem bloqueio)."""
+        hoje = timezone.now().date()
+        itens = []
+        for d in self.documentos.filter(vencimento__lt=hoje).order_by('vencimento'):
+            itens.append(
+                f'{d.get_tipo_display()} vencido em '
+                f'{d.vencimento.strftime("%d/%m/%Y")}')
+        motorista = self.motorista_atual()
+        if (motorista and motorista.cnh_validade
+                and motorista.cnh_validade < hoje):
+            itens.append(
+                f'CNH de {motorista.nome} vencida em '
+                f'{motorista.cnh_validade.strftime("%d/%m/%Y")}')
+        return itens
+
     def valor_estimado_atual(self):
         """Estima o valor atual do veiculo pela depreciacao de saldo decrescente
         sobre o valor de aquisicao. Retorna None se nao houver valor informado."""
@@ -257,6 +276,10 @@ class Custo(models.Model):
     TIPO_CHOICES_MANUAL = [
         c for c in TIPO_CHOICES if c[0] not in ('combustivel', 'licenciamento')
     ]
+
+    # Categorias que representam gasto com documentacao (para o card e o filtro
+    # "documentacao" do relatorio). Casam com Documento.TIPO_PARA_CUSTO.
+    CATEGORIAS_DOCUMENTO = ('licenciamento', 'ipva', 'seguro', 'multa')
 
     FORMA_PAGAMENTO_CHOICES = [
         ('dinheiro', 'Dinheiro'),
@@ -528,12 +551,16 @@ class Documento(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         # Espelha a taxa do documento em um Custo; se nao ha valor, remove o
-        # custo que porventura exista.
-        if self.valor and self.valor > 0:
+        # custo que porventura exista. Aceita valor como str/Decimal/None.
+        try:
+            valor = Decimal(str(self.valor)) if self.valor not in (None, '') else None
+        except (InvalidOperation, TypeError):
+            valor = None
+        if valor and valor > 0:
             custo = self.custo or Custo()
             custo.veiculo = self.veiculo
             custo.tipo = self.custo_tipo()
-            custo.valor = self.valor
+            custo.valor = valor
             custo.data = self.vencimento
             custo.descricao = self.descricao_custo()
             custo.save()

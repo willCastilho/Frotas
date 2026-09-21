@@ -7,12 +7,12 @@
 <div class="container">
     <div class="header">
         <h1>📑 Relatórios de Custos</h1>
-        {% if veiculo_rotulo or tipo_rotulo %}
+        {% if veiculo_rotulo or tipo_rotulo or grupo_rotulo %}
             <p>
-                {% if veiculo_rotulo %}Veículo: <strong>{{ veiculo_rotulo }}</strong>{% endif %}
-                {% if veiculo_rotulo and tipo_rotulo %} · {% endif %}
-                {% if tipo_rotulo %}Categoria: <strong>{{ tipo_rotulo }}</strong>{% endif %}
-                · total no período: <strong>R$ {{ total_geral|floatformat:2 }}</strong>
+                {% if veiculo_rotulo %}Veículo: <strong>{{ veiculo_rotulo }}</strong> · {% endif %}
+                {% if tipo_rotulo %}Categoria: <strong>{{ tipo_rotulo }}</strong> · {% endif %}
+                {% if grupo_rotulo %}Grupo: <strong>{{ grupo_rotulo }}</strong> · {% endif %}
+                total no período: <strong>R$ {{ total_geral|floatformat:2 }}</strong>
             </p>
         {% else %}
             <p>Filtre por período e categoria e exporte os dados</p>
@@ -32,6 +32,7 @@
     <div class="painel-card">
         <form method="get" class="filtro-relatorio">
             {% if veiculo %}<input type="hidden" name="veiculo" value="{{ veiculo }}">{% endif %}
+            {% if grupo %}<input type="hidden" name="grupo" value="{{ grupo }}">{% endif %}
             <div class="form-group">
                 <label for="inicio">De</label>
                 <input type="date" name="inicio" id="inicio" value="{{ inicio }}">
@@ -50,9 +51,9 @@
                 </select>
             </div>
             <button type="submit" class="btn btn-primary">Filtrar</button>
-            <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&tipo={{ tipo }}&veiculo={{ veiculo }}&formato=csv" class="btn btn-secondary">Exportar CSV</a>
-            <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&tipo={{ tipo }}&veiculo={{ veiculo }}&formato=xlsx" class="btn btn-secondary">Exportar Excel</a>
-            <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&tipo={{ tipo }}&veiculo={{ veiculo }}&formato=pdf" class="btn btn-secondary">Exportar PDF</a>
+            <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&tipo={{ tipo }}&veiculo={{ veiculo }}&grupo={{ grupo }}&formato=csv" class="btn btn-secondary">Exportar CSV</a>
+            <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&tipo={{ tipo }}&veiculo={{ veiculo }}&grupo={{ grupo }}&formato=xlsx" class="btn btn-secondary">Exportar Excel</a>
+            <a href="{% url 'exportar_custos' %}?inicio={{ inicio }}&fim={{ fim }}&tipo={{ tipo }}&veiculo={{ veiculo }}&grupo={{ grupo }}&formato=pdf" class="btn btn-secondary">Exportar PDF</a>
         </form>
     </div>
 
@@ -60,12 +61,13 @@
         <div class="painel-card">
             <h2>Por categoria</h2>
             {% if por_categoria %}
+                <p class="vazio" style="margin-top:0;">Clique em uma categoria para ver os lançamentos que a compõem.</p>
                 <table class="alertas-table">
                     <thead><tr><th>Categoria</th><th>Total</th><th>%</th></tr></thead>
                     <tbody>
                         {% for c in por_categoria %}
                             <tr>
-                                <td>{{ c.rotulo }}</td>
+                                <td><a href="?tipo={{ c.tipo }}&veiculo={{ veiculo }}&inicio={{ inicio }}&fim={{ fim }}">{{ c.rotulo }}</a></td>
                                 <td>R$ {{ c.total|floatformat:2 }}</td>
                                 <td>{{ c.pct }}%</td>
                             </tr>
@@ -100,5 +102,58 @@
             {% endif %}
         </div>
     </div>
+
+    {% if detalhe_page %}
+        <div class="painel-card">
+            <h2>Detalhamento
+                {% if tipo_rotulo %}· {{ tipo_rotulo }}{% elif grupo_rotulo %}· {{ grupo_rotulo }}{% endif %}
+                {% if veiculo_rotulo %}· {{ veiculo_rotulo }}{% endif %}
+            </h2>
+            {% if detalhe_page.object_list %}
+                <table class="alertas-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            {% if not veiculo %}<th>Veículo</th>{% endif %}
+                            <th>Categoria</th>
+                            <th>Descrição</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in detalhe_page %}
+                            <tr>
+                                <td>{{ c.data|date:"d/m/Y" }}</td>
+                                {% if not veiculo %}<td>{{ c.veiculo.marca }} {{ c.veiculo.modelo }}</td>{% endif %}
+                                <td>{{ c.get_tipo_display }}</td>
+                                <td>{{ c.descricao }}</td>
+                                <td>R$ {{ c.valor|floatformat:2 }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="{% if veiculo %}3{% else %}4{% endif %}">Total do período</th>
+                            <th>R$ {{ total_geral|floatformat:2 }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                {% if detalhe_page.paginator.num_pages > 1 %}
+                    <div class="pagination">
+                        {% if detalhe_page.has_previous %}
+                            <a href="?tipo={{ tipo }}&grupo={{ grupo }}&veiculo={{ veiculo }}&inicio={{ inicio }}&fim={{ fim }}&page={{ detalhe_page.previous_page_number }}" class="filter-btn">← Anterior</a>
+                        {% endif %}
+                        <span class="filter-btn active">Página {{ detalhe_page.number }} de {{ detalhe_page.paginator.num_pages }}</span>
+                        {% if detalhe_page.has_next %}
+                            <a href="?tipo={{ tipo }}&grupo={{ grupo }}&veiculo={{ veiculo }}&inicio={{ inicio }}&fim={{ fim }}&page={{ detalhe_page.next_page_number }}" class="filter-btn">Próxima →</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% else %}
+                <p class="vazio">Sem lançamentos nesta categoria no período.</p>
+            {% endif %}
+        </div>
+    {% endif %}
 </div>
 {% endblock content %}

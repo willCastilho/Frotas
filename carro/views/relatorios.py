@@ -1,6 +1,7 @@
 import csv
 
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -82,10 +83,15 @@ def _custos_filtrados(request):
         custos = custos.filter(data__gte=inicio)
     if fim:
         custos = custos.filter(data__lte=fim)
+    grupo = request.GET.get('grupo')
     if tipo and tipo in dict(Custo.TIPO_CHOICES):
         custos = custos.filter(tipo=tipo)
     else:
         tipo = ''
+    if grupo == 'documentacao':
+        custos = custos.filter(tipo__in=Custo.CATEGORIAS_DOCUMENTO)
+    else:
+        grupo = ''
     if veiculo:
         try:
             custos = custos.filter(veiculo_id=int(veiculo))
@@ -93,13 +99,13 @@ def _custos_filtrados(request):
             veiculo = ''
     else:
         veiculo = ''
-    return custos, inicio, fim, tipo, veiculo
+    return custos, inicio, fim, tipo, veiculo, grupo
 
 
 @login_required
 @exige_gestor
 def relatorios(request):
-    custos, inicio, fim, tipo, veiculo = _custos_filtrados(request)
+    custos, inicio, fim, tipo, veiculo, grupo = _custos_filtrados(request)
 
     rotulos = dict(Custo.TIPO_CHOICES)
 
@@ -128,6 +134,15 @@ def relatorios(request):
         else:
             veiculo = ''
 
+    # Detalhamento: quando uma categoria (ou o grupo documentacao) esta
+    # selecionada, lista os custos individuais que somam aquele total.
+    detalhe_page = None
+    if tipo or grupo:
+        detalhe_qs = custos.select_related('veiculo').order_by('-data', '-id')
+        detalhe_page = Paginator(detalhe_qs, 50).get_page(request.GET.get('page'))
+
+    grupo_rotulo = 'Documentação' if grupo == 'documentacao' else ''
+
     context = {
         'por_categoria': por_categoria,
         'por_veiculo': por_veiculo,
@@ -139,6 +154,9 @@ def relatorios(request):
         'tipos': Custo.TIPO_CHOICES,
         'veiculo': veiculo,
         'veiculo_rotulo': veiculo_rotulo,
+        'grupo': grupo,
+        'grupo_rotulo': grupo_rotulo,
+        'detalhe_page': detalhe_page,
     }
     return render(request, 'relatorios.html', context)
 
@@ -146,7 +164,7 @@ def relatorios(request):
 @login_required
 @exige_gestor
 def exportar_custos(request):
-    custos, inicio, fim, tipo, veiculo = _custos_filtrados(request)
+    custos, inicio, fim, tipo, veiculo, grupo = _custos_filtrados(request)
     custos = custos.order_by('data')
     formato = request.GET.get('formato', 'csv')
     cabecalho = ['Data', 'Veículo', 'Tipo', 'Descrição', 'Valor']

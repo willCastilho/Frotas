@@ -58,6 +58,20 @@ def pode_lancar_no_veiculo(user, veiculo):
     return False
 
 
+def trava_por_pendencia(request, veiculo):
+    """Trava de seguranca: se o veiculo (ou o motorista atual) tem documentos
+    vencidos, bloqueia o lancamento de dados e devolve um redirect com a
+    mensagem. Retorna None quando esta tudo regularizado."""
+    pendencias = veiculo.pendencias_documentais()
+    if not pendencias:
+        return None
+    messages.error(
+        request,
+        'Lançamento bloqueado: regularize a documentação antes de lançar '
+        'dados neste veículo — ' + '; '.join(pendencias) + '.')
+    return redirect('detalhes_veiculo', veiculo_id=veiculo.id)
+
+
 def exige_gestor(view):
     """Restringe a acao ao gestor da organizacao (administracao da conta)."""
     @wraps(view)

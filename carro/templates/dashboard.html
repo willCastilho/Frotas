@@ -111,8 +111,20 @@
 
             <div class="painel-card">
                 <h2>Custos por categoria · {{ periodo_rotulo }}</h2>
+                <div class="cat-cards">
+                    <a class="cat-card cat-card-doc"
+                       href="{% url 'relatorios' %}?grupo=documentacao&inicio={{ ano_corrente|stringformat:'d' }}-01-01&fim={{ ano_corrente|stringformat:'d' }}-12-31"
+                       title="Ver os custos com documentação em {{ ano_corrente|stringformat:'d' }}">
+                        <div class="cat-top">
+                            <span class="cat-nome">📄 Documentação</span>
+                        </div>
+                        <div class="cat-total">R$ {{ custo_documentacao|floatformat:2 }}</div>
+                        <small class="cat-obs">Licenciamento, IPVA, seguro e multas</small>
+                        <span class="cat-link">Ver total de {{ ano_corrente|stringformat:'d' }} →</span>
+                    </a>
+                </div>
                 {% if por_categoria %}
-                    <div class="cat-cards">
+                    <div class="cat-cards" style="margin-top:14px;">
                         {% for c in por_categoria %}
                             <a class="cat-card"
                                href="{% url 'relatorios' %}?tipo={{ c.tipo }}&inicio={{ ano_corrente|stringformat:'d' }}-01-01&fim={{ ano_corrente|stringformat:'d' }}-12-31"

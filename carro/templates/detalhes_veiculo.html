@@ -18,6 +18,15 @@
         {% endfor %}
     {% endif %}
 
+    {% if pendencias %}
+        <div class="alert alert-error">
+            🔒 <strong>Lançamento bloqueado.</strong> Regularize a documentação antes de lançar abastecimento, quilometragem ou custos neste veículo:
+            <ul style="margin:8px 0 0 18px;">
+                {% for p in pendencias %}<li>{{ p }}</li>{% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
     <div class="detalhes-grid">
         <!-- Card com foto e informações básicas -->
         <div class="detalhes-card">
@@ -136,7 +145,11 @@
                     </span>
                 </div>
             </div>
-            <a href="{% url 'novo_custo' veiculo.id %}" class="btn btn-primary btn-block">+ Adicionar Novo Custo</a>
+            {% if pendencias %}
+                <span class="btn btn-secondary btn-block" style="opacity:.6;cursor:not-allowed;" title="Regularize a documentação para lançar">🔒 Lançamento bloqueado</span>
+            {% else %}
+                <a href="{% url 'novo_custo' veiculo.id %}" class="btn btn-primary btn-block">+ Adicionar Novo Custo</a>
+            {% endif %}
         </div>
     </div>
 
@@ -233,7 +246,11 @@
     <div class="custos-lista">
         <div class="secao-header">
             <h2>Abastecimentos</h2>
-            <a href="{% url 'novo_abastecimento' veiculo.id %}" class="btn btn-small btn-primary">+ Abastecimento</a>
+            {% if pendencias %}
+                <span class="btn btn-small btn-secondary" style="opacity:.6;cursor:not-allowed;" title="Regularize a documentação para lançar">🔒 Bloqueado</span>
+            {% else %}
+                <a href="{% url 'novo_abastecimento' veiculo.id %}" class="btn btn-small btn-primary">+ Abastecimento</a>
+            {% endif %}
         </div>
         {% if abastecimentos %}
             <table class="custos-table">
@@ -270,7 +287,11 @@
     <div class="custos-lista">
         <div class="secao-header">
             <h2>Histórico de Quilometragem</h2>
-            <a href="{% url 'novo_registro_km' veiculo.id %}" class="btn btn-small btn-primary">+ Registro</a>
+            {% if pendencias %}
+                <span class="btn btn-small btn-secondary" style="opacity:.6;cursor:not-allowed;" title="Regularize a documentação para lançar">🔒 Bloqueado</span>
+            {% else %}
+                <a href="{% url 'novo_registro_km' veiculo.id %}" class="btn btn-small btn-primary">+ Registro</a>
+            {% endif %}
         </div>
         {% if registros_km %}
             <table class="custos-table">

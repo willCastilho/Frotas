@@ -1030,3 +1030,86 @@ class GestorIdentidadeTests(LogadoMixin, TestCase):
         self.org.refresh_from_db()
         self.assertEqual(self.org.nome, 'Nova Marca')
         self.assertTrue(self.org.logo.startswith('data:image'))
+
+
+class TravaPendenciaTests(LogadoMixin, TestCase):
+    """Trava de seguranca: lancamento bloqueado com documento/CNH vencidos."""
+
+    def setUp(self):
+        super().setUp()
+        self.veiculo = self.cria_veiculo()
+
+    def _doc_vencido(self):
+        Documento.objects.create(
+            veiculo=self.veiculo, tipo='licenciamento',
+            vencimento=date.today() - timedelta(days=10))
+
+    def test_pendencia_documento_vencido(self):
+        self._doc_vencido()
+        self.assertTrue(self.veiculo.pendencias_documentais())
+
+    def test_bloqueia_abastecimento(self):
+        self._doc_vencido()
+        r = self.client.post(
+            reverse('novo_abastecimento', args=[self.veiculo.id]),
+            {'data': date.today().isoformat(), 'quilometragem': 1000,
+             'litros': '30', 'valor_total': '200',
+             'tipo_combustivel': 'gasolina'})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(Abastecimento.objects.count(), 0)
+
+    def test_bloqueia_custo(self):
+        self._doc_vencido()
+        r = self.client.post(
+            reverse('novo_custo', args=[self.veiculo.id]),
+            {'tipo': 'manutencao', 'descricao': 'x', 'valor': '100',
+             'data': date.today().isoformat(), 'recorrencia': 'nenhuma',
+             'ocorrencias': 1})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(Custo.objects.filter(veiculo=self.veiculo).count(), 0)
+
+    def test_documento_continua_liberado(self):
+        self._doc_vencido()
+        r = self.client.get(reverse('novo_documento', args=[self.veiculo.id]))
+        self.assertEqual(r.status_code, 200)
+
+    def test_sem_pendencia_permite_lancar(self):
+        r = self.client.post(
+            reverse('novo_abastecimento', args=[self.veiculo.id]),
+            {'data': date.today().isoformat(), 'quilometragem': 1000,
+             'litros': '30', 'valor_total': '200',
+             'tipo_combustivel': 'gasolina'})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(Abastecimento.objects.count(), 1)
+
+
+class TaxaDocumentoCustoTests(LogadoMixin, TestCase):
+    """Taxa do documento vira Custo espelhado da categoria correspondente."""
+
+    def setUp(self):
+        super().setUp()
+        self.veiculo = self.cria_veiculo()
+
+    def test_documento_com_valor_gera_custo(self):
+        d = Documento.objects.create(
+            veiculo=self.veiculo, tipo='licenciamento',
+            vencimento=date.today() + timedelta(days=30), valor='250.00',
+            observacao='2026')
+        self.assertIsNotNone(d.custo_id)
+        self.assertEqual(d.custo.tipo, 'licenciamento')
+        self.assertEqual(str(d.custo.valor), '250.00')
+
+    def test_documento_sem_valor_nao_gera_custo(self):
+        d = Documento.objects.create(
+            veiculo=self.veiculo, tipo='seguro',
+            vencimento=date.today() + timedelta(days=30))
+        self.assertIsNone(d.custo_id)
+        self.assertEqual(Custo.objects.count(), 0)
+
+    def test_excluir_documento_remove_custo(self):
+        d = Documento.objects.create(
+            veiculo=self.veiculo, tipo='ipva',
+            vencimento=date.today() + timedelta(days=30), valor='900.00')
+        cid = d.custo_id
+        d.delete()
+        self.assertFalse(Custo.objects.filter(id=cid).exists())

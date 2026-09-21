@@ -8,7 +8,12 @@ from django.views.decorators.http import require_POST
 
 from carro.forms import CustoForm
 from carro.models import Custo, Veiculo, somar_meses
-from contas.utils import exige_escrita, organizacao_do, pode_lancar_no_veiculo
+from contas.utils import (
+    exige_escrita,
+    organizacao_do,
+    pode_lancar_no_veiculo,
+    trava_por_pendencia,
+)
 
 
 def _veiculo_da_org(request, veiculo_id):
@@ -64,6 +69,9 @@ def novo_custo(request, veiculo_id):
     if not pode_lancar_no_veiculo(request.user, veiculo):
         messages.error(request, 'Você não tem permissão para lançar neste veículo.')
         return redirect('home')
+    bloqueio = trava_por_pendencia(request, veiculo)
+    if bloqueio:
+        return bloqueio
     form = CustoForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
         custo = form.save(commit=False)

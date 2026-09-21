@@ -118,6 +118,7 @@ def detalhes_veiculo(request, veiculo_id):
         'registros_km': veiculo.registros_km.all()[:10],
         'planos': planos,
         'documentos': documentos,
+        'pendencias': veiculo.pendencias_documentais(),
     }
     return render(request, 'detalhes_veiculo.html', context)
 

@@ -201,6 +201,10 @@ def dashboard(request):
             'pct': round(valor / total_cat * 100),
         })
 
+    custo_documentacao = float(
+        custos_periodo.filter(tipo__in=Custo.CATEGORIAS_DOCUMENTO)
+        .aggregate(t=Sum('valor'))['t'] or 0)
+
     ranking = list(
         Veiculo.objects.filter(organizacao=org)
         .annotate(total=Sum('custos__valor', filter=filtro_ranking))
@@ -224,6 +228,7 @@ def dashboard(request):
         'patrimonio': _patrimonio(org),
         'custos_meses': _custos_ultimos_meses(org, 6),
         'por_categoria': por_categoria,
+        'custo_documentacao': custo_documentacao,
         'ano_corrente': timezone.now().year,
         'ranking': ranking,
         'agenda_90': _agenda_90_dias(org, kms),

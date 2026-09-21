@@ -21,10 +21,12 @@ from contas.utils import (
     organizacao_do,
     perfil_do,
     pode_lancar_no_veiculo,
+    trava_por_pendencia,
 )
 
 
-def _criar(request, veiculo_id, form_class, titulo, sucesso, operador_ok=False):
+def _criar(request, veiculo_id, form_class, titulo, sucesso, operador_ok=False,
+           bloqueia_pendencia=False):
     veiculo = get_object_or_404(
         Veiculo, id=veiculo_id, organizacao=organizacao_do(request.user))
     # operador_ok: operador pode lancar no seu proprio veiculo; caso contrario,
@@ -37,6 +39,14 @@ def _criar(request, veiculo_id, form_class, titulo, sucesso, operador_ok=False):
     if not permitido:
         messages.error(request, 'Você não tem permissão para esta ação.')
         return redirect('home')
+
+    # Trava de seguranca: dados operacionais (abastecimento, km) ficam
+    # bloqueados enquanto houver documento vencido. Documento e plano ficam
+    # liberados justamente para permitir a regularizacao.
+    if bloqueia_pendencia:
+        bloqueio = trava_por_pendencia(request, veiculo)
+        if bloqueio:
+            return bloqueio
 
     form = form_class(request.POST or None)
     if request.method == 'POST' and form.is_valid():
@@ -53,14 +63,14 @@ def _criar(request, veiculo_id, form_class, titulo, sucesso, operador_ok=False):
 def novo_abastecimento(request, veiculo_id):
     return _criar(request, veiculo_id, AbastecimentoForm,
                   'Novo Abastecimento', 'Abastecimento registrado com sucesso!',
-                  operador_ok=True)
+                  operador_ok=True, bloqueia_pendencia=True)
 
 
 @login_required
 def novo_registro_km(request, veiculo_id):
     return _criar(request, veiculo_id, RegistroQuilometragemForm,
                   'Novo Registro de Quilometragem', 'Quilometragem registrada!',
-                  operador_ok=True)
+                  operador_ok=True, bloqueia_pendencia=True)
 
 
 @login_required
