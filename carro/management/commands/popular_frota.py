@@ -52,6 +52,7 @@ from carro.models import (
     Abastecimento,
     AtribuicaoVeiculo,
     Custo,
+    Documento,
     Motorista,
     PlanoManutencao,
     RegistroQuilometragem,
@@ -132,7 +133,7 @@ class Command(BaseCommand):
         self._checar_frota_existente(organizacao, placas, options['confirmar'])
 
         total = {'veiculos': 0, 'custos': 0, 'km': 0, 'planos': 0, 'abast': 0,
-                 'motoristas': 0, 'vinculos': 0}
+                 'documentos': 0, 'motoristas': 0, 'vinculos': 0}
         veiculos_criados = {}
         soma = Decimal('0.00')
 
@@ -156,14 +157,16 @@ class Command(BaseCommand):
                     veiculo, contagem, valor = resultado
                     veiculos_criados[veiculo.placa] = veiculo
                     total['veiculos'] += 1
-                    for chave in ('custos', 'km', 'planos', 'abast'):
+                    for chave in ('custos', 'km', 'planos', 'abast',
+                                  'documentos'):
                         total[chave] += contagem[chave]
                     soma += valor
                     self.stdout.write(
                         f'  {veiculo.placa} {veiculo.marca} {veiculo.modelo} '
                         f"({veiculo.ano}) -> {contagem['custos']} custos, "
                         f"{contagem['abast']} abastecimentos, {contagem['km']} "
-                        f"leituras, {contagem['planos']} planos")
+                        f"leituras, {contagem['planos']} planos, "
+                        f"{contagem['documentos']} documentos")
 
                 if not options['sem_motoristas'] and dados.get('motoristas'):
                     motoristas = self._criar_motoristas(
@@ -192,6 +195,7 @@ class Command(BaseCommand):
             f"Veiculos: {total['veiculos']} | custos: {total['custos']} "
             f"(inclui {total['abast']} de combustivel) | leituras de km: "
             f"{total['km']} | planos: {total['planos']} | "
+            f"documentos: {total['documentos']} | "
             f"motoristas: {total['motoristas']} | vinculos: {total['vinculos']} | "
             f'total lancado: R$ {soma:,.2f}')
 
@@ -314,6 +318,18 @@ class Command(BaseCommand):
         ]
         PlanoManutencao.objects.bulk_create(planos, batch_size=500)
 
+        documentos = [
+            Documento(
+                veiculo=veiculo,
+                tipo=doc.get('tipo', 'outro'),
+                vencimento=doc['vencimento'],
+                observacao=doc.get('observacao', ''),
+            )
+            for doc in item.get('documentos', [])
+            if doc.get('vencimento')
+        ]
+        Documento.objects.bulk_create(documentos, batch_size=500)
+
         n_abast = 0
         if not sem_abastecimentos and item.get('abastecimentos'):
             n_abast, valor_combustivel = self._criar_abastecimentos(
@@ -323,7 +339,8 @@ class Command(BaseCommand):
 
         valor = sum((c.valor for c in custos), Decimal('0.00')) + valor_combustivel
         contagem = {'custos': len(custos) + n_abast, 'km': len(leituras),
-                    'planos': len(planos), 'abast': n_abast}
+                    'planos': len(planos), 'abast': n_abast,
+                    'documentos': len(documentos)}
         return veiculo, contagem, valor
 
     def _criar_abastecimentos(self, veiculo, registros):

@@ -877,13 +877,13 @@
           "intervalo_dias": null,
           "km_referencia": 220000,
           "data_referencia": "2026-05-14"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2026-03-15"
+          "tipo": "licenciamento",
+          "vencimento": "2027-03-15",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
@@ -6459,13 +6459,13 @@
           "intervalo_dias": null,
           "km_referencia": 280000,
           "data_referencia": "2026-08-24"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2025-11-06"
+          "tipo": "licenciamento",
+          "vencimento": "2026-11-06",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
@@ -11158,13 +11158,13 @@
           "intervalo_dias": null,
           "km_referencia": 80000,
           "data_referencia": "2026-05-27"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2026-04-17"
+          "tipo": "licenciamento",
+          "vencimento": "2027-04-17",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
@@ -13411,13 +13411,13 @@
           "intervalo_dias": null,
           "km_referencia": 180000,
           "data_referencia": "2026-08-24"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2026-01-22"
+          "tipo": "licenciamento",
+          "vencimento": "2027-01-22",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
@@ -17372,13 +17372,13 @@
           "intervalo_dias": null,
           "km_referencia": 220000,
           "data_referencia": "2026-08-30"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2026-02-11"
+          "tipo": "licenciamento",
+          "vencimento": "2027-02-11",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
@@ -23603,13 +23603,13 @@
           "intervalo_dias": null,
           "km_referencia": 160000,
           "data_referencia": "2026-01-16"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2026-03-24"
+          "tipo": "licenciamento",
+          "vencimento": "2027-03-24",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
@@ -27615,13 +27615,13 @@
           "intervalo_dias": null,
           "km_referencia": 160000,
           "data_referencia": "2025-10-21"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2026-03-27"
+          "tipo": "licenciamento",
+          "vencimento": "2027-03-27",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
@@ -31113,13 +31113,13 @@
           "intervalo_dias": null,
           "km_referencia": 80000,
           "data_referencia": "2026-04-22"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2025-12-20"
+          "tipo": "licenciamento",
+          "vencimento": "2026-12-20",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
@@ -32882,13 +32882,13 @@
           "intervalo_dias": null,
           "km_referencia": 45000,
           "data_referencia": "2026-07-25"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2026-01-04"
+          "tipo": "licenciamento",
+          "vencimento": "2027-01-04",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
@@ -33765,13 +33765,13 @@
           "intervalo_dias": 365,
           "km_referencia": 10000,
           "data_referencia": "2026-03-01"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2026-04-18"
+          "tipo": "licenciamento",
+          "vencimento": "2027-04-18",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
@@ -34672,13 +34672,13 @@
           "intervalo_dias": null,
           "km_referencia": 80000,
           "data_referencia": "2025-06-08"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2025-10-21"
+          "tipo": "licenciamento",
+          "vencimento": "2026-10-21",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
@@ -37258,13 +37258,13 @@
           "intervalo_dias": null,
           "km_referencia": 44000,
           "data_referencia": "2024-05-18"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2025-11-02"
+          "tipo": "licenciamento",
+          "vencimento": "2026-11-02",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
@@ -39614,13 +39614,13 @@
           "intervalo_dias": null,
           "km_referencia": 180000,
           "data_referencia": "2025-12-01"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2026-03-25"
+          "tipo": "licenciamento",
+          "vencimento": "2027-03-25",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
@@ -43773,13 +43773,13 @@
           "intervalo_dias": null,
           "km_referencia": 140000,
           "data_referencia": "2025-06-13"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2025-11-08"
+          "tipo": "licenciamento",
+          "vencimento": "2026-11-08",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
@@ -48493,13 +48493,13 @@
           "intervalo_dias": null,
           "km_referencia": 400000,
           "data_referencia": "2026-06-01"
-        },
+        }
+      ],
+      "documentos": [
         {
-          "descricao": "Licenciamento anual",
-          "intervalo_km": null,
-          "intervalo_dias": 365,
-          "km_referencia": null,
-          "data_referencia": "2025-09-09"
+          "tipo": "licenciamento",
+          "vencimento": "2026-09-09",
+          "observacao": "Licenciamento anual"
         }
       ],
       "abastecimentos": [
