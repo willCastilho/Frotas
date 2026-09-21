@@ -4,7 +4,8 @@ Le um JSON (arquivo local ou URL) com veiculos e o historico deles e grava no
 padrao dos modelos do app `carro`: a manutencao vira Custo(tipo='manutencao'),
 as leituras de odometro viram RegistroQuilometragem (fonte de km_atual() e
 custo_por_km()), os abastecimentos viram Abastecimento + o Custo espelho de
-combustivel, e os planos preventivos viram PlanoManutencao.
+combustivel, os planos preventivos viram PlanoManutencao, e os motoristas e o
+historico de vinculos viram Motorista e AtribuicaoVeiculo.
 
 Pensado para rodar tambem em producao:
 
@@ -13,7 +14,8 @@ Pensado para rodar tambem em producao:
 - Se a organizacao de destino ja tiver veiculos fora do arquivo, o comando
   aborta e so prossegue com --confirmar.
 - --criar-gestor cria o login que enxerga essa organizacao.
-- --remover desfaz a carga (apaga os veiculos do arquivo na organizacao).
+- --remover desfaz a carga (apaga os veiculos e os motoristas do arquivo na
+  organizacao; os vinculos saem em cascata).
 - Os filhos entram por bulk_create e por isso nao geram entrada no auditlog,
   que depende do sinal post_save. E o desejado para massa de demonstracao.
 - O Abastecimento.save() cria o Custo de combustivel espelhado; como o
@@ -28,23 +30,29 @@ Exemplos:
     python manage.py popular_frota --url https://exemplo/frota_manutencoes.json \\
         --organizacao 3 --limpar
     python manage.py popular_frota --organizacao-nome "SMS - Demonstracao" --remover
+    python manage.py popular_frota --organizacao-nome "SMS - Demonstracao" \\
+        --limpar --sem-atribuicoes
 """
 
 import json
 import urllib.request
+from datetime import datetime, time
 from decimal import Decimal
 from pathlib import Path
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.utils import timezone
 from django.utils.crypto import get_random_string
 
 from contas.models import Organizacao, PerfilUsuario
 
 from carro.models import (
     Abastecimento,
+    AtribuicaoVeiculo,
     Custo,
+    Motorista,
     PlanoManutencao,
     RegistroQuilometragem,
     Veiculo,
@@ -54,6 +62,11 @@ CAMPOS_VEICULO = (
     'marca', 'modelo', 'ano', 'cor', 'placa', 'renavam', 'chassi',
     'combustivel', 'data_compra', 'valor_aquisicao', 'status',
     'meta_custo_mensal', 'observacoes',
+)
+
+CAMPOS_MOTORISTA = (
+    'nome', 'cpf', 'cnh', 'cnh_categoria', 'cnh_validade', 'telefone',
+    'email', 'status', 'observacoes',
 )
 
 
@@ -86,6 +99,12 @@ class Command(BaseCommand):
             '--sem-abastecimentos', action='store_true',
             help='Carrega so manutencao, km e planos (ignora os abastecimentos).')
         parser.add_argument(
+            '--sem-motoristas', action='store_true',
+            help='Nao carrega motoristas nem vinculos.')
+        parser.add_argument(
+            '--sem-atribuicoes', action='store_true',
+            help='Carrega os motoristas, mas nao os vinculos com veiculos.')
+        parser.add_argument(
             '--limpar', action='store_true',
             help='Apaga os veiculos dessas placas na organizacao antes de inserir.')
         parser.add_argument(
@@ -105,13 +124,16 @@ class Command(BaseCommand):
 
         placas = [v['placa'].upper().strip()
                   for v in dados['veiculos'] if v.get('placa')]
+        cpfs = [m['cpf'] for m in dados.get('motoristas', []) if m.get('cpf')]
 
         if options['remover']:
-            return self._remover(organizacao, placas, options['dry_run'])
+            return self._remover(organizacao, placas, cpfs, options['dry_run'])
 
         self._checar_frota_existente(organizacao, placas, options['confirmar'])
 
-        total = {'veiculos': 0, 'custos': 0, 'km': 0, 'planos': 0, 'abast': 0}
+        total = {'veiculos': 0, 'custos': 0, 'km': 0, 'planos': 0, 'abast': 0,
+                 'motoristas': 0, 'vinculos': 0}
+        veiculos_criados = {}
         soma = Decimal('0.00')
 
         try:
@@ -119,8 +141,11 @@ class Command(BaseCommand):
                 if options['limpar']:
                     apagados, _ = Veiculo.objects.filter(
                         organizacao=organizacao, placa__in=placas).delete()
+                    apagados_m, _ = Motorista.objects.filter(
+                        organizacao=organizacao, cpf__in=cpfs).delete()
                     self.stdout.write(
-                        f'Removidos {apagados} registros das placas do arquivo.')
+                        f'Removidos {apagados + apagados_m} registros de '
+                        f'veiculos e motoristas do arquivo.')
 
                 for item in dados['veiculos']:
                     resultado = self._criar_veiculo(
@@ -129,6 +154,7 @@ class Command(BaseCommand):
                     if resultado is None:
                         continue
                     veiculo, contagem, valor = resultado
+                    veiculos_criados[veiculo.placa] = veiculo
                     total['veiculos'] += 1
                     for chave in ('custos', 'km', 'planos', 'abast'):
                         total[chave] += contagem[chave]
@@ -138,6 +164,18 @@ class Command(BaseCommand):
                         f"({veiculo.ano}) -> {contagem['custos']} custos, "
                         f"{contagem['abast']} abastecimentos, {contagem['km']} "
                         f"leituras, {contagem['planos']} planos")
+
+                if not options['sem_motoristas'] and dados.get('motoristas'):
+                    motoristas = self._criar_motoristas(
+                        organizacao, dados['motoristas'])
+                    total['motoristas'] = len(motoristas)
+                    if not options['sem_atribuicoes']:
+                        total['vinculos'] = self._criar_atribuicoes(
+                            dados.get('atribuicoes', []),
+                            veiculos_criados, motoristas)
+                    self.stdout.write(
+                        f"  Motoristas: {total['motoristas']} | "
+                        f"vinculos: {total['vinculos']}")
 
                 if options['criar_gestor']:
                     self._criar_gestor(
@@ -154,6 +192,7 @@ class Command(BaseCommand):
             f"Veiculos: {total['veiculos']} | custos: {total['custos']} "
             f"(inclui {total['abast']} de combustivel) | leituras de km: "
             f"{total['km']} | planos: {total['planos']} | "
+            f"motoristas: {total['motoristas']} | vinculos: {total['vinculos']} | "
             f'total lancado: R$ {soma:,.2f}')
 
     # ------------------------------------------------------------------ dados
@@ -327,6 +366,50 @@ class Command(BaseCommand):
         total = sum((c.valor for c in custos), Decimal('0.00'))
         return len(abastecimentos), total
 
+    def _criar_motoristas(self, organizacao, registros):
+        """Cria os motoristas do arquivo. CPF ja cadastrado na organizacao e
+        pulado (use --limpar para recarregar)."""
+        existentes = set(Motorista.objects.filter(
+            organizacao=organizacao,
+            cpf__in=[m['cpf'] for m in registros],
+        ).values_list('cpf', flat=True))
+
+        novos = []
+        for m in registros:
+            if m['cpf'] in existentes:
+                self.stdout.write(self.style.WARNING(
+                    f"  Motorista {m['nome']} ({m['cpf']}) ja existe - pulado."))
+                continue
+            campos = {c: m[c] for c in CAMPOS_MOTORISTA if c in m}
+            if m.get('data_cadastro'):
+                dia = datetime.fromisoformat(m['data_cadastro']).date()
+                campos['data_cadastro'] = timezone.make_aware(
+                    datetime.combine(dia, time(8, 0)))
+            novos.append(Motorista(organizacao=organizacao, **campos))
+
+        novos = Motorista.objects.bulk_create(novos, batch_size=500)
+        return {m.cpf: m for m in novos}
+
+    def _criar_atribuicoes(self, registros, veiculos, motoristas):
+        """Cria os vinculos cujo veiculo e motorista foram criados nesta carga.
+        O arquivo ja vem sem sobreposicao por veiculo e por motorista, que e a
+        regra aplicada pela tela de vinculo."""
+        objetos = []
+        for a in registros:
+            veiculo = veiculos.get(a['placa'].upper().strip())
+            motorista = motoristas.get(a['cpf'])
+            if veiculo is None or motorista is None:
+                continue
+            objetos.append(AtribuicaoVeiculo(
+                veiculo=veiculo,
+                motorista=motorista,
+                data_inicio=a['data_inicio'],
+                data_fim=a.get('data_fim'),
+                observacao=a.get('observacao', ''),
+            ))
+        AtribuicaoVeiculo.objects.bulk_create(objetos, batch_size=500)
+        return len(objetos)
+
     def _criar_gestor(self, organizacao, username, senha):
         User = get_user_model()
         user = User.objects.filter(username=username).first()
@@ -359,11 +442,16 @@ class Command(BaseCommand):
 
     # --------------------------------------------------------------- remocao
 
-    def _remover(self, organizacao, placas, dry_run):
+    def _remover(self, organizacao, placas, cpfs, dry_run):
         try:
             with transaction.atomic():
                 apagados, detalhe = Veiculo.objects.filter(
                     organizacao=organizacao, placa__in=placas).delete()
+                apagados_m, detalhe_m = Motorista.objects.filter(
+                    organizacao=organizacao, cpf__in=cpfs).delete()
+                apagados += apagados_m
+                for modelo, qtd in detalhe_m.items():
+                    detalhe[modelo] = detalhe.get(modelo, 0) + qtd
                 if dry_run:
                     raise _Rollback()
         except _Rollback:

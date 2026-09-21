@@ -1,6 +1,6 @@
 {
   "gerado_em": "2026-09-20",
-  "descricao": "Massa sintética de histórico de manutenção para o Gestão de Frotas. Manutenção entra como Custo(tipo='manutencao'); as leituras de odômetro vão em RegistroQuilometragem, que é a fonte de km_atual(), km_rodados() e custo_por_km(). Inclui abastecimentos de toda a vida do veiculo; o Abastecimento espelha um Custo(tipo='combustivel').",
+  "descricao": "Massa sintética de histórico de manutenção para o Gestão de Frotas. Manutenção entra como Custo(tipo='manutencao'); as leituras de odômetro vão em RegistroQuilometragem, que é a fonte de km_atual(), km_rodados() e custo_por_km(). Inclui abastecimentos de toda a vida do veiculo; o Abastecimento espelha um Custo(tipo='combustivel'). Inclui motoristas (CPF com digito verificador invalido de proposito, telefone e e-mail ficticios) e o historico de vinculos motorista-veiculo, sem sobreposicao por veiculo nem por motorista.",
   "organizacao_sugerida": "Secretaria Municipal de Saúde de Caçador",
   "veiculos": [
     {
@@ -57304,6 +57304,858 @@
           "posto": "Posto Ipiranga BR-153"
         }
       ]
+    }
+  ],
+  "motoristas": [
+    {
+      "nome": "Adilson Ferreira Kuhn",
+      "cpf": "620.966.542-02",
+      "cnh": "70722971028",
+      "cnh_categoria": "AD",
+      "cnh_validade": "2026-09-05",
+      "telefone": "(49) 90000-0001",
+      "email": "adilson.kuhn@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 03/2009. Possui curso de condutor de veículo de emergência e curso de transporte coletivo de passageiros.",
+      "data_cadastro": "2009-03-02"
+    },
+    {
+      "nome": "Marcos Antônio Dalla Costa",
+      "cpf": "123.937.045-83",
+      "cnh": "52855966542",
+      "cnh_categoria": "D",
+      "cnh_validade": "2029-10-18",
+      "telefone": "(49) 90000-0002",
+      "email": "marcos.costa@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 05/2011. Possui curso de condutor de veículo de emergência.",
+      "data_cadastro": "2011-05-16"
+    },
+    {
+      "nome": "Rogério Luiz Bortolini",
+      "cpf": "747.174.292-52",
+      "cnh": "74116677373",
+      "cnh_categoria": "AE",
+      "cnh_validade": "2027-10-15",
+      "telefone": "(49) 90000-0003",
+      "email": "rogerio.bortolini@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 08/2008. Possui curso de condutor de veículo de emergência e curso de transporte coletivo de passageiros.",
+      "data_cadastro": "2008-08-04"
+    },
+    {
+      "nome": "Jair Cândido Wiggers",
+      "cpf": "686.335.386-54",
+      "cnh": "40831600869",
+      "cnh_categoria": "D",
+      "cnh_validade": "2031-04-26",
+      "telefone": "(49) 90000-0004",
+      "email": "jair.wiggers@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 02/2012. Possui curso de transporte coletivo de passageiros.",
+      "data_cadastro": "2012-02-13"
+    },
+    {
+      "nome": "Sérgio Paulo Tomasi",
+      "cpf": "467.365.326-29",
+      "cnh": "08617937541",
+      "cnh_categoria": "AD",
+      "cnh_validade": "2031-09-23",
+      "telefone": "(49) 90000-0005",
+      "email": "sergio.tomasi@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 06/2014. Possui curso de condutor de veículo de emergência.",
+      "data_cadastro": "2014-06-09"
+    },
+    {
+      "nome": "Valdecir Rosa de Lima",
+      "cpf": "200.208.723-76",
+      "cnh": "55251377904",
+      "cnh_categoria": "D",
+      "cnh_validade": "2029-04-23",
+      "telefone": "(49) 90000-0006",
+      "email": "valdecir.lima@demo.invalid",
+      "status": "inativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 04/2010. Possui curso de transporte coletivo de passageiros. Desligado do setor em 03/2021 (aposentadoria).",
+      "data_cadastro": "2010-04-05"
+    },
+    {
+      "nome": "Cleber Rodrigues Nardi",
+      "cpf": "512.922.121-40",
+      "cnh": "10724638238",
+      "cnh_categoria": "AD",
+      "cnh_validade": "2031-08-13",
+      "telefone": "(49) 90000-0007",
+      "email": "cleber.nardi@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 09/2016. Possui curso de condutor de veículo de emergência e curso de transporte coletivo de passageiros.",
+      "data_cadastro": "2016-09-12"
+    },
+    {
+      "nome": "Everton Luís Schmitt",
+      "cpf": "271.134.860-15",
+      "cnh": "69624207057",
+      "cnh_categoria": "D",
+      "cnh_validade": "2031-07-06",
+      "telefone": "(49) 90000-0008",
+      "email": "everton.schmitt@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 01/2018. Possui curso de condutor de veículo de emergência.",
+      "data_cadastro": "2018-01-22"
+    },
+    {
+      "nome": "Gilmar José Andrade",
+      "cpf": "225.633.571-23",
+      "cnh": "83344027176",
+      "cnh_categoria": "E",
+      "cnh_validade": "2028-12-11",
+      "telefone": "(49) 90000-0009",
+      "email": "gilmar.andrade@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 07/2013. Possui curso de condutor de veículo de emergência e curso de transporte coletivo de passageiros.",
+      "data_cadastro": "2013-07-01"
+    },
+    {
+      "nome": "Rafael Mendes Zanella",
+      "cpf": "112.133.290-06",
+      "cnh": "99706628480",
+      "cnh_categoria": "AB",
+      "cnh_validade": "2031-08-22",
+      "telefone": "(49) 90000-0010",
+      "email": "rafael.zanella@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 03/2015.",
+      "data_cadastro": "2015-03-09"
+    },
+    {
+      "nome": "Juliana Pereira Hoffmann",
+      "cpf": "871.027.344-12",
+      "cnh": "36648034619",
+      "cnh_categoria": "B",
+      "cnh_validade": "2030-11-25",
+      "telefone": "(49) 90000-0011",
+      "email": "juliana.hoffmann@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 08/2017.",
+      "data_cadastro": "2017-08-14"
+    },
+    {
+      "nome": "Patrícia Alves Grando",
+      "cpf": "705.044.357-34",
+      "cnh": "05757522149",
+      "cnh_categoria": "AB",
+      "cnh_validade": "2029-08-01",
+      "telefone": "(49) 90000-0012",
+      "email": "patricia.grando@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 02/2019.",
+      "data_cadastro": "2019-02-18"
+    },
+    {
+      "nome": "Luciano Ribeiro Menegat",
+      "cpf": "049.161.248-66",
+      "cnh": "92112484018",
+      "cnh_categoria": "B",
+      "cnh_validade": "2030-08-04",
+      "telefone": "(49) 90000-0013",
+      "email": "luciano.menegat@demo.invalid",
+      "status": "inativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 04/2013. Desligado do setor em 11/2019 (transferência para a Secretaria de Obras).",
+      "data_cadastro": "2013-04-01"
+    },
+    {
+      "nome": "Fernanda Costa Pagliosa",
+      "cpf": "803.373.874-07",
+      "cnh": "41838137325",
+      "cnh_categoria": "B",
+      "cnh_validade": "2026-10-16",
+      "telefone": "(49) 90000-0014",
+      "email": "fernanda.pagliosa@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 03/2020.",
+      "data_cadastro": "2020-03-02"
+    },
+    {
+      "nome": "Diego Henrique Rauber",
+      "cpf": "094.327.725-66",
+      "cnh": "13807171095",
+      "cnh_categoria": "AB",
+      "cnh_validade": "2030-06-18",
+      "telefone": "(49) 90000-0015",
+      "email": "diego.rauber@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 05/2018.",
+      "data_cadastro": "2018-05-07"
+    },
+    {
+      "nome": "Anderson Silva Bittencourt",
+      "cpf": "073.554.637-15",
+      "cnh": "92477756714",
+      "cnh_categoria": "B",
+      "cnh_validade": "2026-10-01",
+      "telefone": "(49) 90000-0016",
+      "email": "anderson.bittencourt@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 10/2012.",
+      "data_cadastro": "2012-10-01"
+    },
+    {
+      "nome": "Tiago Martins Ceccon",
+      "cpf": "276.849.059-80",
+      "cnh": "25739746719",
+      "cnh_categoria": "C",
+      "cnh_validade": "2027-11-23",
+      "telefone": "(49) 90000-0017",
+      "email": "tiago.ceccon@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 11/2016.",
+      "data_cadastro": "2016-11-21"
+    },
+    {
+      "nome": "Neusa Maria Fontana",
+      "cpf": "404.866.445-01",
+      "cnh": "73871060190",
+      "cnh_categoria": "B",
+      "cnh_validade": "2030-12-07",
+      "telefone": "(49) 90000-0018",
+      "email": "neusa.fontana@demo.invalid",
+      "status": "inativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 06/2011. Desligado do setor em 05/2023 (aposentadoria).",
+      "data_cadastro": "2011-06-06"
+    },
+    {
+      "nome": "Robson Carvalho Rech",
+      "cpf": "532.613.025-49",
+      "cnh": "48581473860",
+      "cnh_categoria": "AD",
+      "cnh_validade": "2027-03-20",
+      "telefone": "(49) 90000-0019",
+      "email": "robson.rech@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 04/2021. Possui curso de condutor de veículo de emergência e curso de transporte coletivo de passageiros.",
+      "data_cadastro": "2021-04-12"
+    },
+    {
+      "nome": "Leandro Souza Frizzo",
+      "cpf": "554.410.528-60",
+      "cnh": "62501633741",
+      "cnh_categoria": "D",
+      "cnh_validade": "2030-12-24",
+      "telefone": "(49) 90000-0020",
+      "email": "leandro.frizzo@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 07/2022. Possui curso de condutor de veículo de emergência.",
+      "data_cadastro": "2022-07-04"
+    },
+    {
+      "nome": "Vanessa Oliveira Lunardi",
+      "cpf": "029.172.096-08",
+      "cnh": "89610785414",
+      "cnh_categoria": "B",
+      "cnh_validade": "2031-03-10",
+      "telefone": "(49) 90000-0021",
+      "email": "vanessa.lunardi@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 03/2023.",
+      "data_cadastro": "2023-03-13"
+    },
+    {
+      "nome": "Márcio Galvão Pilonetto",
+      "cpf": "657.607.598-77",
+      "cnh": "91100041431",
+      "cnh_categoria": "AB",
+      "cnh_validade": "2030-08-06",
+      "telefone": "(49) 90000-0022",
+      "email": "marcio.pilonetto@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 09/2014.",
+      "data_cadastro": "2014-09-15"
+    },
+    {
+      "nome": "Eduardo Nunes Dambrós",
+      "cpf": "317.656.083-47",
+      "cnh": "04329857858",
+      "cnh_categoria": "D",
+      "cnh_validade": "2028-03-02",
+      "telefone": "(49) 90000-0023",
+      "email": "eduardo.dambros@demo.invalid",
+      "status": "inativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 06/2019. Possui curso de transporte coletivo de passageiros. Desligado do setor em 02/2025 (cessão à Secretaria de Educação).",
+      "data_cadastro": "2019-06-03"
+    },
+    {
+      "nome": "Bruna Fátima Tessaro",
+      "cpf": "491.102.442-96",
+      "cnh": "74027024741",
+      "cnh_categoria": "B",
+      "cnh_validade": "2029-03-11",
+      "telefone": "(49) 90000-0024",
+      "email": "bruna.tessaro@demo.invalid",
+      "status": "ativo",
+      "observacoes": "Motorista do quadro da Secretaria desde 04/2024.",
+      "data_cadastro": "2024-04-08"
+    }
+  ],
+  "atribuicoes": [
+    {
+      "placa": "MHR1K93",
+      "cpf": "073.554.637-15",
+      "data_inicio": "2013-10-02",
+      "data_fim": "2014-11-29",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "MHR1K93",
+      "cpf": "657.607.598-77",
+      "data_inicio": "2014-12-04",
+      "data_fim": "2017-04-11",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "MHR1K93",
+      "cpf": "225.633.571-23",
+      "data_inicio": "2017-04-16",
+      "data_fim": "2019-06-11",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "MHR1K93",
+      "cpf": "686.335.386-54",
+      "data_inicio": "2019-06-16",
+      "data_fim": "2020-03-11",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "MHR1K93",
+      "cpf": "871.027.344-12",
+      "data_inicio": "2020-03-16",
+      "data_fim": "2021-10-03",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "MHR1K93",
+      "cpf": "705.044.357-34",
+      "data_inicio": "2021-10-07",
+      "data_fim": "2023-12-05",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "MHR1K93",
+      "cpf": "705.044.357-34",
+      "data_inicio": "2023-12-09",
+      "data_fim": "2025-07-31",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "MHR1K93",
+      "cpf": "871.027.344-12",
+      "data_inicio": "2025-08-03",
+      "data_fim": "2026-06-30",
+      "observacao": "Vínculo encerrado — veículo recolhido para baixa patrimonial."
+    },
+    {
+      "placa": "MLZ6X29",
+      "cpf": "620.966.542-02",
+      "data_inicio": "2014-04-18",
+      "data_fim": "2016-09-12",
+      "observacao": "Rota Florianópolis/Joinville"
+    },
+    {
+      "placa": "MLZ6X29",
+      "cpf": "512.922.121-40",
+      "data_inicio": "2016-09-15",
+      "data_fim": "2017-09-06",
+      "observacao": "Rota Florianópolis/Joinville"
+    },
+    {
+      "placa": "MLZ6X29",
+      "cpf": "512.922.121-40",
+      "data_inicio": "2017-09-08",
+      "data_fim": "2020-01-06",
+      "observacao": "Rota Florianópolis/Joinville"
+    },
+    {
+      "placa": "MLZ6X29",
+      "cpf": "747.174.292-52",
+      "data_inicio": "2020-01-09",
+      "data_fim": "2021-10-21",
+      "observacao": "Rota Florianópolis/Joinville"
+    },
+    {
+      "placa": "MLZ6X29",
+      "cpf": "620.966.542-02",
+      "data_inicio": "2021-10-23",
+      "data_fim": "2024-02-02",
+      "observacao": "Remanejamento de escala"
+    },
+    {
+      "placa": "MLZ6X29",
+      "cpf": "686.335.386-54",
+      "data_inicio": "2024-02-06",
+      "data_fim": "2025-09-17",
+      "observacao": "Escala do TFD"
+    },
+    {
+      "placa": "MLZ6X29",
+      "cpf": "225.633.571-23",
+      "data_inicio": "2025-09-22",
+      "data_fim": "2026-08-25",
+      "observacao": "Vínculo encerrado — veículo recolhido à oficina."
+    },
+    {
+      "placa": "MWS8V43",
+      "cpf": "049.161.248-66",
+      "data_inicio": "2015-06-13",
+      "data_fim": "2017-09-11",
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "MWS8V43",
+      "cpf": "073.554.637-15",
+      "data_inicio": "2017-09-12",
+      "data_fim": "2018-11-17",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "MWS8V43",
+      "cpf": "404.866.445-01",
+      "data_inicio": "2018-11-22",
+      "data_fim": "2019-10-15",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "MWS8V43",
+      "cpf": "200.208.723-76",
+      "data_inicio": "2019-10-20",
+      "data_fim": "2020-05-28",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "MWS8V43",
+      "cpf": "094.327.725-66",
+      "data_inicio": "2020-06-01",
+      "data_fim": "2021-06-09",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "MWS8V43",
+      "cpf": "532.613.025-49",
+      "data_inicio": "2021-06-13",
+      "data_fim": "2023-08-28",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "MWS8V43",
+      "cpf": "276.849.059-80",
+      "data_inicio": "2023-08-31",
+      "data_fim": "2025-11-28",
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "MWS8V43",
+      "cpf": "073.554.637-15",
+      "data_inicio": "2025-12-01",
+      "data_fim": null,
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "NVC4G66",
+      "cpf": "404.866.445-01",
+      "data_inicio": "2016-05-22",
+      "data_fim": "2017-09-13",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "NVC4G66",
+      "cpf": "871.027.344-12",
+      "data_inicio": "2017-09-14",
+      "data_fim": "2018-04-24",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "NVC4G66",
+      "cpf": "657.607.598-77",
+      "data_inicio": "2018-04-25",
+      "data_fim": "2020-07-02",
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "NVC4G66",
+      "cpf": "803.373.874-07",
+      "data_inicio": "2020-07-07",
+      "data_fim": "2021-04-04",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "NVC4G66",
+      "cpf": "803.373.874-07",
+      "data_inicio": "2021-04-05",
+      "data_fim": "2021-12-04",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "NVC4G66",
+      "cpf": "073.554.637-15",
+      "data_inicio": "2021-12-05",
+      "data_fim": "2023-10-25",
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "NVC4G66",
+      "cpf": "029.172.096-08",
+      "data_inicio": "2023-10-27",
+      "data_fim": "2024-06-08",
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "NVC4G66",
+      "cpf": "029.172.096-08",
+      "data_inicio": "2024-06-13",
+      "data_fim": "2025-01-03",
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "NVC4G66",
+      "cpf": "123.937.045-83",
+      "data_inicio": "2025-01-06",
+      "data_fim": "2026-06-04",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "NVC4G66",
+      "cpf": "705.044.357-34",
+      "data_inicio": "2026-06-05",
+      "data_fim": null,
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "PBD5T61",
+      "cpf": "049.161.248-66",
+      "data_inicio": "2017-10-04",
+      "data_fim": "2019-02-27",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "PBD5T61",
+      "cpf": "467.365.326-29",
+      "data_inicio": "2019-03-04",
+      "data_fim": "2020-05-26",
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "PBD5T61",
+      "cpf": "686.335.386-54",
+      "data_inicio": "2020-05-27",
+      "data_fim": "2021-03-07",
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "PBD5T61",
+      "cpf": "317.656.083-47",
+      "data_inicio": "2021-03-12",
+      "data_fim": "2022-03-31",
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "PBD5T61",
+      "cpf": "094.327.725-66",
+      "data_inicio": "2022-04-04",
+      "data_fim": "2023-01-07",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "PBD5T61",
+      "cpf": "871.027.344-12",
+      "data_inicio": "2023-01-08",
+      "data_fim": "2023-11-22",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "PBD5T61",
+      "cpf": "225.633.571-23",
+      "data_inicio": "2023-11-25",
+      "data_fim": "2024-06-30",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "PBD5T61",
+      "cpf": "491.102.442-96",
+      "data_inicio": "2024-07-01",
+      "data_fim": "2025-07-24",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "PBD5T61",
+      "cpf": "491.102.442-96",
+      "data_inicio": "2025-07-27",
+      "data_fim": "2026-05-16",
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "PBD5T61",
+      "cpf": "112.133.290-06",
+      "data_inicio": "2026-05-17",
+      "data_fim": null,
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "PWJ3N88",
+      "cpf": "112.133.290-06",
+      "data_inicio": "2019-07-09",
+      "data_fim": "2022-01-22",
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "PWJ3N88",
+      "cpf": "747.174.292-52",
+      "data_inicio": "2022-01-24",
+      "data_fim": "2023-01-11",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "PWJ3N88",
+      "cpf": "467.365.326-29",
+      "data_inicio": "2023-01-13",
+      "data_fim": "2023-10-16",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "PWJ3N88",
+      "cpf": "657.607.598-77",
+      "data_inicio": "2023-10-18",
+      "data_fim": "2025-09-30",
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "PWJ3N88",
+      "cpf": "657.607.598-77",
+      "data_inicio": "2025-10-03",
+      "data_fim": null,
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "PZL9D07",
+      "cpf": "747.174.292-52",
+      "data_inicio": "2018-03-19",
+      "data_fim": "2019-03-29",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "PZL9D07",
+      "cpf": "620.966.542-02",
+      "data_inicio": "2019-04-03",
+      "data_fim": "2021-10-08",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "PZL9D07",
+      "cpf": "276.849.059-80",
+      "data_inicio": "2021-10-11",
+      "data_fim": "2022-06-28",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "PZL9D07",
+      "cpf": "271.134.860-15",
+      "data_inicio": "2022-07-02",
+      "data_fim": "2024-12-24",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "PZL9D07",
+      "cpf": "094.327.725-66",
+      "data_inicio": "2024-12-27",
+      "data_fim": null,
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "QCE7F15",
+      "cpf": "123.937.045-83",
+      "data_inicio": "2020-01-23",
+      "data_fim": "2021-10-02",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "QCE7F15",
+      "cpf": "123.937.045-83",
+      "data_inicio": "2021-10-04",
+      "data_fim": "2024-01-20",
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "QCE7F15",
+      "cpf": "123.937.045-83",
+      "data_inicio": "2024-01-24",
+      "data_fim": "2024-09-19",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "QCE7F15",
+      "cpf": "803.373.874-07",
+      "data_inicio": "2024-09-23",
+      "data_fim": null,
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "QHT5B41",
+      "cpf": "467.365.326-29",
+      "data_inicio": "2020-11-05",
+      "data_fim": "2022-05-21",
+      "observacao": "Escala 12x36 da ambulância"
+    },
+    {
+      "placa": "QHT5B41",
+      "cpf": "512.922.121-40",
+      "data_inicio": "2022-05-25",
+      "data_fim": "2024-12-30",
+      "observacao": "Remanejamento de plantão"
+    },
+    {
+      "placa": "QHT5B41",
+      "cpf": "512.922.121-40",
+      "data_inicio": "2024-12-31",
+      "data_fim": "2026-05-10",
+      "observacao": "Plantão da urgência"
+    },
+    {
+      "placa": "QHT5B41",
+      "cpf": "554.410.528-60",
+      "data_inicio": "2026-05-11",
+      "data_fim": null,
+      "observacao": "Escala 12x36 da ambulância"
+    },
+    {
+      "placa": "QMB4J07",
+      "cpf": "686.335.386-54",
+      "data_inicio": "2021-06-20",
+      "data_fim": "2023-09-02",
+      "observacao": "Rota Florianópolis/Joinville"
+    },
+    {
+      "placa": "QMB4J07",
+      "cpf": "317.656.083-47",
+      "data_inicio": "2023-09-03",
+      "data_fim": "2024-12-23",
+      "observacao": "Rota Florianópolis/Joinville"
+    },
+    {
+      "placa": "QMB4J07",
+      "cpf": "620.966.542-02",
+      "data_inicio": "2024-12-26",
+      "data_fim": null,
+      "observacao": "Remanejamento de escala"
+    },
+    {
+      "placa": "RKA3H58",
+      "cpf": "271.134.860-15",
+      "data_inicio": "2019-04-12",
+      "data_fim": "2021-02-27",
+      "observacao": "Plantão da urgência"
+    },
+    {
+      "placa": "RKA3H58",
+      "cpf": "271.134.860-15",
+      "data_inicio": "2021-03-02",
+      "data_fim": "2022-01-03",
+      "observacao": "Escala 12x36 da ambulância"
+    },
+    {
+      "placa": "RKA3H58",
+      "cpf": "225.633.571-23",
+      "data_inicio": "2022-01-08",
+      "data_fim": "2022-09-22",
+      "observacao": "Plantão da urgência"
+    },
+    {
+      "placa": "RKA3H58",
+      "cpf": "554.410.528-60",
+      "data_inicio": "2022-09-23",
+      "data_fim": "2023-09-25",
+      "observacao": "Remanejamento de plantão"
+    },
+    {
+      "placa": "RKA3H58",
+      "cpf": "532.613.025-49",
+      "data_inicio": "2023-09-30",
+      "data_fim": "2024-06-25",
+      "observacao": "Escala 12x36 da ambulância"
+    },
+    {
+      "placa": "RKA3H58",
+      "cpf": "532.613.025-49",
+      "data_inicio": "2024-06-30",
+      "data_fim": "2025-12-21",
+      "observacao": "Plantão da urgência"
+    },
+    {
+      "placa": "RKA3H58",
+      "cpf": "271.134.860-15",
+      "data_inicio": "2025-12-22",
+      "data_fim": "2026-08-29",
+      "observacao": "Plantão da urgência"
+    },
+    {
+      "placa": "RKA3H58",
+      "cpf": "532.613.025-49",
+      "data_inicio": "2026-08-30",
+      "data_fim": null,
+      "observacao": "Escala 12x36 da ambulância"
+    },
+    {
+      "placa": "RTB6M20",
+      "cpf": "803.373.874-07",
+      "data_inicio": "2022-02-08",
+      "data_fim": "2023-10-17",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "RTB6M20",
+      "cpf": "112.133.290-06",
+      "data_inicio": "2023-10-21",
+      "data_fim": "2026-03-15",
+      "observacao": "Remanejamento interno"
+    },
+    {
+      "placa": "RTB6M20",
+      "cpf": "029.172.096-08",
+      "data_inicio": "2026-03-18",
+      "data_fim": null,
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "SDF7C12",
+      "cpf": "747.174.292-52",
+      "data_inicio": "2023-08-24",
+      "data_fim": "2024-06-13",
+      "observacao": "Plantão da urgência"
+    },
+    {
+      "placa": "SDF7C12",
+      "cpf": "747.174.292-52",
+      "data_inicio": "2024-06-16",
+      "data_fim": null,
+      "observacao": "Plantão da urgência"
+    },
+    {
+      "placa": "SLQ2E39",
+      "cpf": "554.410.528-60",
+      "data_inicio": "2024-06-01",
+      "data_fim": "2026-05-04",
+      "observacao": "Atendimento ao setor"
+    },
+    {
+      "placa": "SLQ2E39",
+      "cpf": "276.849.059-80",
+      "data_inicio": "2026-05-09",
+      "data_fim": null,
+      "observacao": "Designação da coordenação"
+    },
+    {
+      "placa": "SXP8R74",
+      "cpf": "467.365.326-29",
+      "data_inicio": "2025-07-12",
+      "data_fim": null,
+      "observacao": "Remanejamento interno"
     }
   ]
 }

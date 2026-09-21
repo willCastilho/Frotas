@@ -11,7 +11,10 @@
         # usando a DATABASE_URL ja definida na sessao, sem perguntar
         .\scripts\carregar_demo.ps1 -Sim
 
-        # desfazer a carga
+        # motoristas sem vinculo, para vincular ao vivo na apresentacao
+        .\scripts\carregar_demo.ps1 -SemAtribuicoes
+
+        # desfazer a carga (veiculos, historico, motoristas e vinculos)
         .\scripts\carregar_demo.ps1 -Remover
 
     O script chama o management command popular_frota. Toda a massa fica numa
@@ -25,6 +28,8 @@ param(
     [string]$Gestor = "demo.frotas",
     [string]$Senha,
     [string]$Arquivo = "dados\frota_demo.json",
+    [switch]$SemAtribuicoes,
+    [switch]$SemMotoristas,
     [switch]$Remover,
     [switch]$SemBackup,
     [switch]$Sim
@@ -107,6 +112,8 @@ $argumentos = @(
     "--criar-gestor", $Gestor
 )
 if ($Senha) { $argumentos += @("--senha", $Senha) }
+if ($SemMotoristas) { $argumentos += "--sem-motoristas" }
+elseif ($SemAtribuicoes) { $argumentos += "--sem-atribuicoes" }
 
 & $python @argumentos
 if ($LASTEXITCODE -ne 0) { throw "A carga falhou." }
