@@ -16,7 +16,8 @@
         {% endfor %}
     {% endif %}
 
-    <div class="painel-card">
+    <div class="painel-card" style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a href="{% url 'agenda' %}" class="btn btn-secondary">📆 Agenda (calendário)</a>
         <a href="{% url 'cadastros_solicitantes' %}" class="btn btn-secondary">
             👤 Cadastros de solicitantes{% if pendentes_cadastro %} ({{ pendentes_cadastro }} a aprovar){% endif %}
         </a>

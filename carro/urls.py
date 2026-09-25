@@ -46,6 +46,7 @@ urlpatterns = [
     path('agendamento/<int:pk>/retirar/', carro_views.iniciar_uso, name='iniciar_uso'),
     path('agendamento/<int:pk>/devolucao/', carro_views.registrar_devolucao, name='registrar_devolucao'),
     path('agendamento/gestor/', carro_views.solicitacoes_gestor, name='solicitacoes_gestor'),
+    path('agendamento/gestor/agenda/', carro_views.agenda, name='agenda'),
     path('agendamento/gestor/<int:pk>/aprovar/', carro_views.aprovar_solicitacao, name='aprovar_solicitacao'),
     path('agendamento/gestor/<int:pk>/recusar/', carro_views.recusar_solicitacao, name='recusar_solicitacao'),
     path('agendamento/gestor/cadastros/', carro_views.cadastros_solicitantes, name='cadastros_solicitantes'),

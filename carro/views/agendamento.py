@@ -8,6 +8,9 @@ Fluxo:
 - Gestor aprova escolhendo um veiculo livre no periodo (sem conflito de agenda
   e sem documento vencido) e, se necessario, um motorista disponivel; ou recusa.
 """
+import calendar as _calendar
+from datetime import date, timedelta
+
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
@@ -29,6 +32,10 @@ from carro.models import (
     SolicitacaoVeiculo,
     motoristas_disponiveis,
     veiculos_disponiveis,
+)
+from carro.emails_agendamento import (
+    notificar_decisao,
+    notificar_gestores_nova_solicitacao,
 )
 from contas.models import Organizacao, PerfilUsuario
 from contas.utils import (
@@ -121,6 +128,7 @@ def nova_solicitacao(request):
         sol.organizacao = solicitante.organizacao
         sol.status = SolicitacaoVeiculo.STATUS_PENDENTE
         sol.save()
+        notificar_gestores_nova_solicitacao(sol)
         messages.success(
             request, 'Solicitação enviada! Aguarde a aprovação do gestor.')
         return redirect('minhas_solicitacoes')
@@ -262,6 +270,7 @@ def aprovar_solicitacao(request, pk):
                     observacao=f'Agendamento #{sol.pk} · {sol.destino}'[:200])
                 sol.atribuicao = atrib
             sol.save()
+        notificar_decisao(sol)
         messages.success(request, 'Solicitação aprovada e veículo reservado.')
         return redirect('solicitacoes_gestor')
 
@@ -286,6 +295,7 @@ def recusar_solicitacao(request, pk):
     sol.aprovado_por = request.user
     sol.data_decisao = timezone.now()
     sol.save()
+    notificar_decisao(sol)
     messages.success(request, 'Solicitação recusada.')
     return redirect('solicitacoes_gestor')
 
@@ -319,6 +329,63 @@ def decidir_cadastro(request, pk):
     solicitante.save(update_fields=['status'])
     messages.success(request, msg)
     return redirect('cadastros_solicitantes')
+
+
+MESES_PT = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+
+
+@login_required
+@exige_gestor
+def agenda(request):
+    """Calendario mensal das reservas da organizacao."""
+    org = organizacao_do(request.user)
+    hoje = timezone.localdate()
+    try:
+        ano = int(request.GET.get('ano', hoje.year))
+        mes = int(request.GET.get('mes', hoje.month))
+        primeiro = date(ano, mes, 1)
+    except (TypeError, ValueError):
+        ano, mes = hoje.year, hoje.month
+        primeiro = date(ano, mes, 1)
+
+    ultimo = date(ano, mes, _calendar.monthrange(ano, mes)[1])
+    reservas = (SolicitacaoVeiculo.objects
+                .filter(organizacao=org,
+                        status__in=('pendente', 'aprovada', 'em_uso'),
+                        saida_prevista__date__lte=ultimo,
+                        retorno_previsto__date__gte=primeiro)
+                .select_related('veiculo', 'solicitante')
+                .order_by('saida_prevista'))
+
+    por_dia = {}
+    for s in reservas:
+        d0 = max(s.saida_prevista.date(), primeiro)
+        d1 = min(s.retorno_previsto.date(), ultimo)
+        dia = d0
+        while dia <= d1:
+            por_dia.setdefault(dia, []).append(s)
+            dia += timedelta(days=1)
+
+    cal = _calendar.Calendar(firstweekday=6)  # domingo
+    semanas = []
+    for semana in cal.monthdatescalendar(ano, mes):
+        semanas.append([{
+            'data': d,
+            'no_mes': d.month == mes,
+            'hoje': d == hoje,
+            'itens': por_dia.get(d, []),
+        } for d in semana])
+
+    mes_ant = (primeiro - timedelta(days=1))
+    mes_prox = (ultimo + timedelta(days=1))
+    return render(request, 'agendamento/agenda.html', {
+        'ano': ano, 'mes': mes, 'mes_nome': MESES_PT[mes],
+        'semanas': semanas,
+        'dias_semana': ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+        'mes_ant': mes_ant, 'mes_prox': mes_prox,
+        'total_reservas': reservas.count(),
+    })
 
 
 @login_required

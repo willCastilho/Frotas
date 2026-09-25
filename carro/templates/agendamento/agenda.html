@@ -1,0 +1,48 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>📆 Agenda de veículos</h1>
+        <p>Reservas de {{ mes_nome }} de {{ ano|stringformat:'d' }} · {{ total_reservas }} no mês</p>
+    </div>
+
+    <div class="agenda-nav">
+        <a href="?ano={{ mes_ant.year|stringformat:'d' }}&mes={{ mes_ant.month }}" class="btn btn-secondary">← Mês anterior</a>
+        <a href="{% url 'agenda' %}" class="btn btn-secondary">Hoje</a>
+        <a href="?ano={{ mes_prox.year|stringformat:'d' }}&mes={{ mes_prox.month }}" class="btn btn-secondary">Próximo mês →</a>
+        <a href="{% url 'solicitacoes_gestor' %}" class="btn btn-secondary">Lista de solicitações</a>
+    </div>
+
+    <table class="calendario">
+        <thead>
+            <tr>{% for d in dias_semana %}<th>{{ d }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+            {% for semana in semanas %}
+                <tr>
+                    {% for cel in semana %}
+                        <td class="cal-dia{% if not cel.no_mes %} cal-fora{% endif %}{% if cel.hoje %} cal-hoje{% endif %}">
+                            <div class="cal-num">{{ cel.data.day }}</div>
+                            {% for s in cel.itens %}
+                                <div class="cal-ev cal-ev-{{ s.status }}" title="{{ s.solicitante.nome }} · {{ s.destino }} ({{ s.get_status_display }})">
+                                    {% if s.veiculo %}{{ s.veiculo.placa|default:s.veiculo.modelo }}{% else %}—{% endif %} · {{ s.solicitante.nome }}
+                                </div>
+                            {% endfor %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="cal-legenda">
+        <span class="cal-ev cal-ev-pendente">Solicitada</span>
+        <span class="cal-ev cal-ev-aprovada">Aprovada</span>
+        <span class="cal-ev cal-ev-em_uso">Em uso</span>
+    </div>
+</div>
+{% endblock content %}

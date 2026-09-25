@@ -1297,3 +1297,69 @@ class AgendamentoDevolucaoTests(LogadoMixin, TestCase):
         c.post(reverse('iniciar_uso', args=[sol.id]))
         sol.refresh_from_db()
         self.assertEqual(sol.status, 'em_uso')
+
+
+from django.test import override_settings
+
+
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+class AgendamentoNotificacaoTests(LogadoMixin, TestCase):
+    """Fase 3: notificacoes por e-mail e agenda."""
+
+    def setUp(self):
+        super().setUp()  # self.user gestor com email teste@ex.com
+        from carro.models import Solicitante
+        self.u = User.objects.create_user('soln', password='senha12345', email='sol@ex.com')
+        PerfilUsuario.objects.create(
+            user=self.u, organizacao=self.org,
+            papel=PerfilUsuario.PAPEL_SOLICITANTE)
+        self.solic = Solicitante.objects.create(
+            organizacao=self.org, user=self.u, nome='Sol N', setor='TI',
+            status='ativo', email='sol@ex.com')
+        self.veic = self.cria_veiculo(placa='FFF1234')
+
+    def test_nova_solicitacao_notifica_gestor(self):
+        from django.core import mail
+        c = Client(); c.login(username='soln', password='senha12345')
+        mail.outbox = []
+        c.post(reverse('nova_solicitacao'), {
+            'setor': 'TI', 'saida_prevista': '2026-11-01T08:00',
+            'retorno_previsto': '2026-11-01T17:00', 'destino': 'X'})
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('teste@ex.com', mail.outbox[0].to)
+
+    def test_aprovacao_notifica_solicitante(self):
+        from django.core import mail
+        from carro.models import SolicitacaoVeiculo
+        c = Client(); c.login(username='soln', password='senha12345')
+        c.post(reverse('nova_solicitacao'), {
+            'setor': 'TI', 'saida_prevista': '2026-11-02T08:00',
+            'retorno_previsto': '2026-11-02T17:00', 'destino': 'Y'})
+        sol = SolicitacaoVeiculo.objects.get(solicitante=self.solic)
+        mail.outbox = []
+        self.client.post(reverse('aprovar_solicitacao', args=[sol.id]),
+                         {'veiculo': self.veic.id})
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('sol@ex.com', mail.outbox[0].to)
+        self.assertIn('APROVADA', mail.outbox[0].body)
+
+    def test_agenda_view(self):
+        r = self.client.get(reverse('agenda'))
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('semanas', r.context)
+
+    def test_lembrete_devolucao_command(self):
+        from django.core import mail
+        from django.core.management import call_command
+        from carro.models import SolicitacaoVeiculo
+        from django.utils import timezone
+        import datetime
+        SolicitacaoVeiculo.objects.create(
+            organizacao=self.org, solicitante=self.solic, setor='TI',
+            saida_prevista=timezone.now() - datetime.timedelta(days=2),
+            retorno_previsto=timezone.now() - datetime.timedelta(days=1),
+            destino='Z', status='aprovada', veiculo=self.veic)
+        mail.outbox = []
+        call_command('lembrar_devolucoes')
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('sol@ex.com', mail.outbox[0].to)

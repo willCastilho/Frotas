@@ -35,6 +35,7 @@ from .agendamento import (
     cadastros_solicitantes,
     decidir_cadastro,
     detalhes_solicitante,
+    agenda,
 )
 from .motoristas import (
     motoristas,
@@ -89,4 +90,5 @@ __all__ = [
     'cadastros_solicitantes',
     'decidir_cadastro',
     'detalhes_solicitante',
+    'agenda',
 ]
