@@ -34,6 +34,17 @@ def motoristas(request):
 
 @login_required
 @exige_gestor
+def detalhes_escala(request, pk):
+    org = organizacao_do(request.user)
+    escala = get_object_or_404(
+        EscalaDiaria.objects.select_related(
+            'veiculo', 'motorista', 'criado_por'),
+        pk=pk, organizacao=org)
+    return render(request, 'motoristas/escala_detalhe.html', {'e': escala})
+
+
+@login_required
+@exige_gestor
 def detalhes_motorista(request, motorista_id):
     motorista = get_object_or_404(_motoristas_da_org(request), id=motorista_id)
     historico = motorista.escalas.select_related('veiculo').all()[:60]

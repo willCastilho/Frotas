@@ -398,3 +398,12 @@
     .dash-mid { display: block; }
     .kpi-grid-compacto { flex-wrap: wrap; }
 }
+
+/* ---------------------------------------- Cards e itens clicaveis */
+.card-link { color: inherit; text-decoration: none; }
+.card-link:hover { color: var(--primary); text-decoration: none; }
+.linha-clicavel { cursor: pointer; }
+.linha-clicavel:hover td { background: var(--surface-2); }
+a.agenda-slide { text-decoration: none; color: inherit; }
+a.agenda-slide:hover { filter: brightness(1.08); text-decoration: none; }
+a.agenda-slide .agenda-veiculo { color: var(--text); }

@@ -762,6 +762,18 @@ class MotoristaTests(LogadoMixin, TestCase):
         e = EscalaDiaria.objects.get(motorista=m)
         self.assertEqual(e.destino, 'Secretaria')
 
+    def test_detalhes_escala(self):
+        from carro.models import EscalaDiaria
+        veiculo = self.cria_veiculo()
+        m = self._cria_motorista('Detalhe')
+        e = EscalaDiaria.objects.create(
+            organizacao=self.org, data=date.today(), veiculo=veiculo,
+            motorista=m, destino='Hospital Regional')
+        r = self.client.get(reverse('detalhes_escala', args=[e.id]))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Hospital Regional')
+        self.assertContains(r, m.nome)
+
     def test_escala_periodo_dias_uteis(self):
         from carro.models import EscalaDiaria
         veiculo = self.cria_veiculo()

@@ -38,6 +38,7 @@ urlpatterns = [
     path('escala/', carro_views.escala, name='escala'),
     path('escala/montar/', carro_views.montar_escala, name='montar_escala'),
     path('escala/<int:pk>/remover/', carro_views.remover_escala, name='remover_escala'),
+    path('escala/<int:pk>/', carro_views.detalhes_escala, name='detalhes_escala'),
 
     # Pre-agendamento de veiculos
     path('agendamento/cadastro/<uuid:token>/', carro_views.cadastro_solicitante, name='cadastro_solicitante'),

@@ -37,7 +37,20 @@
         });
     }
 
-    function iniciar() { carrossel(); ajustar(); }
+    function linhasClicaveis() {
+        document.querySelectorAll('[data-href]').forEach(function (el) {
+            if (el.dataset.bound) return;
+            el.dataset.bound = '1';
+            el.style.cursor = 'pointer';
+            el.addEventListener('click', function (ev) {
+                // Ignora cliques em links/botoes/formularios dentro do item.
+                if (ev.target.closest('a, button, form, input, select')) return;
+                window.location.href = el.dataset.href;
+            });
+        });
+    }
+
+    function iniciar() { carrossel(); linhasClicaveis(); ajustar(); }
 
     window.addEventListener('resize', ajustar);
     window.addEventListener('orientationchange', ajustar);

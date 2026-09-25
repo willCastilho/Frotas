@@ -37,16 +37,16 @@
     <div class="dash-mid">
         <div class="painel-grid dash-grid-fit">
             <div class="painel-card">
-                <h2>🚗 Reservados {% if hoje_dias == 1 %}hoje{% else %}· {{ hoje_dias }} dias{% endif %}</h2>
+                <h2><a class="card-link" href="{% url 'solicitacoes_gestor' %}">🚗 Reservados {% if hoje_dias == 1 %}hoje{% else %}· {{ hoje_dias }} dias{% endif %} →</a></h2>
                 <div class="page-scroll">
                 {% if reservas_hoje %}
                     <table class="alertas-table">
                         <thead><tr>{% if hoje_dias > 1 %}<th>Quando</th>{% endif %}<th>Veículo</th><th>Para</th><th>Destino</th><th>Horário</th></tr></thead>
                         <tbody>
                             {% for r in reservas_hoje %}
-                                <tr>
+                                <tr class="linha-clicavel" data-href="{% url 'detalhes_solicitacao' r.id %}">
                                     {% if hoje_dias > 1 %}<td>{{ r.saida_prevista|date:"d/m" }}</td>{% endif %}
-                                    <td><a href="{% url 'detalhes_solicitacao' r.id %}">{{ r.veiculo.identificacao_curta }}</a></td>
+                                    <td>{{ r.veiculo.identificacao_curta }}</td>
                                     <td>{{ r.solicitante.nome }}{% if r.precisa_motorista and r.motorista %}<br><small>Motorista: {{ r.motorista.nome }}</small>{% endif %}</td>
                                     <td>{{ r.destino }}</td>
                                     <td>{{ r.saida_prevista|date:"H:i" }} → {{ r.retorno_previsto|date:"H:i" }}{% if r.status == 'em_uso' %}<br><small class="variacao-yellow">em uso</small>{% endif %}</td>
@@ -61,17 +61,17 @@
             </div>
 
             <div class="painel-card">
-                <h2>📋 Escala {% if hoje_dias == 1 %}de hoje{% else %}· {{ hoje_dias }} dias{% endif %}</h2>
+                <h2><a class="card-link" href="{% url 'escala' %}">📋 Escala {% if hoje_dias == 1 %}de hoje{% else %}· {{ hoje_dias }} dias{% endif %} →</a></h2>
                 <div class="page-scroll">
                 {% if escala_hoje %}
                     <table class="alertas-table">
                         <thead><tr>{% if hoje_dias > 1 %}<th>Dia</th>{% endif %}<th>Motorista</th><th>Veículo</th><th>Destino</th></tr></thead>
                         <tbody>
                             {% for e in escala_hoje %}
-                                <tr>
+                                <tr class="linha-clicavel" data-href="{% url 'detalhes_escala' e.id %}">
                                     {% if hoje_dias > 1 %}<td>{{ e.data|date:"d/m" }}</td>{% endif %}
-                                    <td><a href="{% url 'detalhes_motorista' e.motorista.id %}">{{ e.motorista.nome }}</a></td>
-                                    <td><a href="{% url 'detalhes_veiculo' e.veiculo.id %}">{{ e.veiculo.identificacao_curta }}</a></td>
+                                    <td>{{ e.motorista.nome }}</td>
+                                    <td>{{ e.veiculo.identificacao_curta }}</td>
                                     <td>{{ e.destino|default:"—" }}</td>
                                 </tr>
                             {% endfor %}
@@ -88,7 +88,7 @@
     <div class="painel-card agenda-card dash-bottom">
         <div class="agenda-cabecalho">
             <div>
-                <h2>⏱️ Próximos {{ agenda_dias }} dias</h2>
+                <h2><a class="card-link" href="{% url 'agenda' %}">⏱️ Próximos {{ agenda_dias }} dias →</a></h2>
                 <p class="agenda-sub">Documentos, manutenções e escala · críticos fixos até 90 dias</p>
             </div>
             <div class="agenda-periodos">
@@ -102,12 +102,12 @@
                 <button type="button" class="carrossel-btn" data-alvo="agendaTrack" data-dir="-1" aria-label="Anterior">‹</button>
                 <div class="carrossel-track" id="agendaTrack">
                     {% for i in agenda %}
-                        <div class="agenda-slide agenda-{{ i.cor }}{% if i.critico %} agenda-critico{% endif %}">
+                        <a href="{% url 'detalhes_veiculo' i.veiculo_id %}" class="agenda-slide agenda-{{ i.cor }}{% if i.critico %} agenda-critico{% endif %}">
                             <div class="agenda-slide-topo">
                                 <span class="agenda-quando-linha">{% if i.data %}{{ i.data|date:"d/m/Y" }}{% else %}por km{% endif %}</span>
                                 <span class="agenda-cat">{{ i.categoria }}</span>
                             </div>
-                            <a href="{% url 'detalhes_veiculo' i.veiculo_id %}" class="agenda-veiculo">{{ i.veiculo.identificacao_curta }}</a>
+                            <span class="agenda-veiculo">{{ i.veiculo.identificacao_curta }}</span>
                             <span class="agenda-titulo">{{ i.titulo }}</span>
                             <span class="agenda-detalhe variacao-{{ i.cor }}">
                                 {% if i.data %}
@@ -116,7 +116,7 @@
                                     {% else %}Faltam {{ i.dias }} dias{% endif %}
                                 {% else %}{{ i.detalhe }}{% endif %}
                             </span>
-                        </div>
+                        </a>
                     {% endfor %}
                 </div>
                 <button type="button" class="carrossel-btn" data-alvo="agendaTrack" data-dir="1" aria-label="Próximo">›</button>

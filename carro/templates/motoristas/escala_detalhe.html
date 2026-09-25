@@ -1,0 +1,49 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>📋 Escala do dia</h1>
+        <p>{{ e.data|date:"l, d/m/Y" }}</p>
+    </div>
+
+    <div class="painel-card">
+        <a href="{% url 'escala' %}?data={{ e.data|date:'Y-m-d' }}" class="btn btn-secondary">← Escala do dia</a>
+    </div>
+
+    <div class="painel-grid">
+        <div class="painel-card">
+            <h2>Motorista</h2>
+            <table class="alertas-table">
+                <tr><th>Nome</th><td><a href="{% url 'detalhes_motorista' e.motorista.id %}">{{ e.motorista.nome }}</a></td></tr>
+                <tr><th>Setor</th><td>{{ e.motorista.setor|default:"—" }}</td></tr>
+                <tr><th>CNH</th><td>{{ e.motorista.cnh|default:"—" }}{% if e.motorista.cnh_categoria %} ({{ e.motorista.cnh_categoria }}){% endif %}</td></tr>
+                <tr><th>Contato</th><td>{{ e.motorista.telefone|default:"—" }}</td></tr>
+            </table>
+        </div>
+
+        <div class="painel-card">
+            <h2>Veículo</h2>
+            <table class="alertas-table">
+                <tr><th>Veículo</th><td><a href="{% url 'detalhes_veiculo' e.veiculo.id %}">{{ e.veiculo.marca }} {{ e.veiculo.modelo }}</a></td></tr>
+                <tr><th>Placa</th><td>{{ e.veiculo.placa|default:"—" }}</td></tr>
+                <tr><th>Status</th><td>{{ e.veiculo.get_status_display }}</td></tr>
+                <tr><th>KM atual</th><td>{{ e.veiculo.km_atual|default:"—" }}</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="painel-card">
+        <h2>Escala</h2>
+        <table class="alertas-table">
+            <tr><th>Dia</th><td>{{ e.data|date:"d/m/Y" }} (dia inteiro)</td></tr>
+            <tr><th>Destino</th><td>{{ e.destino|default:"—" }}</td></tr>
+            <tr><th>Observação</th><td>{{ e.observacao|default:"—" }}</td></tr>
+            <tr><th>Definida por</th><td>{{ e.criado_por|default:"—" }}{% if e.criado_em %} em {{ e.criado_em|date:"d/m/Y H:i" }}{% endif %}</td></tr>
+        </table>
+    </div>
+</div>
+{% endblock content %}

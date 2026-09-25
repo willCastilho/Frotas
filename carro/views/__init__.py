@@ -48,6 +48,7 @@ from .motoristas import (
     escala,
     montar_escala,
     remover_escala,
+    detalhes_escala,
     relatorio_motoristas,
 )
 
@@ -80,6 +81,7 @@ __all__ = [
     'escala',
     'montar_escala',
     'remover_escala',
+    'detalhes_escala',
     'relatorio_motoristas',
     'cadastro_solicitante',
     'minhas_solicitacoes',
