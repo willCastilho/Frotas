@@ -1,0 +1,58 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>👤 Cadastros de solicitantes</h1>
+        <p>Aprove o acesso dos solicitantes da sua organização.</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="painel-card">
+        <p class="convite-hint">Link de auto-cadastro para compartilhar com os solicitantes:</p>
+        <code>{{ request.scheme }}://{{ request.get_host }}{% url 'cadastro_solicitante' perfil_efetivo.organizacao.token_convite %}</code>
+    </div>
+
+    <div class="painel-card">
+        {% if solicitantes %}
+            <table class="alertas-table">
+                <thead>
+                    <tr><th>Nome</th><th>Setor</th><th>CNH</th><th>Contato</th><th>Status</th><th>Ações</th></tr>
+                </thead>
+                <tbody>
+                    {% for s in solicitantes %}
+                        <tr>
+                            <td>{{ s.nome }}</td>
+                            <td>{{ s.setor }}</td>
+                            <td>{{ s.cnh|default:"—" }}{% if s.cnh_categoria %} ({{ s.cnh_categoria }}){% endif %}</td>
+                            <td>{{ s.email }}{% if s.telefone %}<br>{{ s.telefone }}{% endif %}</td>
+                            <td>{{ s.get_status_display }}</td>
+                            <td>
+                                <form method="post" action="{% url 'decidir_cadastro' s.id %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    {% if s.status != 'ativo' %}
+                                        <button type="submit" name="acao" value="aprovar" class="btn btn-small btn-primary">Aprovar</button>
+                                    {% endif %}
+                                    {% if s.status != 'inativo' %}
+                                        <button type="submit" name="acao" value="inativar" class="btn btn-small btn-danger">Inativar</button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vazio">Nenhum solicitante cadastrado ainda.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

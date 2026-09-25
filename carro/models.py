@@ -685,3 +685,215 @@ class AtribuicaoVeiculo(models.Model):
         from django.core.exceptions import ValidationError
         if self.data_fim and self.data_fim < self.data_inicio:
             raise ValidationError('A data de fim não pode ser anterior ao início.')
+
+
+class Solicitante(models.Model):
+    """Pessoa que solicita veiculos por pre-agendamento. Tem login proprio
+    (papel 'solicitante') e cadastro parecido com o do motorista (inclui CNH,
+    pois pode dirigir o proprio veiculo cedido). O acesso so fica ativo apos o
+    gestor aprovar o cadastro (status)."""
+    STATUS_PENDENTE = 'pendente'
+    STATUS_ATIVO = 'ativo'
+    STATUS_INATIVO = 'inativo'
+    STATUS_CHOICES = [
+        (STATUS_PENDENTE, 'Aguardando aprovação'),
+        (STATUS_ATIVO, 'Ativo'),
+        (STATUS_INATIVO, 'Inativo'),
+    ]
+
+    organizacao = models.ForeignKey(
+        'contas.Organizacao', on_delete=models.CASCADE, related_name='solicitantes'
+    )
+    user = models.OneToOneField(
+        'auth.User', on_delete=models.CASCADE, related_name='solicitante'
+    )
+    nome = models.CharField(max_length=120)
+    setor = models.CharField(max_length=120, blank=True)
+    cpf = models.CharField(max_length=14, blank=True)
+    cnh = models.CharField('Número da CNH', max_length=20, blank=True)
+    cnh_categoria = models.CharField(
+        max_length=2, choices=Motorista.CNH_CATEGORIAS, blank=True)
+    cnh_validade = models.DateField(null=True, blank=True)
+    telefone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True)
+    status = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDENTE)
+    data_cadastro = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['nome']
+        indexes = [models.Index(fields=['organizacao', 'status'])]
+
+    def __str__(self):
+        return self.nome
+
+    @property
+    def aprovado(self):
+        return self.status == self.STATUS_ATIVO
+
+    def cnh_status(self):
+        """Status da validade da CNH (mesma regra dos documentos/motorista)."""
+        if not self.cnh_validade:
+            return None
+        dias = (self.cnh_validade - timezone.now().date()).days
+        if dias < 0:
+            cor, texto = 'red', '🔴 Vencida'
+        elif dias <= 30:
+            cor, texto = 'yellow', '🟡 Vence em breve'
+        else:
+            cor, texto = 'green', '🟢 Em dia'
+        return {'cor': cor, 'texto': texto, 'dias': dias}
+
+    def solicitacao_em_aberto(self):
+        """Solicitacao que ainda impede um novo pedido: aprovada/em uso sem
+        devolucao registrada. (A trava completa entra na Fase 2.)"""
+        return self.solicitacoes.filter(
+            status__in=(SolicitacaoVeiculo.STATUS_APROVADA,
+                        SolicitacaoVeiculo.STATUS_EM_USO)
+        ).order_by('-saida_prevista').first()
+
+
+class SolicitacaoVeiculo(models.Model):
+    """Pre-agendamento de veiculo. O solicitante pede (setor, periodo, destino,
+    se precisa de motorista); o gestor aprova escolhendo um veiculo livre no
+    periodo (e um motorista, se necessario) ou recusa."""
+    STATUS_PENDENTE = 'pendente'
+    STATUS_APROVADA = 'aprovada'
+    STATUS_RECUSADA = 'recusada'
+    STATUS_EM_USO = 'em_uso'
+    STATUS_DEVOLVIDA = 'devolvida'
+    STATUS_CANCELADA = 'cancelada'
+    STATUS_CHOICES = [
+        (STATUS_PENDENTE, 'Aguardando aprovação'),
+        (STATUS_APROVADA, 'Aprovada'),
+        (STATUS_RECUSADA, 'Recusada'),
+        (STATUS_EM_USO, 'Em uso'),
+        (STATUS_DEVOLVIDA, 'Devolvida'),
+        (STATUS_CANCELADA, 'Cancelada'),
+    ]
+    # Status que ocupam a agenda de um veiculo (para checagem de conflito).
+    STATUS_OCUPAM = (STATUS_APROVADA, STATUS_EM_USO)
+
+    organizacao = models.ForeignKey(
+        'contas.Organizacao', on_delete=models.CASCADE,
+        related_name='solicitacoes_veiculo'
+    )
+    solicitante = models.ForeignKey(
+        Solicitante, on_delete=models.CASCADE, related_name='solicitacoes'
+    )
+    setor = models.CharField(max_length=120)
+    saida_prevista = models.DateTimeField()
+    retorno_previsto = models.DateTimeField()
+    destino = models.CharField(max_length=200)
+    precisa_motorista = models.BooleanField(
+        default=False, help_text='O solicitante precisa de um motorista designado?')
+    justificativa = models.TextField(blank=True)
+
+    status = models.CharField(
+        max_length=12, choices=STATUS_CHOICES, default=STATUS_PENDENTE)
+
+    # Preenchidos na decisao do gestor.
+    veiculo = models.ForeignKey(
+        Veiculo, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='solicitacoes'
+    )
+    motorista = models.ForeignKey(
+        Motorista, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='solicitacoes'
+    )
+    atribuicao = models.ForeignKey(
+        AtribuicaoVeiculo, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='solicitacoes'
+    )
+    aprovado_por = models.ForeignKey(
+        'auth.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='solicitacoes_decididas'
+    )
+    data_decisao = models.DateTimeField(null=True, blank=True)
+    motivo_recusa = models.CharField(max_length=200, blank=True)
+
+    # Preenchidos na devolucao (Fase 2).
+    retorno_real = models.DateTimeField(null=True, blank=True)
+    km_final = models.PositiveIntegerField(null=True, blank=True)
+    obs_devolucao = models.TextField(blank=True)
+    registro_km = models.ForeignKey(
+        RegistroQuilometragem, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='solicitacoes'
+    )
+
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-saida_prevista', '-id']
+        indexes = [
+            models.Index(fields=['organizacao', 'status']),
+            models.Index(fields=['veiculo', 'saida_prevista']),
+        ]
+
+    def __str__(self):
+        return f'{self.solicitante} · {self.destino} ({self.saida_prevista:%d/%m/%Y %H:%M})'
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if (self.saida_prevista and self.retorno_previsto
+                and self.retorno_previsto <= self.saida_prevista):
+            raise ValidationError(
+                {'retorno_previsto': 'O retorno deve ser depois da saída.'})
+
+    @property
+    def aberta(self):
+        return self.status in (self.STATUS_APROVADA, self.STATUS_EM_USO)
+
+
+def _periodos_se_sobrepoem(inicio_a, fim_a, inicio_b, fim_b):
+    """True se dois intervalos [inicio, fim) se sobrepoem."""
+    return inicio_a < fim_b and inicio_b < fim_a
+
+
+def veiculos_disponiveis(organizacao, saida, retorno, excluir_id=None):
+    """Veiculos da organizacao livres no periodo [saida, retorno): sem
+    documento vencido e sem outra solicitacao aprovada/em uso que se sobreponha.
+    Retorna lista de Veiculo."""
+    ocupadas = (SolicitacaoVeiculo.objects
+                .filter(organizacao=organizacao,
+                        status__in=SolicitacaoVeiculo.STATUS_OCUPAM,
+                        veiculo__isnull=False,
+                        saida_prevista__lt=retorno,
+                        retorno_previsto__gt=saida))
+    if excluir_id:
+        ocupadas = ocupadas.exclude(pk=excluir_id)
+    ocupados_ids = set(ocupadas.values_list('veiculo_id', flat=True))
+
+    livres = []
+    for v in Veiculo.objects.filter(organizacao=organizacao, status='ativo'):
+        if v.id in ocupados_ids:
+            continue
+        if v.pendencias_documentais():
+            continue
+        livres.append(v)
+    return livres
+
+
+def motoristas_disponiveis(organizacao, saida, retorno, excluir_id=None):
+    """Motoristas ativos da organizacao com CNH em dia e sem outra solicitacao
+    aprovada/em uso que se sobreponha no periodo."""
+    ocupadas = (SolicitacaoVeiculo.objects
+                .filter(organizacao=organizacao,
+                        status__in=SolicitacaoVeiculo.STATUS_OCUPAM,
+                        motorista__isnull=False,
+                        saida_prevista__lt=retorno,
+                        retorno_previsto__gt=saida))
+    if excluir_id:
+        ocupadas = ocupadas.exclude(pk=excluir_id)
+    ocupados_ids = set(ocupadas.values_list('motorista_id', flat=True))
+
+    hoje = timezone.now().date()
+    livres = []
+    for m in Motorista.objects.filter(organizacao=organizacao, status='ativo'):
+        if m.id in ocupados_ids:
+            continue
+        if m.cnh_validade and m.cnh_validade < hoje:
+            continue
+        livres.append(m)
+    return livres

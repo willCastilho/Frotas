@@ -1,0 +1,69 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/formulario.css' %}">
+
+<div class="container">
+    <div class="form-header">
+        <a href="{% url 'solicitacoes_gestor' %}" class="btn-voltar">← Voltar</a>
+        <h1>Analisar solicitação</h1>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="form-card">
+        <h2>{{ sol.solicitante.nome }} · {{ sol.setor }}</h2>
+        <p><strong>Período:</strong> {{ sol.saida_prevista|date:"d/m/Y H:i" }} → {{ sol.retorno_previsto|date:"d/m/Y H:i" }}</p>
+        <p><strong>Destino:</strong> {{ sol.destino }}</p>
+        <p><strong>Motorista designado:</strong> {% if sol.precisa_motorista %}Sim, precisa{% else %}Não, o solicitante dirige{% endif %}</p>
+        {% if sol.justificativa %}<p><strong>Justificativa:</strong> {{ sol.justificativa }}</p>{% endif %}
+        {% if sol.precisa_motorista and sol.solicitante.cnh %}
+            <p><small>CNH do solicitante: {{ sol.solicitante.cnh }} ({{ sol.solicitante.cnh_categoria }})</small></p>
+        {% endif %}
+    </div>
+
+    {% if sem_veiculo %}
+        <div class="alert alert-error">
+            Nenhum veículo está livre nesse período (sem conflito de agenda e sem documento vencido).
+            Você pode recusar a solicitação ou liberar a agenda/regularizar um veículo.
+        </div>
+    {% else %}
+        <div class="form-card">
+            <h2>Aprovar e reservar</h2>
+            <form method="post" action="{% url 'aprovar_solicitacao' sol.id %}">
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+                {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% for erro in field.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
+                    </div>
+                {% endfor %}
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">✓ Aprovar e reservar</button>
+                </div>
+            </form>
+        </div>
+    {% endif %}
+
+    <div class="form-card">
+        <h2>Recusar</h2>
+        <form method="post" action="{% url 'recusar_solicitacao' sol.id %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="motivo">Motivo (opcional)</label>
+                <input type="text" name="motivo" id="motivo" maxlength="200">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-danger">✕ Recusar solicitação</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock content %}

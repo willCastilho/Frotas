@@ -22,6 +22,17 @@ from .frota import (
 )
 from .dashboard import dashboard
 from .relatorios import relatorios, exportar_custos
+from .agendamento import (
+    cadastro_solicitante,
+    minhas_solicitacoes,
+    nova_solicitacao,
+    cancelar_solicitacao,
+    solicitacoes_gestor,
+    aprovar_solicitacao,
+    recusar_solicitacao,
+    cadastros_solicitantes,
+    decidir_cadastro,
+)
 from .motoristas import (
     motoristas,
     detalhes_motorista,
@@ -63,4 +74,13 @@ __all__ = [
     'encerrar_atribuicao',
     'excluir_atribuicao',
     'relatorio_motoristas',
+    'cadastro_solicitante',
+    'minhas_solicitacoes',
+    'nova_solicitacao',
+    'cancelar_solicitacao',
+    'solicitacoes_gestor',
+    'aprovar_solicitacao',
+    'recusar_solicitacao',
+    'cadastros_solicitantes',
+    'decidir_cadastro',
 ]

@@ -37,4 +37,15 @@ urlpatterns = [
     path('atribuicao/nova/', carro_views.nova_atribuicao, name='nova_atribuicao'),
     path('atribuicao/<int:pk>/encerrar/', carro_views.encerrar_atribuicao, name='encerrar_atribuicao'),
     path('atribuicao/<int:pk>/excluir/', carro_views.excluir_atribuicao, name='excluir_atribuicao'),
+
+    # Pre-agendamento de veiculos
+    path('agendamento/cadastro/<uuid:token>/', carro_views.cadastro_solicitante, name='cadastro_solicitante'),
+    path('agendamento/minhas/', carro_views.minhas_solicitacoes, name='minhas_solicitacoes'),
+    path('agendamento/nova/', carro_views.nova_solicitacao, name='nova_solicitacao'),
+    path('agendamento/<int:pk>/cancelar/', carro_views.cancelar_solicitacao, name='cancelar_solicitacao'),
+    path('agendamento/gestor/', carro_views.solicitacoes_gestor, name='solicitacoes_gestor'),
+    path('agendamento/gestor/<int:pk>/aprovar/', carro_views.aprovar_solicitacao, name='aprovar_solicitacao'),
+    path('agendamento/gestor/<int:pk>/recusar/', carro_views.recusar_solicitacao, name='recusar_solicitacao'),
+    path('agendamento/gestor/cadastros/', carro_views.cadastros_solicitantes, name='cadastros_solicitantes'),
+    path('agendamento/gestor/cadastros/<int:pk>/decidir/', carro_views.decidir_cadastro, name='decidir_cadastro'),
 ]

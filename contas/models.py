@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -34,6 +36,9 @@ class Organizacao(models.Model):
         related_name='organizacoes')
     assinatura_ativa = models.BooleanField(default=True)
     assinatura_valida_ate = models.DateField(null=True, blank=True)
+
+    # Token do link de auto-cadastro de solicitantes nesta organizacao.
+    token_convite = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     class Meta:
         ordering = ['nome']
@@ -73,10 +78,12 @@ class PerfilUsuario(models.Model):
     PAPEL_ADMIN = 'admin'
     PAPEL_GESTOR = 'gestor'
     PAPEL_OPERADOR = 'operador'
+    PAPEL_SOLICITANTE = 'solicitante'
     PAPEL_CHOICES = [
         (PAPEL_ADMIN, 'Administrador do sistema'),
         (PAPEL_GESTOR, 'Gestor da organização'),
         (PAPEL_OPERADOR, 'Operador (motorista)'),
+        (PAPEL_SOLICITANTE, 'Solicitante (pré-agendamento)'),
     ]
     # Papeis que um gestor pode atribuir aos usuarios da propria organizacao.
     PAPEIS_DA_ORGANIZACAO = [
@@ -108,6 +115,10 @@ class PerfilUsuario(models.Model):
     @property
     def eh_operador(self):
         return self.papel == self.PAPEL_OPERADOR
+
+    @property
+    def eh_solicitante(self):
+        return self.papel == self.PAPEL_SOLICITANTE
 
     @property
     def pode_administrar(self):

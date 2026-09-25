@@ -1,0 +1,64 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>🗓️ Agendamentos de veículos</h1>
+        <p>Aprove ou recuse as solicitações e reserve os veículos.</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="painel-card">
+        <a href="{% url 'cadastros_solicitantes' %}" class="btn btn-secondary">
+            👤 Cadastros de solicitantes{% if pendentes_cadastro %} ({{ pendentes_cadastro }} a aprovar){% endif %}
+        </a>
+    </div>
+
+    <div class="filters-section">
+        <div class="filter-group">
+            <span class="filter-label">Status:</span>
+            {% for valor, rotulo in status_choices %}
+                <a href="?status={{ valor }}" class="filter-btn {% if status == valor %}active{% endif %}">{{ rotulo }}</a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="painel-card">
+        {% if solicitacoes %}
+            <table class="alertas-table">
+                <thead>
+                    <tr><th>Solicitante</th><th>Setor</th><th>Período</th><th>Destino</th><th>Motorista?</th><th>Veículo</th><th>Status</th><th>Ações</th></tr>
+                </thead>
+                <tbody>
+                    {% for s in solicitacoes %}
+                        <tr>
+                            <td>{{ s.solicitante.nome }}</td>
+                            <td>{{ s.setor }}</td>
+                            <td>{{ s.saida_prevista|date:"d/m/Y H:i" }}<br>→ {{ s.retorno_previsto|date:"d/m/Y H:i" }}</td>
+                            <td>{{ s.destino }}</td>
+                            <td>{% if s.precisa_motorista %}Sim{% else %}Não (dirige){% endif %}</td>
+                            <td>{% if s.veiculo %}{{ s.veiculo.marca }} {{ s.veiculo.modelo }}{% if s.motorista %}<br><small>{{ s.motorista.nome }}</small>{% endif %}{% else %}—{% endif %}</td>
+                            <td>{{ s.get_status_display }}{% if s.status == 'recusada' and s.motivo_recusa %}<br><small>{{ s.motivo_recusa }}</small>{% endif %}</td>
+                            <td>
+                                {% if s.status == 'pendente' %}
+                                    <a href="{% url 'aprovar_solicitacao' s.id %}" class="btn btn-small btn-primary">Analisar</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vazio">Nenhuma solicitação com este status.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

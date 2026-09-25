@@ -1,0 +1,66 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>🗓️ Minhas solicitações</h1>
+        <p>Olá, {{ solicitante.nome }} · {{ solicitante.setor }}</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    {% if not solicitante.aprovado %}
+        <div class="alert alert-warning">
+            ⏳ Seu cadastro está <strong>aguardando aprovação</strong> do gestor de frotas.
+            Você poderá solicitar veículos assim que ele for liberado.
+        </div>
+    {% else %}
+        <div class="painel-card">
+            <a href="{% url 'nova_solicitacao' %}" class="btn btn-primary">+ Nova solicitação</a>
+        </div>
+    {% endif %}
+
+    <div class="painel-card">
+        <h2>Histórico de solicitações</h2>
+        {% if solicitacoes %}
+            <table class="alertas-table">
+                <thead>
+                    <tr><th>Saída</th><th>Retorno</th><th>Destino</th><th>Veículo</th><th>Motorista</th><th>Status</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for s in solicitacoes %}
+                        <tr>
+                            <td>{{ s.saida_prevista|date:"d/m/Y H:i" }}</td>
+                            <td>{{ s.retorno_previsto|date:"d/m/Y H:i" }}</td>
+                            <td>{{ s.destino }}</td>
+                            <td>{% if s.veiculo %}{{ s.veiculo.marca }} {{ s.veiculo.modelo }}{% if s.veiculo.placa %} · {{ s.veiculo.placa }}{% endif %}{% else %}—{% endif %}</td>
+                            <td>{% if s.precisa_motorista %}{{ s.motorista|default:"a definir" }}{% else %}Dirijo eu{% endif %}</td>
+                            <td>
+                                {{ s.get_status_display }}
+                                {% if s.status == 'recusada' and s.motivo_recusa %}<br><small>{{ s.motivo_recusa }}</small>{% endif %}
+                            </td>
+                            <td>
+                                {% if s.status == 'pendente' or s.status == 'aprovada' %}
+                                    <form method="post" action="{% url 'cancelar_solicitacao' s.id %}" onsubmit="return confirm('Cancelar esta solicitação?')">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-small btn-danger">Cancelar</button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vazio">Você ainda não fez solicitações.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

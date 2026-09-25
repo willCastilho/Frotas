@@ -8,10 +8,14 @@ from carro.models import (
     Motorista,
     PlanoManutencao,
     RegistroQuilometragem,
+    Solicitante,
+    SolicitacaoVeiculo,
     Veiculo,
 )
 
 _DATE = forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d')
+_DATETIME = forms.DateTimeInput(
+    attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M')
 
 
 class VeiculoForm(forms.ModelForm):
@@ -189,3 +193,88 @@ class AtribuicaoVeiculoForm(forms.ModelForm):
         if inicio and fim and fim < inicio:
             self.add_error('data_fim', 'A data de fim não pode ser anterior ao início.')
         return dados
+
+
+class SolicitanteSignupForm(forms.Form):
+    """Auto-cadastro do solicitante: cria login + cadastro (status pendente)."""
+    username = forms.CharField(max_length=150, label='Usuário (login)')
+    nome = forms.CharField(max_length=120, label='Nome completo')
+    email = forms.EmailField(label='E-mail')
+    setor = forms.CharField(max_length=120, label='Setor')
+    telefone = forms.CharField(max_length=20, required=False, label='Telefone')
+    cpf = forms.CharField(max_length=14, required=False, label='CPF')
+    cnh = forms.CharField(max_length=20, required=False, label='Número da CNH')
+    cnh_categoria = forms.ChoiceField(
+        choices=[('', '---')] + list(Motorista.CNH_CATEGORIAS),
+        required=False, label='Categoria da CNH')
+    cnh_validade = forms.DateField(
+        required=False, widget=_DATE, label='Validade da CNH')
+    password1 = forms.CharField(widget=forms.PasswordInput, label='Senha')
+    password2 = forms.CharField(
+        widget=forms.PasswordInput, label='Confirme a senha')
+
+    def clean_username(self):
+        from django.contrib.auth.models import User
+        username = self.cleaned_data['username']
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError('Este usuário já existe.')
+        return username
+
+    def clean(self):
+        dados = super().clean()
+        if dados.get('password1') != dados.get('password2'):
+            self.add_error('password2', 'As senhas não conferem.')
+        return dados
+
+
+class SolicitacaoForm(forms.ModelForm):
+    """Pedido de veiculo feito pelo solicitante."""
+    class Meta:
+        model = SolicitacaoVeiculo
+        fields = ['setor', 'saida_prevista', 'retorno_previsto', 'destino',
+                  'precisa_motorista', 'justificativa']
+        widgets = {
+            'saida_prevista': _DATETIME,
+            'retorno_previsto': _DATETIME,
+            'justificativa': forms.Textarea(attrs={'rows': 3}),
+        }
+        labels = {
+            'saida_prevista': 'Saída prevista',
+            'retorno_previsto': 'Retorno previsto',
+            'precisa_motorista': 'Preciso de um motorista designado',
+        }
+
+    def clean(self):
+        dados = super().clean()
+        saida = dados.get('saida_prevista')
+        retorno = dados.get('retorno_previsto')
+        if saida and retorno and retorno <= saida:
+            self.add_error('retorno_previsto', 'O retorno deve ser depois da saída.')
+        return dados
+
+
+class AprovarSolicitacaoForm(forms.Form):
+    """Aprovacao do gestor: escolhe um veiculo livre (e motorista, se preciso)."""
+    veiculo = forms.ModelChoiceField(
+        queryset=Veiculo.objects.none(), label='Veículo disponível')
+    motorista = forms.ModelChoiceField(
+        queryset=Motorista.objects.none(), required=False,
+        label='Motorista (se necessário)')
+
+    def __init__(self, *args, veiculos=None, motoristas=None,
+                 precisa_motorista=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['veiculo'].queryset = veiculos if veiculos is not None \
+            else Veiculo.objects.none()
+        self.fields['motorista'].queryset = motoristas if motoristas is not None \
+            else Motorista.objects.none()
+        self.precisa_motorista = precisa_motorista
+        if precisa_motorista:
+            self.fields['motorista'].required = True
+
+    def clean_motorista(self):
+        motorista = self.cleaned_data.get('motorista')
+        if self.precisa_motorista and not motorista:
+            raise forms.ValidationError(
+                'Esta solicitação pediu motorista; selecione um disponível.')
+        return motorista

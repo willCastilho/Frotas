@@ -63,4 +63,10 @@ class AcessoMiddleware:
         if real.eh_admin and efetivo is None:
             if not any(path.startswith(p) for p in self.ADMIN_PATHS):
                 return redirect(reverse('painel_admin'))
+
+        # Solicitante so acessa o modulo de pre-agendamento.
+        perfil = efetivo or real
+        if perfil and perfil.eh_solicitante:
+            if not path.startswith('/agendamento/'):
+                return redirect(reverse('minhas_solicitacoes'))
         return None

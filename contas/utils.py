@@ -72,6 +72,14 @@ def trava_por_pendencia(request, veiculo):
     return redirect('detalhes_veiculo', veiculo_id=veiculo.id)
 
 
+def solicitante_do(user):
+    """Cadastro de Solicitante ligado ao usuario logado (perfil efetivo)."""
+    perfil = perfil_do(user)
+    if not perfil or not perfil.eh_solicitante:
+        return None
+    return getattr(perfil.user, 'solicitante', None)
+
+
 def exige_gestor(view):
     """Restringe a acao ao gestor da organizacao (administracao da conta)."""
     @wraps(view)
@@ -79,6 +87,18 @@ def exige_gestor(view):
         perfil = perfil_do(request.user)
         if not perfil or not perfil.pode_administrar:
             messages.error(request, 'Apenas o gestor da organização pode fazer isso.')
+            return redirect('home')
+        return view(request, *args, **kwargs)
+    return wrapper
+
+
+def exige_solicitante(view):
+    """Restringe a acao ao solicitante (modulo de pre-agendamento)."""
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        perfil = perfil_do(request.user)
+        if not perfil or not perfil.eh_solicitante:
+            messages.error(request, 'Área exclusiva de solicitantes.')
             return redirect('home')
         return view(request, *args, **kwargs)
     return wrapper

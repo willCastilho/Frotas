@@ -17,7 +17,7 @@
             <a href="{% url 'logs_sistema' %}">Logs do sistema</a>
         </div>
     {% elif perfil_efetivo %}
-        <a href="{% if perfil_efetivo.eh_gestor %}{% url 'dashboard' %}{% else %}{% url 'home' %}{% endif %}" class="topbar-brand">
+        <a href="{% if perfil_efetivo.eh_gestor %}{% url 'dashboard' %}{% elif perfil_efetivo.eh_solicitante %}{% url 'minhas_solicitacoes' %}{% else %}{% url 'home' %}{% endif %}" class="topbar-brand">
             {% if perfil_efetivo.organizacao.logo %}
                 <img src="{{ perfil_efetivo.organizacao.logo }}" alt="{{ perfil_efetivo.organizacao.nome }}" class="topbar-logo">
                 <span>{{ perfil_efetivo.organizacao.nome }}</span>
@@ -30,10 +30,14 @@
                 <a href="{% url 'dashboard' %}">Dashboard</a>
                 <a href="{% url 'home' %}">Veículos</a>
                 <a href="{% url 'motoristas' %}">Motoristas</a>
+                <a href="{% url 'solicitacoes_gestor' %}">Agendamentos</a>
                 <a href="{% url 'relatorios' %}">Relatórios</a>
                 <a href="{% url 'usuarios' %}">Usuários</a>
                 <a href="{% url 'logs' %}">Logs</a>
                 <a href="{% url 'conta' %}">Conta</a>
+            {% elif perfil_efetivo.eh_solicitante %}
+                <a href="{% url 'minhas_solicitacoes' %}">Minhas solicitações</a>
+                <a href="{% url 'nova_solicitacao' %}">Nova solicitação</a>
             {% else %}
                 <a href="{% url 'home' %}">Meu veículo</a>
             {% endif %}

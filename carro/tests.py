@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from carro.forms import CustoForm, VeiculoForm
@@ -1113,3 +1113,117 @@ class TaxaDocumentoCustoTests(LogadoMixin, TestCase):
         cid = d.custo_id
         d.delete()
         self.assertFalse(Custo.objects.filter(id=cid).exists())
+
+
+class AgendamentoTests(LogadoMixin, TestCase):
+    """Modulo de pre-agendamento: cadastro, solicitacao, aprovacao, conflito."""
+
+    def setUp(self):
+        super().setUp()  # self.user = gestor da self.org
+        from carro.models import Solicitante
+        self.Solicitante = Solicitante
+
+    def _solicitante(self, status='ativo', **kw):
+        from carro.models import Solicitante
+        u = User.objects.create_user('sol1', password='senha12345')
+        PerfilUsuario.objects.create(
+            user=u, organizacao=self.org,
+            papel=PerfilUsuario.PAPEL_SOLICITANTE)
+        return Solicitante.objects.create(
+            organizacao=self.org, user=u, nome='Sol Um', setor='TI',
+            status=status, **kw)
+
+    def test_autocadastro_cria_solicitante_pendente(self):
+        from carro.models import Solicitante
+        c = Client()
+        r = c.post(reverse('cadastro_solicitante', args=[self.org.token_convite]), {
+            'username': 'novo.sol', 'nome': 'Novo', 'email': 'n@ex.com',
+            'setor': 'RH', 'password1': 'segredo12345', 'password2': 'segredo12345',
+        })
+        self.assertEqual(r.status_code, 302)
+        s = Solicitante.objects.get(user__username='novo.sol')
+        self.assertEqual(s.status, Solicitante.STATUS_PENDENTE)
+        self.assertTrue(s.user.perfil.eh_solicitante)
+
+    def test_token_invalido_404(self):
+        import uuid
+        c = Client()
+        r = c.get(reverse('cadastro_solicitante', args=[uuid.uuid4()]))
+        self.assertEqual(r.status_code, 404)
+
+    def test_pendente_nao_solicita(self):
+        s = self._solicitante(status='pendente')
+        c = Client(); c.login(username='sol1', password='senha12345')
+        r = c.post(reverse('nova_solicitacao'), {
+            'setor': 'TI', 'saida_prevista': '2026-10-01T08:00',
+            'retorno_previsto': '2026-10-01T17:00', 'destino': 'X'}, follow=True)
+        from carro.models import SolicitacaoVeiculo
+        self.assertEqual(SolicitacaoVeiculo.objects.count(), 0)
+
+    def test_fluxo_pedido_e_aprovacao(self):
+        from carro.models import SolicitacaoVeiculo
+        s = self._solicitante()
+        veic = self.cria_veiculo(placa='AAA1234')
+        c = Client(); c.login(username='sol1', password='senha12345')
+        c.post(reverse('nova_solicitacao'), {
+            'setor': 'TI', 'saida_prevista': '2026-10-01T08:00',
+            'retorno_previsto': '2026-10-01T17:00', 'destino': 'Reunião'})
+        sol = SolicitacaoVeiculo.objects.get(solicitante=s)
+        self.assertEqual(sol.status, 'pendente')
+        # gestor aprova
+        self.client.post(reverse('aprovar_solicitacao', args=[sol.id]),
+                         {'veiculo': veic.id})
+        sol.refresh_from_db()
+        self.assertEqual(sol.status, 'aprovada')
+        self.assertEqual(sol.veiculo_id, veic.id)
+
+    def test_conflito_de_periodo(self):
+        from carro.models import SolicitacaoVeiculo, veiculos_disponiveis
+        from django.utils import timezone
+        import datetime
+        s = self._solicitante()
+        veic = self.cria_veiculo(placa='BBB1234')
+        ini = timezone.make_aware(datetime.datetime(2026, 10, 1, 8, 0))
+        fim = timezone.make_aware(datetime.datetime(2026, 10, 1, 17, 0))
+        SolicitacaoVeiculo.objects.create(
+            organizacao=self.org, solicitante=s, setor='TI',
+            saida_prevista=ini, retorno_previsto=fim, destino='A',
+            status='aprovada', veiculo=veic)
+        # periodo que se sobrepoe -> veiculo indisponivel
+        meio = timezone.make_aware(datetime.datetime(2026, 10, 1, 12, 0))
+        tarde = timezone.make_aware(datetime.datetime(2026, 10, 1, 20, 0))
+        livres = veiculos_disponiveis(self.org, meio, tarde)
+        self.assertNotIn(veic.id, [v.id for v in livres])
+
+    def test_veiculo_com_doc_vencido_indisponivel(self):
+        from carro.models import veiculos_disponiveis, Documento
+        from django.utils import timezone
+        import datetime
+        veic = self.cria_veiculo(placa='CCC1234')
+        Documento.objects.create(
+            veiculo=veic, tipo='licenciamento',
+            vencimento=date.today() - timedelta(days=5))
+        ini = timezone.make_aware(datetime.datetime(2026, 10, 1, 8, 0))
+        fim = timezone.make_aware(datetime.datetime(2026, 10, 1, 17, 0))
+        livres = veiculos_disponiveis(self.org, ini, fim)
+        self.assertNotIn(veic.id, [v.id for v in livres])
+
+    def test_aprovacao_com_motorista_cria_atribuicao(self):
+        from carro.models import SolicitacaoVeiculo, Motorista, AtribuicaoVeiculo
+        s = self._solicitante()
+        veic = self.cria_veiculo(placa='DDD1234')
+        mot = Motorista.objects.create(organizacao=self.org, nome='Mot X', status='ativo')
+        c = Client(); c.login(username='sol1', password='senha12345')
+        c.post(reverse('nova_solicitacao'), {
+            'setor': 'TI', 'saida_prevista': '2026-10-02T08:00',
+            'retorno_previsto': '2026-10-02T17:00', 'destino': 'Y',
+            'precisa_motorista': 'on'})
+        sol = SolicitacaoVeiculo.objects.get(solicitante=s)
+        self.assertTrue(sol.precisa_motorista)
+        self.client.post(reverse('aprovar_solicitacao', args=[sol.id]),
+                         {'veiculo': veic.id, 'motorista': mot.id})
+        sol.refresh_from_db()
+        self.assertEqual(sol.status, 'aprovada')
+        self.assertIsNotNone(sol.atribuicao_id)
+        self.assertTrue(AtribuicaoVeiculo.objects.filter(
+            veiculo=veic, motorista=mot).exists())
