@@ -47,6 +47,47 @@
         </div>
     </div>
 
+    <div class="painel-grid">
+        <div class="painel-card">
+            <h2>🚗 Reservados hoje</h2>
+            {% if reservas_hoje %}
+                <table class="alertas-table">
+                    <thead><tr><th>Veículo</th><th>Para</th><th>Horário</th></tr></thead>
+                    <tbody>
+                        {% for r in reservas_hoje %}
+                            <tr>
+                                <td><a href="{% url 'detalhes_solicitacao' r.id %}">{{ r.veiculo.marca }} {{ r.veiculo.modelo }}{% if r.veiculo.placa %} · {{ r.veiculo.placa }}{% endif %}</a></td>
+                                <td>{{ r.solicitante.nome }}{% if r.precisa_motorista and r.motorista %}<br><small>Motorista: {{ r.motorista.nome }}</small>{% endif %}</td>
+                                <td>{{ r.saida_prevista|date:"H:i" }} → {{ r.retorno_previsto|date:"H:i" }}{% if r.status == 'em_uso' %}<br><small class="variacao-yellow">em uso</small>{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="vazio">Nenhum veículo reservado hoje.</p>
+            {% endif %}
+        </div>
+
+        <div class="painel-card">
+            <h2>📋 Escala de hoje</h2>
+            {% if escala_hoje %}
+                <table class="alertas-table">
+                    <thead><tr><th>Motorista</th><th>Veículo</th></tr></thead>
+                    <tbody>
+                        {% for e in escala_hoje %}
+                            <tr>
+                                <td><a href="{% url 'detalhes_motorista' e.motorista.id %}">{{ e.motorista.nome }}</a></td>
+                                <td><a href="{% url 'detalhes_veiculo' e.veiculo.id %}">{{ e.veiculo.marca }} {{ e.veiculo.modelo }}{% if e.veiculo.placa %} · {{ e.veiculo.placa }}{% endif %}</a></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="vazio">Nenhuma escala definida para hoje. <a href="{% url 'escala' %}">Montar escala</a></p>
+            {% endif %}
+        </div>
+    </div>
+
     {% if patrimonio %}
     <div class="painel-card patrimonio-card">
         <h2>Patrimônio da frota</h2>
@@ -61,12 +102,17 @@
     <div class="dash-colunas">
         <!-- Coluna esquerda: agenda vertical de pendências -->
         <div class="painel-card agenda-card">
-            <h2>⏱️ Próximos 90 dias</h2>
-            <p class="agenda-sub">Documentos e manutenções a vencer</p>
-            {% if agenda_90 %}
+            <h2>⏱️ Próximos {{ agenda_dias }} dias</h2>
+            <p class="agenda-sub">Documentos, manutenções e escala · críticos fixos até 90 dias</p>
+            <div class="agenda-periodos">
+                {% for d in periodos_agenda %}
+                    <a href="?agenda_dias={{ d }}&periodo={{ periodo_preset }}" class="chip {% if d == agenda_dias %}chip-ativo{% endif %}">{% if d == 7 %}1 sem{% else %}{{ d }}d{% endif %}</a>
+                {% endfor %}
+            </div>
+            {% if agenda %}
                 <ul class="agenda-lista">
-                    {% for i in agenda_90 %}
-                        <li class="agenda-item agenda-{{ i.cor }}">
+                    {% for i in agenda %}
+                        <li class="agenda-item agenda-{{ i.cor }}{% if i.critico %} agenda-critico{% endif %}">
                             <div class="agenda-quando">
                                 {% if i.data %}
                                     <span class="agenda-dia">{{ i.data|date:"d/m" }}</span>
@@ -81,7 +127,7 @@
                                 <span class="agenda-detalhe variacao-{{ i.cor }}">
                                     {% if i.data %}
                                         {% if i.dias < 0 %}Vencido há {{ i.dias|stringformat:"d"|cut:"-" }} dias
-                                        {% elif i.dias == 0 %}Vence hoje
+                                        {% elif i.dias == 0 %}Hoje
                                         {% else %}Faltam {{ i.dias }} dias{% endif %}
                                     {% else %}{{ i.detalhe }}{% endif %}
                                 </span>
@@ -90,7 +136,7 @@
                     {% endfor %}
                 </ul>
             {% else %}
-                <p class="vazio">Nada vencendo nos próximos 90 dias. 🎉</p>
+                <p class="vazio">Nada nos próximos {{ agenda_dias }} dias. 🎉</p>
             {% endif %}
         </div>
 

@@ -246,6 +246,11 @@
 .agenda-yellow { border-left-color: var(--yellow); }
 .agenda-green  { border-left-color: var(--green); }
 .agenda-gray   { border-left-color: var(--gray); }
+.agenda-escala { border-left-color: #34d399; }
+.agenda-critico { box-shadow: inset 0 0 0 1px rgba(248,113,113,.35); }
+.variacao-escala { color: #34d399; }
+.agenda-periodos { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.agenda-periodos .chip { padding: 4px 10px; font-size: .78rem; }
 .agenda-quando {
     display: flex;
     flex-direction: column;

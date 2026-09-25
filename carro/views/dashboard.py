@@ -7,8 +7,17 @@ from django.db.models.functions import TruncMonth
 from django.shortcuts import render
 from django.utils import timezone
 
-from carro.models import Custo, Documento, PlanoManutencao, Veiculo
+from carro.models import (
+    Custo,
+    Documento,
+    EscalaDiaria,
+    PlanoManutencao,
+    SolicitacaoVeiculo,
+    Veiculo,
+)
 from contas.utils import exige_gestor, organizacao_do
+
+PERIODOS_AGENDA = [7, 15, 30, 45, 60, 90]
 
 
 MESES_LONGOS_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -77,42 +86,58 @@ def _patrimonio(org):
     }
 
 
-def _agenda_90_dias(org, kms):
-    """Painel unico de pendencias: documentos e manutencoes que vencem nos
-    proximos 90 dias (por data) e manutencoes ja em alerta por quilometragem
-    (sem data). Ordena por data; os itens so-por-km vao ao fim, por severidade."""
+def _agenda(org, kms, dias):
+    """Agenda vertical: documentos e manutencoes a vencer, alertas por km, e a
+    escala futura, dentro da janela de `dias`. Eventos criticos (vencidos /
+    atrasados) ficam fixos ate 90 dias, mesmo com janela menor."""
     hoje = timezone.now().date()
-    limite = hoje + timedelta(days=90)
+    fim = hoje + timedelta(days=dias)
+    fim_critico = hoje + timedelta(days=90)
     itens = []
 
     for doc in Documento.objects.filter(
-            veiculo__organizacao=org, vencimento__lte=limite).select_related('veiculo'):
+            veiculo__organizacao=org, vencimento__lte=fim_critico
+            ).select_related('veiculo'):
         st = doc.status()
-        itens.append({
-            'veiculo': doc.veiculo, 'veiculo_id': doc.veiculo_id,
-            'titulo': doc.get_tipo_display(), 'categoria': 'Documento',
-            'data': doc.vencimento, 'dias': st['dias'], 'cor': st['cor'],
-            'detalhe': st['detalhe'],
-        })
+        critico = st['cor'] == 'red'
+        if doc.vencimento <= fim or critico:
+            itens.append({
+                'veiculo': doc.veiculo, 'veiculo_id': doc.veiculo_id,
+                'titulo': doc.get_tipo_display(), 'categoria': 'Documento',
+                'data': doc.vencimento, 'dias': st['dias'], 'cor': st['cor'],
+                'detalhe': st['detalhe'], 'critico': critico})
 
     for plano in PlanoManutencao.objects.filter(
             veiculo__organizacao=org).select_related('veiculo'):
         st = plano.status(kms.get(plano.veiculo_id))
+        critico = st['cor'] == 'red'
         prox = plano.proxima_data
-        tem_data = prox is not None and prox <= limite
-        # Inclui se vence por data em ate 90 dias, ou ja esta em alerta por km.
-        if not tem_data and st['cor'] not in ('red', 'yellow'):
+        tem_data = prox is not None and prox <= fim_critico
+        if tem_data and (prox <= fim or critico):
+            data, dias_i = prox, (prox - hoje).days
+        elif not tem_data and st['cor'] in ('red', 'yellow'):
+            # Alerta so por quilometragem (sem data prevista).
+            data, dias_i = None, None
+        else:
             continue
         itens.append({
             'veiculo': plano.veiculo, 'veiculo_id': plano.veiculo_id,
             'titulo': plano.descricao, 'categoria': 'Manutenção',
-            'data': prox if tem_data else None,
-            'dias': (prox - hoje).days if tem_data else None,
-            'cor': st['cor'], 'detalhe': st['detalhe'],
-        })
+            'data': data, 'dias': dias_i, 'cor': st['cor'],
+            'detalhe': st['detalhe'], 'critico': critico})
 
-    ordem_cor = {'red': 0, 'yellow': 1, 'green': 2, 'gray': 3}
+    for e in EscalaDiaria.objects.filter(
+            organizacao=org, data__gt=hoje, data__lte=fim
+            ).select_related('veiculo', 'motorista'):
+        itens.append({
+            'veiculo': e.veiculo, 'veiculo_id': e.veiculo_id,
+            'titulo': e.motorista.nome, 'categoria': 'Escala',
+            'data': e.data, 'dias': (e.data - hoje).days, 'cor': 'escala',
+            'detalhe': 'Escalado', 'critico': False})
+
+    ordem_cor = {'red': 0, 'yellow': 1, 'green': 2, 'escala': 3, 'gray': 4}
     itens.sort(key=lambda i: (
+        0 if i['critico'] else 1,
         0 if i['data'] else 1,
         i['data'].toordinal() if i['data'] else 0,
         ordem_cor.get(i['cor'], 9),
@@ -214,6 +239,26 @@ def dashboard(request):
 
     kms = _km_por_veiculo(org)
 
+    # Janela da agenda (padrao 30 dias).
+    try:
+        agenda_dias = int(request.GET.get('agenda_dias', 30))
+    except (TypeError, ValueError):
+        agenda_dias = 30
+    if agenda_dias not in PERIODOS_AGENDA:
+        agenda_dias = 30
+
+    hoje = timezone.now().date()
+    reservas_hoje = (SolicitacaoVeiculo.objects
+                     .filter(organizacao=org, status__in=('aprovada', 'em_uso'),
+                             saida_prevista__date__lte=hoje,
+                             retorno_previsto__date__gte=hoje)
+                     .select_related('veiculo', 'solicitante', 'motorista')
+                     .order_by('saida_prevista'))
+    escala_hoje = (EscalaDiaria.objects
+                   .filter(organizacao=org, data=hoje)
+                   .select_related('veiculo', 'motorista')
+                   .order_by('veiculo__marca', 'veiculo__modelo'))
+
     context = {
         'total_veiculos': Veiculo.objects.filter(organizacao=org).count(),
         'ativos': Veiculo.objects.filter(organizacao=org, status='ativo').count(),
@@ -231,6 +276,10 @@ def dashboard(request):
         'custo_documentacao': custo_documentacao,
         'ano_corrente': timezone.now().year,
         'ranking': ranking,
-        'agenda_90': _agenda_90_dias(org, kms),
+        'agenda': _agenda(org, kms, agenda_dias),
+        'agenda_dias': agenda_dias,
+        'periodos_agenda': PERIODOS_AGENDA,
+        'reservas_hoje': reservas_hoje,
+        'escala_hoje': escala_hoje,
     }
     return render(request, 'dashboard.html', context)

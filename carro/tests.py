@@ -435,11 +435,11 @@ class Agenda90Tests(LogadoMixin, TestCase):
         Documento.objects.create(veiculo=v, tipo='seguro',
                                  vencimento=date.today() + timedelta(days=200))
         r = self.client.get(reverse('dashboard'))
-        agenda = r.context['agenda_90']
+        agenda = r.context['agenda']
         categorias = {i['categoria'] for i in agenda}
         self.assertEqual(categorias, {'Documento', 'Manutenção'})
         self.assertEqual(len(agenda), 2)  # o seguro de 200 dias fica de fora
-        self.assertContains(r, 'Próximos 90 dias')
+        self.assertContains(r, 'Próximos 30 dias')
         # O painel separado de alertas de manutencao foi consolidado na agenda.
         self.assertNotContains(r, 'Alertas de manutenção')
 
@@ -451,11 +451,63 @@ class Agenda90Tests(LogadoMixin, TestCase):
             km_referencia=0)
         RegistroQuilometragem.objects.create(
             veiculo=v, data=date.today(), quilometragem=15000)
-        agenda = self.client.get(reverse('dashboard')).context['agenda_90']
+        agenda = self.client.get(reverse('dashboard')).context['agenda']
         itens = [i for i in agenda if i['titulo'] == 'Troca de óleo']
         self.assertEqual(len(itens), 1)
         self.assertIsNone(itens[0]['data'])   # sem data: alerta por km
         self.assertEqual(itens[0]['cor'], 'red')
+
+    def test_janela_configuravel(self):
+        v = self.cria_veiculo()
+        Documento.objects.create(veiculo=v, tipo='ipva',
+                                 vencimento=date.today() + timedelta(days=45))
+        # Padrao 30 dias: nao aparece.
+        agenda = self.client.get(reverse('dashboard')).context['agenda']
+        self.assertEqual(len(agenda), 0)
+        # 60 dias: aparece.
+        agenda = self.client.get(reverse('dashboard'),
+                                 {'agenda_dias': 60}).context['agenda']
+        self.assertEqual(len(agenda), 1)
+
+    def test_evento_critico_fixo_alem_da_janela(self):
+        v = self.cria_veiculo()
+        # Documento vencido (critico): aparece mesmo na janela de 7 dias.
+        Documento.objects.create(veiculo=v, tipo='ipva',
+                                 vencimento=date.today() - timedelta(days=3))
+        agenda = self.client.get(reverse('dashboard'),
+                                 {'agenda_dias': 7}).context['agenda']
+        self.assertEqual(len(agenda), 1)
+        self.assertTrue(agenda[0]['critico'])
+
+    def test_escala_futura_na_agenda(self):
+        from carro.models import EscalaDiaria, Motorista
+        v = self.cria_veiculo()
+        m = Motorista.objects.create(organizacao=self.org, nome='Fut')
+        EscalaDiaria.objects.create(
+            organizacao=self.org, data=date.today() + timedelta(days=3),
+            veiculo=v, motorista=m)
+        agenda = self.client.get(reverse('dashboard')).context['agenda']
+        self.assertTrue(any(i['categoria'] == 'Escala' for i in agenda))
+
+    def test_reservados_e_escala_hoje(self):
+        from carro.models import (EscalaDiaria, Motorista, Solicitante,
+                                  SolicitacaoVeiculo)
+        from django.utils import timezone
+        v = self.cria_veiculo()
+        m = Motorista.objects.create(organizacao=self.org, nome='Hoje')
+        EscalaDiaria.objects.create(
+            organizacao=self.org, data=date.today(), veiculo=v, motorista=m)
+        u = User.objects.create_user('solx', password='x')
+        s = Solicitante.objects.create(
+            organizacao=self.org, user=u, nome='Sol X', status='ativo')
+        SolicitacaoVeiculo.objects.create(
+            organizacao=self.org, solicitante=s, setor='TI',
+            saida_prevista=timezone.now(),
+            retorno_previsto=timezone.now() + timedelta(hours=4),
+            destino='X', status='aprovada', veiculo=v)
+        ctx = self.client.get(reverse('dashboard')).context
+        self.assertEqual(len(ctx['reservas_hoje']), 1)
+        self.assertEqual(len(ctx['escala_hoje']), 1)
 
 
 class DashboardTests(LogadoMixin, TestCase):
