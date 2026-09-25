@@ -306,3 +306,42 @@
 .cal-ev-escala { border-left-color: #34d399; }
 .cal-legenda { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
 .cal-legenda .cal-ev { display: inline-block; white-space: nowrap; }
+
+/* Carrossel horizontal (agenda do dashboard) */
+.carrossel { display: flex; align-items: stretch; gap: 8px; }
+.carrossel-track {
+    display: flex; gap: 12px; flex: 1; overflow-x: auto;
+    scroll-snap-type: x proximity; scroll-behavior: smooth;
+    padding: 2px 2px 6px; scrollbar-width: none;
+}
+.carrossel-track::-webkit-scrollbar { display: none; }
+.carrossel-btn {
+    flex: 0 0 auto; width: 34px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-muted);
+    border-radius: var(--radius-xs); cursor: pointer; font-size: 1.4rem;
+    line-height: 1;
+}
+.carrossel-btn:hover { border-color: var(--primary); color: var(--primary); }
+.agenda-slide {
+    flex: 0 0 236px; scroll-snap-align: start;
+    background: var(--surface-2); border-radius: var(--radius-sm);
+    border-left-width: 4px; border-left-style: solid;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;
+    min-height: 104px;
+}
+.agenda-slide-topo {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: .75rem; color: var(--text-muted);
+}
+.agenda-slide .agenda-cat {
+    text-transform: uppercase; letter-spacing: .03em; font-size: .68rem;
+}
+.agenda-slide .agenda-veiculo {
+    font-weight: 600; color: var(--text); text-decoration: none;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.agenda-slide .agenda-titulo {
+    font-size: .82rem; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.agenda-slide .agenda-detalhe { font-size: .8rem; font-weight: 600; margin-top: auto; }

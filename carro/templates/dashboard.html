@@ -86,20 +86,19 @@
             {% endfor %}
         </div>
         {% if agenda %}
-            <ul class="agenda-lista agenda-lista-larga">
-                {% for i in agenda %}
-                    <li class="agenda-item agenda-{{ i.cor }}{% if i.critico %} agenda-critico{% endif %}">
-                        <div class="agenda-quando">
-                            {% if i.data %}
-                                <span class="agenda-dia">{{ i.data|date:"d/m" }}</span>
-                                <span class="agenda-ano">{{ i.data|date:"Y" }}</span>
-                            {% else %}
-                                <span class="agenda-dia">km</span>
-                            {% endif %}
-                        </div>
-                        <div class="agenda-info">
-                            <a href="{% url 'detalhes_veiculo' i.veiculo_id %}" class="agenda-veiculo">{{ i.veiculo.marca }} {{ i.veiculo.modelo }}{% if i.veiculo.placa %} · {{ i.veiculo.placa }}{% endif %}</a>
-                            <span class="agenda-titulo">{{ i.categoria }} · {{ i.titulo }}</span>
+            <div class="carrossel">
+                <button type="button" class="carrossel-btn" data-alvo="agendaTrack" data-dir="-1" aria-label="Anterior">‹</button>
+                <div class="carrossel-track" id="agendaTrack">
+                    {% for i in agenda %}
+                        <div class="agenda-slide agenda-{{ i.cor }}{% if i.critico %} agenda-critico{% endif %}">
+                            <div class="agenda-slide-topo">
+                                <span class="agenda-quando-linha">
+                                    {% if i.data %}{{ i.data|date:"d/m/Y" }}{% else %}por km{% endif %}
+                                </span>
+                                <span class="agenda-cat">{{ i.categoria }}</span>
+                            </div>
+                            <a href="{% url 'detalhes_veiculo' i.veiculo_id %}" class="agenda-veiculo">{{ i.veiculo.identificacao_curta }}</a>
+                            <span class="agenda-titulo">{{ i.titulo }}</span>
                             <span class="agenda-detalhe variacao-{{ i.cor }}">
                                 {% if i.data %}
                                     {% if i.dias < 0 %}Vencido há {{ i.dias|stringformat:"d"|cut:"-" }} dias
@@ -108,12 +107,26 @@
                                 {% else %}{{ i.detalhe }}{% endif %}
                             </span>
                         </div>
-                    </li>
-                {% endfor %}
-            </ul>
+                    {% endfor %}
+                </div>
+                <button type="button" class="carrossel-btn" data-alvo="agendaTrack" data-dir="1" aria-label="Próximo">›</button>
+            </div>
         {% else %}
             <p class="vazio">Nada nos próximos {{ agenda_dias }} dias. 🎉</p>
         {% endif %}
     </div>
 </div>
+
+<script>
+(function () {
+    document.querySelectorAll('.carrossel-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var track = document.getElementById(btn.dataset.alvo);
+            if (!track) return;
+            var dir = parseInt(btn.dataset.dir, 10) || 1;
+            track.scrollBy({ left: dir * Math.round(track.clientWidth * 0.85), behavior: 'smooth' });
+        });
+    });
+})();
+</script>
 {% endblock content %}
