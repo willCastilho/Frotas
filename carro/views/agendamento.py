@@ -29,6 +29,7 @@ from carro.forms import (
 )
 from carro.models import (
     AtribuicaoVeiculo,
+    EscalaDiaria,
     Solicitante,
     SolicitacaoVeiculo,
     motoristas_disponiveis,
@@ -382,6 +383,13 @@ def agenda(request):
         primeiro = date(ano, mes, 1)
 
     ultimo = date(ano, mes, _calendar.monthrange(ano, mes)[1])
+
+    def _label_veiculo(v):
+        return v.placa or f'{v.marca} {v.modelo}' if v else '—'
+
+    por_dia = {}
+
+    # Reservas de agendamento (pendente/aprovada/em uso) ocupam o veiculo.
     reservas = (SolicitacaoVeiculo.objects
                 .filter(organizacao=org,
                         status__in=('pendente', 'aprovada', 'em_uso'),
@@ -389,15 +397,31 @@ def agenda(request):
                         retorno_previsto__date__gte=primeiro)
                 .select_related('veiculo', 'solicitante')
                 .order_by('saida_prevista'))
-
-    por_dia = {}
     for s in reservas:
         d0 = max(s.saida_prevista.date(), primeiro)
         d1 = min(s.retorno_previsto.date(), ultimo)
         dia = d0
         while dia <= d1:
-            por_dia.setdefault(dia, []).append(s)
+            por_dia.setdefault(dia, []).append({
+                'veiculo': _label_veiculo(s.veiculo),
+                'pessoa': s.solicitante.nome,
+                'status': s.status,
+                'titulo': f'{s.solicitante.nome} · {s.destino} '
+                          f'({s.get_status_display()})',
+            })
             dia += timedelta(days=1)
+
+    # Escala diaria: o veiculo escalado tambem esta indisponivel no dia.
+    escalas = (EscalaDiaria.objects
+               .filter(organizacao=org, data__gte=primeiro, data__lte=ultimo)
+               .select_related('veiculo', 'motorista'))
+    for e in escalas:
+        por_dia.setdefault(e.data, []).append({
+            'veiculo': _label_veiculo(e.veiculo),
+            'pessoa': e.motorista.nome,
+            'status': 'escala',
+            'titulo': f'Escala · {e.motorista.nome} → {e.veiculo}',
+        })
 
     cal = _calendar.Calendar(firstweekday=6)  # domingo
     semanas = []
@@ -417,6 +441,7 @@ def agenda(request):
         'dias_semana': ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
         'mes_ant': mes_ant, 'mes_prox': mes_prox,
         'total_reservas': reservas.count(),
+        'total_escalas': escalas.count(),
     })
 
 

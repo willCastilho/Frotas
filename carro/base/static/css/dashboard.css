@@ -298,5 +298,6 @@
 .cal-ev-pendente { border-left-color: #9ca3af; }
 .cal-ev-aprovada { border-left-color: var(--primary); }
 .cal-ev-em_uso { border-left-color: #f59e0b; }
+.cal-ev-escala { border-left-color: #34d399; }
 .cal-legenda { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
 .cal-legenda .cal-ev { display: inline-block; white-space: nowrap; }

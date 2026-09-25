@@ -7,7 +7,7 @@
 <div class="container">
     <div class="header">
         <h1>📆 Agenda de veículos</h1>
-        <p>Reservas de {{ mes_nome }} de {{ ano|stringformat:'d' }} · {{ total_reservas }} no mês</p>
+        <p>{{ mes_nome }} de {{ ano|stringformat:'d' }} · {{ total_reservas }} reserva(s) · {{ total_escalas }} escala(s)</p>
     </div>
 
     <div class="agenda-nav">
@@ -27,9 +27,9 @@
                     {% for cel in semana %}
                         <td class="cal-dia{% if not cel.no_mes %} cal-fora{% endif %}{% if cel.hoje %} cal-hoje{% endif %}">
                             <div class="cal-num">{{ cel.data.day }}</div>
-                            {% for s in cel.itens %}
-                                <div class="cal-ev cal-ev-{{ s.status }}" title="{{ s.solicitante.nome }} · {{ s.destino }} ({{ s.get_status_display }})">
-                                    {% if s.veiculo %}{{ s.veiculo.placa|default:s.veiculo.modelo }}{% else %}—{% endif %} · {{ s.solicitante.nome }}
+                            {% for ev in cel.itens %}
+                                <div class="cal-ev cal-ev-{{ ev.status }}" title="{{ ev.titulo }}">
+                                    {{ ev.veiculo }} · {{ ev.pessoa }}
                                 </div>
                             {% endfor %}
                         </td>
@@ -43,6 +43,7 @@
         <span class="cal-ev cal-ev-pendente">Solicitada</span>
         <span class="cal-ev cal-ev-aprovada">Aprovada</span>
         <span class="cal-ev cal-ev-em_uso">Em uso</span>
+        <span class="cal-ev cal-ev-escala">Escala</span>
     </div>
 </div>
 {% endblock content %}

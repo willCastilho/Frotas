@@ -1388,6 +1388,18 @@ class AgendamentoNotificacaoTests(LogadoMixin, TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertIn('semanas', r.context)
 
+    def test_agenda_inclui_escala(self):
+        from carro.models import EscalaDiaria, Motorista
+        from datetime import date
+        m = Motorista.objects.create(organizacao=self.org, nome='Escalado')
+        hoje = date.today()
+        EscalaDiaria.objects.create(
+            organizacao=self.org, data=hoje, veiculo=self.veic, motorista=m)
+        r = self.client.get(reverse('agenda'),
+                            {'ano': hoje.year, 'mes': hoje.month})
+        self.assertEqual(r.context['total_escalas'], 1)
+        self.assertContains(r, 'cal-ev-escala')
+
     def test_lembrete_devolucao_command(self):
         from django.core import mail
         from django.core.management import call_command
