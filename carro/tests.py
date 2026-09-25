@@ -1227,3 +1227,73 @@ class AgendamentoTests(LogadoMixin, TestCase):
         self.assertIsNotNone(sol.atribuicao_id)
         self.assertTrue(AtribuicaoVeiculo.objects.filter(
             veiculo=veic, motorista=mot).exists())
+
+
+class AgendamentoDevolucaoTests(LogadoMixin, TestCase):
+    """Fase 2: devolucao com KM, trava de novo pedido e historico."""
+
+    def setUp(self):
+        super().setUp()
+        from carro.models import Solicitante
+        self.u = User.objects.create_user('sold', password='senha12345')
+        PerfilUsuario.objects.create(
+            user=self.u, organizacao=self.org,
+            papel=PerfilUsuario.PAPEL_SOLICITANTE)
+        self.solic = Solicitante.objects.create(
+            organizacao=self.org, user=self.u, nome='Sol D', setor='TI',
+            status='ativo')
+        self.veic = self.cria_veiculo(placa='EEE1234')
+
+    def _reserva(self, status='aprovada', dias_saida=-2, dias_retorno=-1):
+        from carro.models import SolicitacaoVeiculo
+        from django.utils import timezone
+        import datetime
+        return SolicitacaoVeiculo.objects.create(
+            organizacao=self.org, solicitante=self.solic, setor='TI',
+            saida_prevista=timezone.now() + datetime.timedelta(days=dias_saida),
+            retorno_previsto=timezone.now() + datetime.timedelta(days=dias_retorno),
+            destino='Z', status=status, veiculo=self.veic)
+
+    def test_devolucao_gera_registro_km_e_fecha(self):
+        from carro.models import RegistroQuilometragem
+        sol = self._reserva()
+        km = (self.veic.km_atual() or 0) + 50
+        c = Client(); c.login(username='sold', password='senha12345')
+        r = c.post(reverse('registrar_devolucao', args=[sol.id]), {
+            'retorno_real': '2026-09-24T10:00', 'km_final': str(km),
+            'obs_devolucao': 'ok'}, follow=True)
+        sol.refresh_from_db()
+        self.assertEqual(sol.status, 'devolvida')
+        self.assertEqual(sol.km_final, km)
+        self.assertIsNotNone(sol.registro_km_id)
+        self.assertEqual(self.veic.km_atual(), km)
+
+    def test_trava_bloqueia_novo_pedido_com_devolucao_pendente(self):
+        from carro.models import SolicitacaoVeiculo
+        self._reserva()  # aprovada com retorno no passado
+        c = Client(); c.login(username='sold', password='senha12345')
+        r = c.post(reverse('nova_solicitacao'), {
+            'setor': 'TI', 'saida_prevista': '2026-11-01T08:00',
+            'retorno_previsto': '2026-11-01T17:00', 'destino': 'Nova'},
+            follow=True)
+        # so existe a reserva original; a nova nao foi criada
+        self.assertEqual(SolicitacaoVeiculo.objects.filter(
+            solicitante=self.solic).count(), 1)
+
+    def test_km_final_menor_que_odometro_rejeitado(self):
+        from carro.models import RegistroQuilometragem
+        RegistroQuilometragem.objects.create(
+            veiculo=self.veic, data=date.today(), quilometragem=10000)
+        sol = self._reserva()
+        c = Client(); c.login(username='sold', password='senha12345')
+        r = c.post(reverse('registrar_devolucao', args=[sol.id]), {
+            'retorno_real': '2026-09-24T10:00', 'km_final': '9000'})
+        sol.refresh_from_db()
+        self.assertEqual(sol.status, 'aprovada')  # nao devolveu
+
+    def test_iniciar_uso_marca_em_uso(self):
+        sol = self._reserva(dias_saida=0, dias_retorno=1)
+        c = Client(); c.login(username='sold', password='senha12345')
+        c.post(reverse('iniciar_uso', args=[sol.id]))
+        sol.refresh_from_db()
+        self.assertEqual(sol.status, 'em_uso')

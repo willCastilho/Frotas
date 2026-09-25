@@ -278,3 +278,29 @@ class AprovarSolicitacaoForm(forms.Form):
             raise forms.ValidationError(
                 'Esta solicitação pediu motorista; selecione um disponível.')
         return motorista
+
+
+class DevolucaoForm(forms.Form):
+    """Devolucao do veiculo pelo solicitante: hora real e KM final (que
+    alimenta o odometro)."""
+    retorno_real = forms.DateTimeField(
+        widget=_DATETIME, label='Retorno real (data e hora)')
+    km_final = forms.IntegerField(min_value=0, label='KM final do veículo')
+    obs_devolucao = forms.CharField(
+        required=False, widget=forms.Textarea(attrs={'rows': 3}),
+        label='Observações / ocorrências')
+
+    def __init__(self, *args, km_minimo=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.km_minimo = km_minimo
+        if km_minimo:
+            self.fields['km_final'].help_text = (
+                f'O odômetro atual do veículo é {km_minimo} km.')
+
+    def clean_km_final(self):
+        km = self.cleaned_data['km_final']
+        if self.km_minimo and km < self.km_minimo:
+            raise forms.ValidationError(
+                f'O KM final não pode ser menor que o odômetro atual '
+                f'({self.km_minimo} km).')
+        return km

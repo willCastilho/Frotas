@@ -30,7 +30,7 @@
                 <tbody>
                     {% for s in solicitantes %}
                         <tr>
-                            <td>{{ s.nome }}</td>
+                            <td><a href="{% url 'detalhes_solicitante' s.id %}">{{ s.nome }}</a></td>
                             <td>{{ s.setor }}</td>
                             <td>{{ s.cnh|default:"—" }}{% if s.cnh_categoria %} ({{ s.cnh_categoria }}){% endif %}</td>
                             <td>{{ s.email }}{% if s.telefone %}<br>{{ s.telefone }}{% endif %}</td>

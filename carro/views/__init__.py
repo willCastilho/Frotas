@@ -27,11 +27,14 @@ from .agendamento import (
     minhas_solicitacoes,
     nova_solicitacao,
     cancelar_solicitacao,
+    iniciar_uso,
+    registrar_devolucao,
     solicitacoes_gestor,
     aprovar_solicitacao,
     recusar_solicitacao,
     cadastros_solicitantes,
     decidir_cadastro,
+    detalhes_solicitante,
 )
 from .motoristas import (
     motoristas,
@@ -78,9 +81,12 @@ __all__ = [
     'minhas_solicitacoes',
     'nova_solicitacao',
     'cancelar_solicitacao',
+    'iniciar_uso',
+    'registrar_devolucao',
     'solicitacoes_gestor',
     'aprovar_solicitacao',
     'recusar_solicitacao',
     'cadastros_solicitantes',
     'decidir_cadastro',
+    'detalhes_solicitante',
 ]

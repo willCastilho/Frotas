@@ -205,6 +205,33 @@
         {% endif %}
     </div>
 
+    <!-- Agendamentos (pré-agendamento de uso) -->
+    <div class="custos-lista">
+        <div class="secao-header">
+            <h2>Agendamentos</h2>
+        </div>
+        {% if agendamentos %}
+            <table class="custos-table">
+                <thead>
+                    <tr><th>Período</th><th>Solicitante</th><th>Destino</th><th>Motorista</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    {% for a in agendamentos %}
+                        <tr>
+                            <td>{{ a.saida_prevista|date:"d/m/Y H:i" }} → {{ a.retorno_previsto|date:"d/m/Y H:i" }}</td>
+                            <td>{{ a.solicitante.nome }}</td>
+                            <td>{{ a.destino }}</td>
+                            <td>{% if a.precisa_motorista %}{{ a.motorista|default:"—" }}{% else %}Solicitante{% endif %}</td>
+                            <td>{{ a.get_status_display }}{% if a.status == 'devolvida' %}<br><small>{{ a.km_final }} km</small>{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="sem-custos">Nenhum agendamento para este veículo.</p>
+        {% endif %}
+    </div>
+
     <!-- Manutenção preventiva -->
     <div class="custos-lista">
         <div class="secao-header">

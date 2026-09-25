@@ -119,6 +119,8 @@ def detalhes_veiculo(request, veiculo_id):
         'planos': planos,
         'documentos': documentos,
         'pendencias': veiculo.pendencias_documentais(),
+        'agendamentos': veiculo.solicitacoes.select_related(
+            'solicitante', 'motorista').all()[:15],
     }
     return render(request, 'detalhes_veiculo.html', context)
 

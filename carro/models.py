@@ -745,12 +745,22 @@ class Solicitante(models.Model):
         return {'cor': cor, 'texto': texto, 'dias': dias}
 
     def solicitacao_em_aberto(self):
-        """Solicitacao que ainda impede um novo pedido: aprovada/em uso sem
-        devolucao registrada. (A trava completa entra na Fase 2.)"""
+        """Solicitacao aprovada/em uso (reserva ativa)."""
         return self.solicitacoes.filter(
             status__in=(SolicitacaoVeiculo.STATUS_APROVADA,
                         SolicitacaoVeiculo.STATUS_EM_USO)
         ).order_by('-saida_prevista').first()
+
+    def devolucao_pendente(self):
+        """Solicitacao cuja devolucao esta faltando e que trava um novo pedido:
+        um veiculo em uso, ou uma reserva aprovada cujo retorno previsto ja
+        passou sem devolucao registrada."""
+        agora = timezone.now()
+        return self.solicitacoes.filter(
+            models.Q(status=SolicitacaoVeiculo.STATUS_EM_USO)
+            | models.Q(status=SolicitacaoVeiculo.STATUS_APROVADA,
+                       retorno_previsto__lte=agora)
+        ).order_by('retorno_previsto').first()
 
 
 class SolicitacaoVeiculo(models.Model):
@@ -844,6 +854,36 @@ class SolicitacaoVeiculo(models.Model):
     @property
     def aberta(self):
         return self.status in (self.STATUS_APROVADA, self.STATUS_EM_USO)
+
+    def iniciar_uso(self):
+        """Marca a retirada do veiculo (aprovada -> em uso)."""
+        if self.status == self.STATUS_APROVADA:
+            self.status = self.STATUS_EM_USO
+            self.save(update_fields=['status', 'atualizado_em'])
+
+    def registrar_devolucao(self, retorno_real, km_final, observacao=''):
+        """Fecha o agendamento: grava a devolucao, gera um RegistroQuilometragem
+        com o km final (alimenta o odometro) e encerra a atribuicao do periodo.
+        Retorna o RegistroQuilometragem criado (ou None se sem km)."""
+        registro = None
+        if km_final is not None and self.veiculo_id:
+            registro = RegistroQuilometragem.objects.create(
+                veiculo=self.veiculo,
+                data=retorno_real.date(),
+                quilometragem=km_final,
+                origem='Devolução de agendamento',
+                observacao=f'Agendamento #{self.pk} · {self.destino}'[:200])
+            self.registro_km = registro
+        # Encerra o vinculo de motorista, se houver.
+        if self.atribuicao_id and self.atribuicao.data_fim is None:
+            self.atribuicao.data_fim = retorno_real.date()
+            self.atribuicao.save(update_fields=['data_fim'])
+        self.retorno_real = retorno_real
+        self.km_final = km_final
+        self.obs_devolucao = observacao
+        self.status = self.STATUS_DEVOLVIDA
+        self.save()
+        return registro
 
 
 def _periodos_se_sobrepoem(inicio_a, fim_a, inicio_b, fim_b):

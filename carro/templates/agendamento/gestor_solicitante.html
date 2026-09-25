@@ -1,0 +1,44 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>👤 {{ solicitante.nome }}</h1>
+        <p>{{ solicitante.setor }} · {{ solicitante.get_status_display }}
+           {% if solicitante.cnh %}· CNH {{ solicitante.cnh }} ({{ solicitante.cnh_categoria }}){% endif %}</p>
+    </div>
+
+    <div class="painel-card">
+        <a href="{% url 'cadastros_solicitantes' %}" class="btn btn-secondary">← Cadastros</a>
+    </div>
+
+    <div class="painel-card">
+        <h2>Histórico de utilização</h2>
+        {% if solicitacoes %}
+            <table class="alertas-table">
+                <thead>
+                    <tr><th>Saída</th><th>Retorno prev.</th><th>Destino</th><th>Veículo</th><th>Motorista</th><th>Status</th><th>Devolução</th></tr>
+                </thead>
+                <tbody>
+                    {% for s in solicitacoes %}
+                        <tr>
+                            <td>{{ s.saida_prevista|date:"d/m/Y H:i" }}</td>
+                            <td>{{ s.retorno_previsto|date:"d/m/Y H:i" }}</td>
+                            <td>{{ s.destino }}</td>
+                            <td>{% if s.veiculo %}{{ s.veiculo.marca }} {{ s.veiculo.modelo }}{% else %}—{% endif %}</td>
+                            <td>{% if s.precisa_motorista %}{{ s.motorista|default:"—" }}{% else %}Dirigiu{% endif %}</td>
+                            <td>{{ s.get_status_display }}</td>
+                            <td>{% if s.status == 'devolvida' %}{{ s.retorno_real|date:"d/m/Y H:i" }}<br><small>{{ s.km_final }} km</small>{% else %}—{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vazio">Sem utilização registrada.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

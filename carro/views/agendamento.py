@@ -19,6 +19,7 @@ from django.views.decorators.http import require_POST
 
 from carro.forms import (
     AprovarSolicitacaoForm,
+    DevolucaoForm,
     SolicitacaoForm,
     SolicitanteSignupForm,
 )
@@ -102,6 +103,16 @@ def nova_solicitacao(request):
             'solicitar veículos assim que o gestor liberar.')
         return redirect('minhas_solicitacoes')
 
+    # Trava: nao pode pedir outro veiculo com devolucao pendente.
+    pendente = solicitante.devolucao_pendente()
+    if pendente:
+        messages.error(
+            request, 'Você tem um veículo a devolver '
+            f'({pendente.veiculo} · retorno previsto '
+            f'{pendente.retorno_previsto:%d/%m/%Y %H:%M}). Registre a '
+            'devolução antes de solicitar outro.')
+        return redirect('minhas_solicitacoes')
+
     form = SolicitacaoForm(request.POST or None,
                            initial={'setor': solicitante.setor})
     if request.method == 'POST' and form.is_valid():
@@ -132,6 +143,52 @@ def cancelar_solicitacao(request, pk):
     else:
         messages.error(request, 'Esta solicitação não pode ser cancelada.')
     return redirect('minhas_solicitacoes')
+
+
+@login_required
+@require_POST
+def iniciar_uso(request, pk):
+    solicitante = solicitante_do(request.user)
+    if solicitante is None:
+        return redirect('home')
+    sol = get_object_or_404(
+        SolicitacaoVeiculo, pk=pk, solicitante=solicitante)
+    if sol.status == SolicitacaoVeiculo.STATUS_APROVADA:
+        sol.iniciar_uso()
+        messages.success(request, 'Retirada registrada. Bom uso!')
+    else:
+        messages.error(request, 'Só é possível retirar uma reserva aprovada.')
+    return redirect('minhas_solicitacoes')
+
+
+@login_required
+def registrar_devolucao(request, pk):
+    solicitante = solicitante_do(request.user)
+    if solicitante is None:
+        messages.error(request, 'Área exclusiva de solicitantes.')
+        return redirect('home')
+    sol = get_object_or_404(
+        SolicitacaoVeiculo, pk=pk, solicitante=solicitante)
+    if sol.status not in (SolicitacaoVeiculo.STATUS_APROVADA,
+                          SolicitacaoVeiculo.STATUS_EM_USO):
+        messages.error(request, 'Esta solicitação não está em uso.')
+        return redirect('minhas_solicitacoes')
+
+    km_minimo = sol.veiculo.km_atual() if sol.veiculo else None
+    form = DevolucaoForm(
+        request.POST or None, km_minimo=km_minimo,
+        initial={'retorno_real': timezone.now().strftime('%Y-%m-%dT%H:%M')})
+    if request.method == 'POST' and form.is_valid():
+        sol.registrar_devolucao(
+            retorno_real=form.cleaned_data['retorno_real'],
+            km_final=form.cleaned_data['km_final'],
+            observacao=form.cleaned_data.get('obs_devolucao', ''))
+        messages.success(
+            request, 'Devolução registrada. Obrigado! O odômetro do veículo '
+            'foi atualizado.')
+        return redirect('minhas_solicitacoes')
+    return render(request, 'agendamento/devolucao.html',
+                  {'form': form, 'sol': sol})
 
 
 # ---------------------------------------------------------------------- gestor
@@ -262,3 +319,16 @@ def decidir_cadastro(request, pk):
     solicitante.save(update_fields=['status'])
     messages.success(request, msg)
     return redirect('cadastros_solicitantes')
+
+
+@login_required
+@exige_gestor
+def detalhes_solicitante(request, pk):
+    org = organizacao_do(request.user)
+    solicitante = get_object_or_404(Solicitante, pk=pk, organizacao=org)
+    solicitacoes = solicitante.solicitacoes.select_related(
+        'veiculo', 'motorista').all()
+    return render(request, 'agendamento/gestor_solicitante.html', {
+        'solicitante': solicitante,
+        'solicitacoes': solicitacoes,
+    })

@@ -22,9 +22,19 @@
             Você poderá solicitar veículos assim que ele for liberado.
         </div>
     {% else %}
-        <div class="painel-card">
-            <a href="{% url 'nova_solicitacao' %}" class="btn btn-primary">+ Nova solicitação</a>
-        </div>
+        {% with pendente=solicitante.devolucao_pendente %}
+        {% if pendente %}
+            <div class="alert alert-error">
+                🔒 Você tem um veículo a devolver: <strong>{{ pendente.veiculo }}</strong>
+                (retorno previsto {{ pendente.retorno_previsto|date:"d/m/Y H:i" }}).
+                Registre a devolução abaixo antes de solicitar outro.
+            </div>
+        {% else %}
+            <div class="painel-card">
+                <a href="{% url 'nova_solicitacao' %}" class="btn btn-primary">+ Nova solicitação</a>
+            </div>
+        {% endif %}
+        {% endwith %}
     {% endif %}
 
     <div class="painel-card">
@@ -45,10 +55,20 @@
                             <td>
                                 {{ s.get_status_display }}
                                 {% if s.status == 'recusada' and s.motivo_recusa %}<br><small>{{ s.motivo_recusa }}</small>{% endif %}
+                                {% if s.status == 'devolvida' %}<br><small>Devolvido {{ s.retorno_real|date:"d/m/Y H:i" }} · {{ s.km_final }} km</small>{% endif %}
                             </td>
                             <td>
+                                {% if s.status == 'aprovada' %}
+                                    <form method="post" action="{% url 'iniciar_uso' s.id %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-small btn-secondary">Retirei</button>
+                                    </form>
+                                    <a href="{% url 'registrar_devolucao' s.id %}" class="btn btn-small btn-primary">Devolver</a>
+                                {% elif s.status == 'em_uso' %}
+                                    <a href="{% url 'registrar_devolucao' s.id %}" class="btn btn-small btn-primary">Devolver</a>
+                                {% endif %}
                                 {% if s.status == 'pendente' or s.status == 'aprovada' %}
-                                    <form method="post" action="{% url 'cancelar_solicitacao' s.id %}" onsubmit="return confirm('Cancelar esta solicitação?')">
+                                    <form method="post" action="{% url 'cancelar_solicitacao' s.id %}" style="display:inline;" onsubmit="return confirm('Cancelar esta solicitação?')">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-small btn-danger">Cancelar</button>
                                     </form>
