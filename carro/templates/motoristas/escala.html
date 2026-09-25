@@ -44,7 +44,7 @@
         {% if escalas %}
             <table class="alertas-table">
                 <thead>
-                    <tr><th>Veículo</th><th>Placa</th><th>Motorista</th><th>Observação</th><th></th></tr>
+                    <tr><th>Veículo</th><th>Placa</th><th>Motorista</th><th>Destino</th><th>Observação</th><th></th></tr>
                 </thead>
                 <tbody>
                     {% for e in escalas %}
@@ -52,6 +52,7 @@
                             <td><a href="{% url 'detalhes_veiculo' e.veiculo.id %}">{{ e.veiculo.marca }} {{ e.veiculo.modelo }}</a></td>
                             <td>{{ e.veiculo.placa|default:"—" }}</td>
                             <td><a href="{% url 'detalhes_motorista' e.motorista.id %}">{{ e.motorista.nome }}</a></td>
+                            <td>{{ e.destino|default:"—" }}</td>
                             <td>{{ e.observacao }}</td>
                             <td>
                                 <form method="post" action="{% url 'remover_escala' e.id %}" onsubmit="return confirm('Remover esta escala?')">

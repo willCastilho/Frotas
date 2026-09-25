@@ -509,6 +509,27 @@ class Agenda90Tests(LogadoMixin, TestCase):
         self.assertEqual(len(ctx['reservas_hoje']), 1)
         self.assertEqual(len(ctx['escala_hoje']), 1)
 
+    def test_hoje_dias_filtra_janela(self):
+        from carro.models import EscalaDiaria, Motorista
+        v = self.cria_veiculo()
+        m = Motorista.objects.create(organizacao=self.org, nome='Futuro')
+        EscalaDiaria.objects.create(
+            organizacao=self.org, data=date.today() + timedelta(days=3),
+            veiculo=v, motorista=m, destino='Hospital')
+        # Padrao (hoje): escala de daqui a 3 dias nao aparece.
+        ctx = self.client.get(reverse('dashboard')).context
+        self.assertEqual(len(ctx['escala_hoje']), 0)
+        # Janela de 7 dias: aparece.
+        ctx = self.client.get(reverse('dashboard'),
+                             {'hoje_dias': 7}).context
+        self.assertEqual(len(ctx['escala_hoje']), 1)
+        self.assertEqual(ctx['escala_hoje'][0].destino, 'Hospital')
+
+    def test_hoje_dias_maximo_30(self):
+        # Valor acima de 30 (ou invalido) volta ao padrao (hoje).
+        ctx = self.client.get(reverse('dashboard'), {'hoje_dias': 90}).context
+        self.assertEqual(ctx['hoje_dias'], 1)
+
 
 class DashboardTests(LogadoMixin, TestCase):
     def test_dashboard_renderiza(self):
@@ -729,6 +750,17 @@ class MotoristaTests(LogadoMixin, TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertEqual(veiculo.motorista_atual(), m)
         self.assertEqual(m.veiculo_atual(), veiculo)
+
+    def test_escala_com_destino(self):
+        from carro.models import EscalaDiaria
+        veiculo = self.cria_veiculo()
+        m = self._cria_motorista('Com destino')
+        hoje = date.today().isoformat()
+        self.client.post(reverse('montar_escala'), {
+            'motorista': m.id, 'veiculo': veiculo.id,
+            'data_inicio': hoje, 'data_fim': hoje, 'destino': 'Secretaria'})
+        e = EscalaDiaria.objects.get(motorista=m)
+        self.assertEqual(e.destino, 'Secretaria')
 
     def test_escala_periodo_dias_uteis(self):
         from carro.models import EscalaDiaria

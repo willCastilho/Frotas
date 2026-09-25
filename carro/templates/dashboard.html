@@ -25,43 +25,54 @@
         </div>
     </div>
 
+    <div class="agenda-periodos" style="margin-bottom:12px;">
+        <span class="filter-label">Período:</span>
+        {% for d in periodos_hoje %}
+            <a href="?hoje_dias={{ d }}&agenda_dias={{ agenda_dias }}" class="chip {% if d == hoje_dias %}chip-ativo{% endif %}">{% if d == 1 %}Hoje{% else %}{{ d }}d{% endif %}</a>
+        {% endfor %}
+    </div>
+
     <div class="painel-grid">
         <div class="painel-card">
-            <h2>🚗 Reservados hoje</h2>
+            <h2>🚗 Reservados {% if hoje_dias == 1 %}hoje{% else %}· {{ hoje_dias }} dias{% endif %}</h2>
             {% if reservas_hoje %}
                 <table class="alertas-table">
-                    <thead><tr><th>Veículo</th><th>Para</th><th>Horário</th></tr></thead>
+                    <thead><tr>{% if hoje_dias > 1 %}<th>Quando</th>{% endif %}<th>Veículo</th><th>Para</th><th>Destino</th><th>Horário</th></tr></thead>
                     <tbody>
                         {% for r in reservas_hoje %}
                             <tr>
-                                <td><a href="{% url 'detalhes_solicitacao' r.id %}">{{ r.veiculo.marca }} {{ r.veiculo.modelo }}{% if r.veiculo.placa %} · {{ r.veiculo.placa }}{% endif %}</a></td>
+                                {% if hoje_dias > 1 %}<td>{{ r.saida_prevista|date:"d/m" }}</td>{% endif %}
+                                <td><a href="{% url 'detalhes_solicitacao' r.id %}">{{ r.veiculo.identificacao_curta }}</a></td>
                                 <td>{{ r.solicitante.nome }}{% if r.precisa_motorista and r.motorista %}<br><small>Motorista: {{ r.motorista.nome }}</small>{% endif %}</td>
+                                <td>{{ r.destino }}</td>
                                 <td>{{ r.saida_prevista|date:"H:i" }} → {{ r.retorno_previsto|date:"H:i" }}{% if r.status == 'em_uso' %}<br><small class="variacao-yellow">em uso</small>{% endif %}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             {% else %}
-                <p class="vazio">Nenhum veículo reservado hoje.</p>
+                <p class="vazio">Nenhum veículo reservado no período.</p>
             {% endif %}
         </div>
 
         <div class="painel-card">
-            <h2>📋 Escala de hoje</h2>
+            <h2>📋 Escala {% if hoje_dias == 1 %}de hoje{% else %}· {{ hoje_dias }} dias{% endif %}</h2>
             {% if escala_hoje %}
                 <table class="alertas-table">
-                    <thead><tr><th>Motorista</th><th>Veículo</th></tr></thead>
+                    <thead><tr>{% if hoje_dias > 1 %}<th>Dia</th>{% endif %}<th>Motorista</th><th>Veículo</th><th>Destino</th></tr></thead>
                     <tbody>
                         {% for e in escala_hoje %}
                             <tr>
+                                {% if hoje_dias > 1 %}<td>{{ e.data|date:"d/m" }}</td>{% endif %}
                                 <td><a href="{% url 'detalhes_motorista' e.motorista.id %}">{{ e.motorista.nome }}</a></td>
-                                <td><a href="{% url 'detalhes_veiculo' e.veiculo.id %}">{{ e.veiculo.marca }} {{ e.veiculo.modelo }}{% if e.veiculo.placa %} · {{ e.veiculo.placa }}{% endif %}</a></td>
+                                <td><a href="{% url 'detalhes_veiculo' e.veiculo.id %}">{{ e.veiculo.identificacao_curta }}</a></td>
+                                <td>{{ e.destino|default:"—" }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             {% else %}
-                <p class="vazio">Nenhuma escala definida para hoje. <a href="{% url 'escala' %}">Montar escala</a></p>
+                <p class="vazio">Nenhuma escala no período. <a href="{% url 'escala' %}">Montar escala</a></p>
             {% endif %}
         </div>
     </div>

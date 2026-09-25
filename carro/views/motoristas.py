@@ -150,6 +150,7 @@ def montar_escala(request):
     motorista, veiculo = d['motorista'], d['veiculo']
     inicio, fim, uteis = d['data_inicio'], d['data_fim'], d['somente_dias_uteis']
     obs = d.get('observacao', '')
+    destino = d.get('destino', '')
 
     criados = 0
     conflitos = []
@@ -174,7 +175,8 @@ def montar_escala(request):
         else:
             EscalaDiaria.objects.create(
                 organizacao=org, data=dia, veiculo=veiculo,
-                motorista=motorista, observacao=obs, criado_por=request.user)
+                motorista=motorista, destino=destino, observacao=obs,
+                criado_por=request.user)
             criados += 1
         dia += timedelta(days=1)
 

@@ -219,6 +219,14 @@ class Veiculo(models.Model):
         escala = self.escala_do_dia()
         return escala.motorista if escala else None
 
+    def identificacao_curta(self):
+        """Rotulo compacto: marca + modelo (abreviado) + placa."""
+        modelo = self.modelo or ''
+        if len(modelo) > 22:
+            modelo = modelo[:21].rstrip() + '…'
+        base = f'{self.marca} {modelo}'.strip()
+        return f'{base} · {self.placa}' if self.placa else base
+
     def pendencias_documentais(self):
         """Pendencias que travam o lancamento de dados no veiculo: documentos
         do veiculo ja vencidos e a CNH vencida do motorista atualmente
@@ -981,6 +989,7 @@ class EscalaDiaria(models.Model):
     motorista = models.ForeignKey(
         Motorista, on_delete=models.CASCADE, related_name='escalas'
     )
+    destino = models.CharField(max_length=200, blank=True)
     observacao = models.CharField(max_length=200, blank=True)
     criado_por = models.ForeignKey(
         'auth.User', on_delete=models.SET_NULL, null=True, blank=True,

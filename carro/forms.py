@@ -206,6 +206,7 @@ class EscalaMontarForm(forms.Form):
     data_fim = forms.DateField(widget=_DATE, label='Até')
     somente_dias_uteis = forms.BooleanField(
         required=False, initial=True, label='Somente dias úteis (seg–sex)')
+    destino = forms.CharField(max_length=200, required=False, label='Destino')
     observacao = forms.CharField(max_length=200, required=False, label='Observação')
 
     def __init__(self, *args, organizacao=None, **kwargs):

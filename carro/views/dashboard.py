@@ -15,6 +15,7 @@ from carro.models import (
 from contas.utils import exige_gestor, organizacao_do
 
 PERIODOS_AGENDA = [7, 15, 30, 45, 60, 90]
+PERIODOS_HOJE = [1, 7, 15, 30]
 
 
 def _km_por_veiculo(org):
@@ -101,17 +102,26 @@ def dashboard(request):
     if agenda_dias not in PERIODOS_AGENDA:
         agenda_dias = 30
 
+    # Janela dos cards de reservas/escala (padrao hoje; max 30 dias).
+    try:
+        hoje_dias = int(request.GET.get('hoje_dias', 1))
+    except (TypeError, ValueError):
+        hoje_dias = 1
+    if hoje_dias not in PERIODOS_HOJE:
+        hoje_dias = 1
+
     hoje = timezone.now().date()
+    fim_hoje = hoje + timedelta(days=hoje_dias - 1)
     reservas_hoje = (SolicitacaoVeiculo.objects
                      .filter(organizacao=org, status__in=('aprovada', 'em_uso'),
-                             saida_prevista__date__lte=hoje,
+                             saida_prevista__date__lte=fim_hoje,
                              retorno_previsto__date__gte=hoje)
                      .select_related('veiculo', 'solicitante', 'motorista')
                      .order_by('saida_prevista'))
     escala_hoje = (EscalaDiaria.objects
-                   .filter(organizacao=org, data=hoje)
+                   .filter(organizacao=org, data__gte=hoje, data__lte=fim_hoje)
                    .select_related('veiculo', 'motorista')
-                   .order_by('veiculo__marca', 'veiculo__modelo'))
+                   .order_by('data', 'veiculo__marca', 'veiculo__modelo'))
 
     context = {
         'total_veiculos': Veiculo.objects.filter(organizacao=org).count(),
@@ -123,5 +133,7 @@ def dashboard(request):
         'periodos_agenda': PERIODOS_AGENDA,
         'reservas_hoje': reservas_hoje,
         'escala_hoje': escala_hoje,
+        'hoje_dias': hoje_dias,
+        'periodos_hoje': PERIODOS_HOJE,
     }
     return render(request, 'dashboard.html', context)
