@@ -345,3 +345,56 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .agenda-slide .agenda-detalhe { font-size: .8rem; font-weight: 600; margin-top: auto; }
+
+/* ---------------------------------------- Dashboard que cabe na tela (fit) */
+.dashboard-fit {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    /* fallback antes do ajuste por JS */
+    height: calc(100dvh - 76px);
+    overflow: hidden;
+}
+.dash-top { flex: 0 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.header-compacto { margin: 0; }
+.header-compacto h1 { font-size: clamp(1.2rem, 1.1rem + 0.6vw, 1.6rem); margin: 0; }
+.dash-top-linha {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+}
+.kpi-grid-compacto {
+    display: flex; gap: 12px; margin: 0; flex: 1 1 auto;
+}
+.kpi-grid-compacto .kpi-card { padding: 10px 16px; flex: 1 1 0; min-width: 120px; }
+.kpi-grid-compacto .kpi-valor { font-size: clamp(1.3rem, 1.1rem + 0.9vw, 1.9rem); }
+
+.dash-mid { flex: 1 1 auto; min-height: 0; display: flex; }
+.dash-grid-fit {
+    flex: 1 1 auto; min-height: 0; width: 100%; margin: 0;
+    grid-template-rows: minmax(0, 1fr);
+}
+.dash-grid-fit .painel-card {
+    min-height: 0; margin: 0; display: flex; flex-direction: column;
+    overflow: hidden;
+}
+.dash-grid-fit .painel-card h2 { flex: 0 0 auto; }
+.card-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.card-scroll .alertas-table thead th {
+    position: sticky; top: 0; background: var(--surface); z-index: 1;
+}
+.dash-bottom { flex: 0 0 auto; margin: 0; }
+.agenda-cabecalho {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+}
+.agenda-cabecalho h2 { margin: 0; }
+.agenda-cabecalho .agenda-sub { margin: 2px 0 0; }
+
+/* Em telas pequenas, volta ao fluxo normal (rolagem natural). */
+@media (max-width: 760px) {
+    .dashboard-fit { height: auto !important; overflow: visible !important; }
+    .dash-mid { display: block; }
+    .kpi-grid-compacto { flex-wrap: wrap; }
+}

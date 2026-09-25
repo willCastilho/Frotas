@@ -4,86 +4,98 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 
-<div class="container">
-    <div class="header">
-        <h1>📊 Painel de Gestão</h1>
-        <p>Frota, reservas e escala do dia</p>
-    </div>
-
-    <div class="kpi-grid">
-        <div class="kpi-card">
-            <span class="kpi-valor">{{ total_veiculos }}</span>
-            <span class="kpi-label">Veículos</span>
-        </div>
-        <div class="kpi-card">
-            <span class="kpi-valor">{{ ativos }}</span>
-            <span class="kpi-label">Ativos</span>
-        </div>
-        <div class="kpi-card">
-            <span class="kpi-valor">{{ em_manutencao }}</span>
-            <span class="kpi-label">Em manutenção</span>
-        </div>
-    </div>
-
-    <div class="agenda-periodos" style="margin-bottom:12px;">
-        <span class="filter-label">Período:</span>
-        {% for d in periodos_hoje %}
-            <a href="?hoje_dias={{ d }}&agenda_dias={{ agenda_dias }}" class="chip {% if d == hoje_dias %}chip-ativo{% endif %}">{% if d == 1 %}Hoje{% else %}{{ d }}d{% endif %}</a>
-        {% endfor %}
-    </div>
-
-    <div class="painel-grid">
-        <div class="painel-card">
-            <h2>🚗 Reservados {% if hoje_dias == 1 %}hoje{% else %}· {{ hoje_dias }} dias{% endif %}</h2>
-            {% if reservas_hoje %}
-                <table class="alertas-table">
-                    <thead><tr>{% if hoje_dias > 1 %}<th>Quando</th>{% endif %}<th>Veículo</th><th>Para</th><th>Destino</th><th>Horário</th></tr></thead>
-                    <tbody>
-                        {% for r in reservas_hoje %}
-                            <tr>
-                                {% if hoje_dias > 1 %}<td>{{ r.saida_prevista|date:"d/m" }}</td>{% endif %}
-                                <td><a href="{% url 'detalhes_solicitacao' r.id %}">{{ r.veiculo.identificacao_curta }}</a></td>
-                                <td>{{ r.solicitante.nome }}{% if r.precisa_motorista and r.motorista %}<br><small>Motorista: {{ r.motorista.nome }}</small>{% endif %}</td>
-                                <td>{{ r.destino }}</td>
-                                <td>{{ r.saida_prevista|date:"H:i" }} → {{ r.retorno_previsto|date:"H:i" }}{% if r.status == 'em_uso' %}<br><small class="variacao-yellow">em uso</small>{% endif %}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p class="vazio">Nenhum veículo reservado no período.</p>
-            {% endif %}
+<div class="container dashboard-fit" id="dashFit">
+    <div class="dash-top">
+        <div class="header header-compacto">
+            <h1>📊 Painel de Gestão</h1>
         </div>
 
-        <div class="painel-card">
-            <h2>📋 Escala {% if hoje_dias == 1 %}de hoje{% else %}· {{ hoje_dias }} dias{% endif %}</h2>
-            {% if escala_hoje %}
-                <table class="alertas-table">
-                    <thead><tr>{% if hoje_dias > 1 %}<th>Dia</th>{% endif %}<th>Motorista</th><th>Veículo</th><th>Destino</th></tr></thead>
-                    <tbody>
-                        {% for e in escala_hoje %}
-                            <tr>
-                                {% if hoje_dias > 1 %}<td>{{ e.data|date:"d/m" }}</td>{% endif %}
-                                <td><a href="{% url 'detalhes_motorista' e.motorista.id %}">{{ e.motorista.nome }}</a></td>
-                                <td><a href="{% url 'detalhes_veiculo' e.veiculo.id %}">{{ e.veiculo.identificacao_curta }}</a></td>
-                                <td>{{ e.destino|default:"—" }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p class="vazio">Nenhuma escala no período. <a href="{% url 'escala' %}">Montar escala</a></p>
-            {% endif %}
+        <div class="dash-top-linha">
+            <div class="kpi-grid kpi-grid-compacto">
+                <div class="kpi-card">
+                    <span class="kpi-valor">{{ total_veiculos }}</span>
+                    <span class="kpi-label">Veículos</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-valor">{{ ativos }}</span>
+                    <span class="kpi-label">Ativos</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-valor">{{ em_manutencao }}</span>
+                    <span class="kpi-label">Em manutenção</span>
+                </div>
+            </div>
+            <div class="agenda-periodos">
+                <span class="filter-label">Período:</span>
+                {% for d in periodos_hoje %}
+                    <a href="?hoje_dias={{ d }}&agenda_dias={{ agenda_dias }}" class="chip {% if d == hoje_dias %}chip-ativo{% endif %}">{% if d == 1 %}Hoje{% else %}{{ d }}d{% endif %}</a>
+                {% endfor %}
+            </div>
         </div>
     </div>
 
-    <div class="painel-card agenda-card">
-        <h2>⏱️ Próximos {{ agenda_dias }} dias</h2>
-        <p class="agenda-sub">Documentos, manutenções e escala · críticos fixos até 90 dias</p>
-        <div class="agenda-periodos">
-            {% for d in periodos_agenda %}
-                <a href="?agenda_dias={{ d }}" class="chip {% if d == agenda_dias %}chip-ativo{% endif %}">{% if d == 7 %}1 sem{% else %}{{ d }}d{% endif %}</a>
-            {% endfor %}
+    <div class="dash-mid">
+        <div class="painel-grid dash-grid-fit">
+            <div class="painel-card">
+                <h2>🚗 Reservados {% if hoje_dias == 1 %}hoje{% else %}· {{ hoje_dias }} dias{% endif %}</h2>
+                <div class="card-scroll">
+                {% if reservas_hoje %}
+                    <table class="alertas-table">
+                        <thead><tr>{% if hoje_dias > 1 %}<th>Quando</th>{% endif %}<th>Veículo</th><th>Para</th><th>Destino</th><th>Horário</th></tr></thead>
+                        <tbody>
+                            {% for r in reservas_hoje %}
+                                <tr>
+                                    {% if hoje_dias > 1 %}<td>{{ r.saida_prevista|date:"d/m" }}</td>{% endif %}
+                                    <td><a href="{% url 'detalhes_solicitacao' r.id %}">{{ r.veiculo.identificacao_curta }}</a></td>
+                                    <td>{{ r.solicitante.nome }}{% if r.precisa_motorista and r.motorista %}<br><small>Motorista: {{ r.motorista.nome }}</small>{% endif %}</td>
+                                    <td>{{ r.destino }}</td>
+                                    <td>{{ r.saida_prevista|date:"H:i" }} → {{ r.retorno_previsto|date:"H:i" }}{% if r.status == 'em_uso' %}<br><small class="variacao-yellow">em uso</small>{% endif %}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="vazio">Nenhum veículo reservado no período.</p>
+                {% endif %}
+                </div>
+            </div>
+
+            <div class="painel-card">
+                <h2>📋 Escala {% if hoje_dias == 1 %}de hoje{% else %}· {{ hoje_dias }} dias{% endif %}</h2>
+                <div class="card-scroll">
+                {% if escala_hoje %}
+                    <table class="alertas-table">
+                        <thead><tr>{% if hoje_dias > 1 %}<th>Dia</th>{% endif %}<th>Motorista</th><th>Veículo</th><th>Destino</th></tr></thead>
+                        <tbody>
+                            {% for e in escala_hoje %}
+                                <tr>
+                                    {% if hoje_dias > 1 %}<td>{{ e.data|date:"d/m" }}</td>{% endif %}
+                                    <td><a href="{% url 'detalhes_motorista' e.motorista.id %}">{{ e.motorista.nome }}</a></td>
+                                    <td><a href="{% url 'detalhes_veiculo' e.veiculo.id %}">{{ e.veiculo.identificacao_curta }}</a></td>
+                                    <td>{{ e.destino|default:"—" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="vazio">Nenhuma escala no período. <a href="{% url 'escala' %}">Montar escala</a></p>
+                {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="painel-card agenda-card dash-bottom">
+        <div class="agenda-cabecalho">
+            <div>
+                <h2>⏱️ Próximos {{ agenda_dias }} dias</h2>
+                <p class="agenda-sub">Documentos, manutenções e escala · críticos fixos até 90 dias</p>
+            </div>
+            <div class="agenda-periodos">
+                {% for d in periodos_agenda %}
+                    <a href="?agenda_dias={{ d }}&hoje_dias={{ hoje_dias }}" class="chip {% if d == agenda_dias %}chip-ativo{% endif %}">{% if d == 7 %}1 sem{% else %}{{ d }}d{% endif %}</a>
+                {% endfor %}
+            </div>
         </div>
         {% if agenda %}
             <div class="carrossel">
@@ -92,9 +104,7 @@
                     {% for i in agenda %}
                         <div class="agenda-slide agenda-{{ i.cor }}{% if i.critico %} agenda-critico{% endif %}">
                             <div class="agenda-slide-topo">
-                                <span class="agenda-quando-linha">
-                                    {% if i.data %}{{ i.data|date:"d/m/Y" }}{% else %}por km{% endif %}
-                                </span>
+                                <span class="agenda-quando-linha">{% if i.data %}{{ i.data|date:"d/m/Y" }}{% else %}por km{% endif %}</span>
                                 <span class="agenda-cat">{{ i.categoria }}</span>
                             </div>
                             <a href="{% url 'detalhes_veiculo' i.veiculo_id %}" class="agenda-veiculo">{{ i.veiculo.identificacao_curta }}</a>
@@ -127,6 +137,24 @@
             track.scrollBy({ left: dir * Math.round(track.clientWidth * 0.85), behavior: 'smooth' });
         });
     });
+
+    // Ajusta a altura do painel para caber na tela (sem scroll vertical da pagina).
+    var el = document.getElementById('dashFit');
+    function ajustar() {
+        if (!el) return;
+        if (window.matchMedia('(max-width: 760px)').matches) {
+            el.style.height = '';
+            el.style.overflow = '';
+            return;
+        }
+        var top = el.getBoundingClientRect().top;
+        var altura = window.innerHeight - top - 14;
+        el.style.height = Math.max(altura, 360) + 'px';
+        el.style.overflow = 'hidden';
+    }
+    window.addEventListener('resize', ajustar);
+    window.addEventListener('orientationchange', ajustar);
+    ajustar();
 })();
 </script>
 {% endblock content %}
