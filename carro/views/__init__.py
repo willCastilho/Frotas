@@ -21,6 +21,7 @@ from .frota import (
     excluir_documento,
 )
 from .dashboard import dashboard
+from .financeiro import financeiro
 from .relatorios import relatorios, exportar_custos
 from .agendamento import (
     cadastro_solicitante,
@@ -68,6 +69,7 @@ __all__ = [
     'excluir_plano_manutencao',
     'excluir_documento',
     'dashboard',
+    'financeiro',
     'relatorios',
     'exportar_custos',
     'motoristas',

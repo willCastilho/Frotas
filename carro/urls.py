@@ -24,6 +24,7 @@ urlpatterns = [
 
     # Fase 4 - camada gerencial
     path('dashboard/', carro_views.dashboard, name='dashboard'),
+    path('financeiro/', carro_views.financeiro, name='financeiro'),
     path('relatorios/', carro_views.relatorios, name='relatorios'),
     path('relatorios/exportar/', carro_views.exportar_custos, name='exportar_custos'),
     path('relatorios/motoristas/', carro_views.relatorio_motoristas, name='relatorio_motoristas'),

@@ -1,0 +1,161 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>💰 Financeiro</h1>
+        <p>Tudo sobre os gastos da frota · {{ periodo_rotulo }}</p>
+    </div>
+
+    <div class="painel-card periodo-filtro">
+        <div class="periodo-presets">
+            <a href="?periodo=mes_atual" class="chip {% if periodo_preset == 'mes_atual' %}chip-ativo{% endif %}">Mês atual</a>
+            <a href="?periodo=mes_anterior" class="chip {% if periodo_preset == 'mes_anterior' %}chip-ativo{% endif %}">Mês anterior</a>
+            <a href="?periodo=3meses" class="chip {% if periodo_preset == '3meses' %}chip-ativo{% endif %}">Últimos 3 meses</a>
+            <a href="?periodo=ano" class="chip {% if periodo_preset == 'ano' %}chip-ativo{% endif %}">Ano</a>
+        </div>
+        <form method="get" class="periodo-custom">
+            <input type="hidden" name="periodo" value="custom">
+            <input type="date" name="inicio" value="{{ periodo_inicio }}" aria-label="Início">
+            <input type="date" name="fim" value="{{ periodo_fim }}" aria-label="Fim">
+            <button type="submit" class="btn btn-small btn-primary">Aplicar</button>
+        </form>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi-card kpi-destaque">
+            <span class="kpi-valor">R$ {{ total|floatformat:2 }}</span>
+            <span class="kpi-label">Total · {{ periodo_rotulo }}</span>
+            {% if mostrar_projecao %}<span class="kpi-projecao">Projeção: R$ {{ projecao|floatformat:2 }}</span>{% endif %}
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-valor">R$ {{ custo_combustivel|floatformat:2 }}</span>
+            <span class="kpi-label">Combustível · {{ litros|floatformat:0 }} L</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-valor">R$ {{ custo_manutencao|floatformat:2 }}</span>
+            <span class="kpi-label">Manutenção</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-valor">R$ {{ custo_documentacao|floatformat:2 }}</span>
+            <span class="kpi-label">Documentação</span>
+        </div>
+    </div>
+
+    <div class="painel-card">
+        <a href="{% url 'relatorios' %}?inicio={{ periodo_inicio }}&fim={{ periodo_fim }}" class="btn btn-secondary">📑 Relatório detalhado e exportações</a>
+        <a href="{% url 'relatorio_motoristas' %}" class="btn btn-secondary">🧾 Motorista × Veículo</a>
+    </div>
+
+    <div class="dash-colunas">
+        <div class="dash-analises">
+            <div class="painel-card">
+                <h2>Custos dos últimos 6 meses</h2>
+                <div class="grafico-barras">
+                    {% for m in custos_meses %}
+                        <div class="barra-col">
+                            <div class="barra-valor">R$ {{ m.total|floatformat:0 }}</div>
+                            <div class="barra" style="height: {{ m.pct }}%;" title="R$ {{ m.total|floatformat:2 }}"></div>
+                            <div class="barra-label">{{ m.label }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="painel-card">
+                <h2>Custos por categoria · {{ periodo_rotulo }}</h2>
+                <div class="cat-cards">
+                    <a class="cat-card cat-card-doc"
+                       href="{% url 'relatorios' %}?grupo=documentacao&inicio={{ ano_corrente|stringformat:'d' }}-01-01&fim={{ ano_corrente|stringformat:'d' }}-12-31">
+                        <div class="cat-top"><span class="cat-nome">📄 Documentação</span></div>
+                        <div class="cat-total">R$ {{ custo_documentacao|floatformat:2 }}</div>
+                        <small class="cat-obs">Licenciamento, IPVA, seguro e multas</small>
+                        <span class="cat-link">Ver total de {{ ano_corrente|stringformat:'d' }} →</span>
+                    </a>
+                </div>
+                {% if por_categoria %}
+                    <div class="cat-cards" style="margin-top:14px;">
+                        {% for c in por_categoria %}
+                            <a class="cat-card"
+                               href="{% url 'relatorios' %}?tipo={{ c.tipo }}&inicio={{ ano_corrente|stringformat:'d' }}-01-01&fim={{ ano_corrente|stringformat:'d' }}-12-31">
+                                <div class="cat-top">
+                                    <span class="cat-nome">{{ c.rotulo }}</span>
+                                    <span class="cat-valor">{{ c.pct }}%</span>
+                                </div>
+                                <div class="cat-total">R$ {{ c.total|floatformat:2 }}</div>
+                                <div class="cat-bar"><div class="cat-bar-fill" style="width: {{ c.pct }}%;"></div></div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="vazio">Sem custos neste período.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="dash-analises">
+            <div class="painel-card">
+                <h2>Combustível e consumo</h2>
+                <div class="patrimonio-grid">
+                    <div><span class="patrimonio-label">Litros no período</span><span class="patrimonio-valor">{{ litros|floatformat:1 }} L</span></div>
+                    <div><span class="patrimonio-label">Preço médio</span><span class="patrimonio-valor">R$ {{ preco_medio_litro|floatformat:2 }}/L</span></div>
+                    <div><span class="patrimonio-label">Gasto em combustível</span><span class="patrimonio-valor">R$ {{ custo_combustivel|floatformat:2 }}</span></div>
+                </div>
+            </div>
+
+            {% if patrimonio %}
+            <div class="painel-card">
+                <h2>Patrimônio e depreciação</h2>
+                <div class="patrimonio-grid">
+                    <div><span class="patrimonio-label">Valor de aquisição</span><span class="patrimonio-valor">R$ {{ patrimonio.aquisicao|floatformat:2 }}</span></div>
+                    <div><span class="patrimonio-label">Valor estimado hoje</span><span class="patrimonio-valor">R$ {{ patrimonio.atual|floatformat:2 }}</span></div>
+                    <div><span class="patrimonio-label">Depreciação</span><span class="patrimonio-valor variacao-red">− R$ {{ patrimonio.depreciacao|floatformat:2 }} ({{ patrimonio.pct }}%)</span></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="painel-card">
+                <h2>Veículos com maior custo · {{ periodo_rotulo }}</h2>
+                {% if ranking %}
+                    <ul class="ranking">
+                        {% for v in ranking %}
+                            <li>
+                                <a href="{% url 'relatorios' %}?veiculo={{ v.id }}&inicio={{ ano_corrente|stringformat:'d' }}-01-01&fim={{ ano_corrente|stringformat:'d' }}-12-31">{{ v.marca }} {{ v.modelo }}</a>
+                                <span>R$ {{ v.total|floatformat:2 }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="vazio">Sem custos no período.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="painel-card">
+        <h2>Custo por veículo (vida inteira)</h2>
+        {% if por_veiculo %}
+            <table class="alertas-table">
+                <thead>
+                    <tr><th>Veículo</th><th>Acumulado</th><th>Custo/km</th><th>Consumo</th></tr>
+                </thead>
+                <tbody>
+                    {% for v in por_veiculo %}
+                        <tr>
+                            <td><a href="{% url 'detalhes_veiculo' v.obj.id %}">{{ v.obj.marca }} {{ v.obj.modelo }}{% if v.obj.placa %} · {{ v.obj.placa }}{% endif %}</a></td>
+                            <td>R$ {{ v.total_vida|floatformat:2 }}</td>
+                            <td>{% if v.custo_km %}R$ {{ v.custo_km|floatformat:2 }}/km{% else %}—{% endif %}</td>
+                            <td>{% if v.consumo %}{{ v.consumo|floatformat:1 }} km/L{% else %}—{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vazio">Nenhum veículo cadastrado.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

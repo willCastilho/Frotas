@@ -7,22 +7,7 @@
 <div class="container">
     <div class="header">
         <h1>📊 Painel de Gestão</h1>
-        <p>Visão geral da frota e dos custos</p>
-    </div>
-
-    <div class="painel-card periodo-filtro">
-        <div class="periodo-presets">
-            <a href="?periodo=mes_atual" class="chip {% if periodo_preset == 'mes_atual' %}chip-ativo{% endif %}">Mês atual</a>
-            <a href="?periodo=mes_anterior" class="chip {% if periodo_preset == 'mes_anterior' %}chip-ativo{% endif %}">Mês anterior</a>
-            <a href="?periodo=3meses" class="chip {% if periodo_preset == '3meses' %}chip-ativo{% endif %}">Últimos 3 meses</a>
-            <a href="?periodo=ano" class="chip {% if periodo_preset == 'ano' %}chip-ativo{% endif %}">Ano</a>
-        </div>
-        <form method="get" class="periodo-custom">
-            <input type="hidden" name="periodo" value="custom">
-            <input type="date" name="inicio" value="{{ periodo_inicio }}" aria-label="Início">
-            <input type="date" name="fim" value="{{ periodo_fim }}" aria-label="Fim">
-            <button type="submit" class="btn btn-small btn-primary">Aplicar</button>
-        </form>
+        <p>Frota, reservas e escala do dia</p>
     </div>
 
     <div class="kpi-grid">
@@ -37,13 +22,6 @@
         <div class="kpi-card">
             <span class="kpi-valor">{{ em_manutencao }}</span>
             <span class="kpi-label">Em manutenção</span>
-        </div>
-        <div class="kpi-card kpi-destaque">
-            <span class="kpi-valor">R$ {{ custo_mes_total|floatformat:2 }}</span>
-            <span class="kpi-label">Custo · {{ periodo_rotulo }}</span>
-            {% if mostrar_projecao %}
-                <span class="kpi-projecao">Projeção de fechamento: R$ {{ projecao_fechamento|floatformat:2 }}</span>
-            {% endif %}
         </div>
     </div>
 
@@ -88,125 +66,43 @@
         </div>
     </div>
 
-    {% if patrimonio %}
-    <div class="painel-card patrimonio-card">
-        <h2>Patrimônio da frota</h2>
-        <div class="patrimonio-grid">
-            <div><span class="patrimonio-label">Valor de aquisição</span><span class="patrimonio-valor">R$ {{ patrimonio.aquisicao|floatformat:2 }}</span></div>
-            <div><span class="patrimonio-label">Valor estimado hoje</span><span class="patrimonio-valor">R$ {{ patrimonio.atual|floatformat:2 }}</span></div>
-            <div><span class="patrimonio-label">Depreciação acumulada</span><span class="patrimonio-valor variacao-red">− R$ {{ patrimonio.depreciacao|floatformat:2 }} ({{ patrimonio.pct }}%)</span></div>
+    <div class="painel-card agenda-card">
+        <h2>⏱️ Próximos {{ agenda_dias }} dias</h2>
+        <p class="agenda-sub">Documentos, manutenções e escala · críticos fixos até 90 dias</p>
+        <div class="agenda-periodos">
+            {% for d in periodos_agenda %}
+                <a href="?agenda_dias={{ d }}" class="chip {% if d == agenda_dias %}chip-ativo{% endif %}">{% if d == 7 %}1 sem{% else %}{{ d }}d{% endif %}</a>
+            {% endfor %}
         </div>
-    </div>
-    {% endif %}
-
-    <div class="dash-colunas">
-        <!-- Coluna esquerda: agenda vertical de pendências -->
-        <div class="painel-card agenda-card">
-            <h2>⏱️ Próximos {{ agenda_dias }} dias</h2>
-            <p class="agenda-sub">Documentos, manutenções e escala · críticos fixos até 90 dias</p>
-            <div class="agenda-periodos">
-                {% for d in periodos_agenda %}
-                    <a href="?agenda_dias={{ d }}&periodo={{ periodo_preset }}" class="chip {% if d == agenda_dias %}chip-ativo{% endif %}">{% if d == 7 %}1 sem{% else %}{{ d }}d{% endif %}</a>
-                {% endfor %}
-            </div>
-            {% if agenda %}
-                <ul class="agenda-lista">
-                    {% for i in agenda %}
-                        <li class="agenda-item agenda-{{ i.cor }}{% if i.critico %} agenda-critico{% endif %}">
-                            <div class="agenda-quando">
+        {% if agenda %}
+            <ul class="agenda-lista agenda-lista-larga">
+                {% for i in agenda %}
+                    <li class="agenda-item agenda-{{ i.cor }}{% if i.critico %} agenda-critico{% endif %}">
+                        <div class="agenda-quando">
+                            {% if i.data %}
+                                <span class="agenda-dia">{{ i.data|date:"d/m" }}</span>
+                                <span class="agenda-ano">{{ i.data|date:"Y" }}</span>
+                            {% else %}
+                                <span class="agenda-dia">km</span>
+                            {% endif %}
+                        </div>
+                        <div class="agenda-info">
+                            <a href="{% url 'detalhes_veiculo' i.veiculo_id %}" class="agenda-veiculo">{{ i.veiculo.marca }} {{ i.veiculo.modelo }}{% if i.veiculo.placa %} · {{ i.veiculo.placa }}{% endif %}</a>
+                            <span class="agenda-titulo">{{ i.categoria }} · {{ i.titulo }}</span>
+                            <span class="agenda-detalhe variacao-{{ i.cor }}">
                                 {% if i.data %}
-                                    <span class="agenda-dia">{{ i.data|date:"d/m" }}</span>
-                                    <span class="agenda-ano">{{ i.data|date:"Y" }}</span>
-                                {% else %}
-                                    <span class="agenda-dia">km</span>
-                                {% endif %}
-                            </div>
-                            <div class="agenda-info">
-                                <a href="{% url 'detalhes_veiculo' i.veiculo_id %}" class="agenda-veiculo">{{ i.veiculo.marca }} {{ i.veiculo.modelo }}{% if i.veiculo.placa %} · {{ i.veiculo.placa }}{% endif %}</a>
-                                <span class="agenda-titulo">{{ i.categoria }} · {{ i.titulo }}</span>
-                                <span class="agenda-detalhe variacao-{{ i.cor }}">
-                                    {% if i.data %}
-                                        {% if i.dias < 0 %}Vencido há {{ i.dias|stringformat:"d"|cut:"-" }} dias
-                                        {% elif i.dias == 0 %}Hoje
-                                        {% else %}Faltam {{ i.dias }} dias{% endif %}
-                                    {% else %}{{ i.detalhe }}{% endif %}
-                                </span>
-                            </div>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p class="vazio">Nada nos próximos {{ agenda_dias }} dias. 🎉</p>
-            {% endif %}
-        </div>
-
-        <!-- Coluna direita: análises -->
-        <div class="dash-analises">
-            <div class="painel-card">
-                <h2>Custos dos últimos 6 meses</h2>
-                <div class="grafico-barras">
-                    {% for m in custos_meses %}
-                        <div class="barra-col">
-                            <div class="barra-valor">R$ {{ m.total|floatformat:0 }}</div>
-                            <div class="barra" style="height: {{ m.pct }}%;" title="R$ {{ m.total|floatformat:2 }}"></div>
-                            <div class="barra-label">{{ m.label }}</div>
+                                    {% if i.dias < 0 %}Vencido há {{ i.dias|stringformat:"d"|cut:"-" }} dias
+                                    {% elif i.dias == 0 %}Hoje
+                                    {% else %}Faltam {{ i.dias }} dias{% endif %}
+                                {% else %}{{ i.detalhe }}{% endif %}
+                            </span>
                         </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <div class="painel-card">
-                <h2>Custos por categoria · {{ periodo_rotulo }}</h2>
-                <div class="cat-cards">
-                    <a class="cat-card cat-card-doc"
-                       href="{% url 'relatorios' %}?grupo=documentacao&inicio={{ ano_corrente|stringformat:'d' }}-01-01&fim={{ ano_corrente|stringformat:'d' }}-12-31"
-                       title="Ver os custos com documentação em {{ ano_corrente|stringformat:'d' }}">
-                        <div class="cat-top">
-                            <span class="cat-nome">📄 Documentação</span>
-                        </div>
-                        <div class="cat-total">R$ {{ custo_documentacao|floatformat:2 }}</div>
-                        <small class="cat-obs">Licenciamento, IPVA, seguro e multas</small>
-                        <span class="cat-link">Ver total de {{ ano_corrente|stringformat:'d' }} →</span>
-                    </a>
-                </div>
-                {% if por_categoria %}
-                    <div class="cat-cards" style="margin-top:14px;">
-                        {% for c in por_categoria %}
-                            <a class="cat-card"
-                               href="{% url 'relatorios' %}?tipo={{ c.tipo }}&inicio={{ ano_corrente|stringformat:'d' }}-01-01&fim={{ ano_corrente|stringformat:'d' }}-12-31"
-                               title="Ver o total de {{ c.rotulo }} em {{ ano_corrente|stringformat:'d' }}">
-                                <div class="cat-top">
-                                    <span class="cat-nome">{{ c.rotulo }}</span>
-                                    <span class="cat-valor">{{ c.pct }}%</span>
-                                </div>
-                                <div class="cat-total">R$ {{ c.total|floatformat:2 }}</div>
-                                <div class="cat-bar"><div class="cat-bar-fill" style="width: {{ c.pct }}%;"></div></div>
-                                <span class="cat-link">Ver total de {{ ano_corrente|stringformat:'d' }} →</span>
-                            </a>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="vazio">Sem custos neste período.</p>
-                {% endif %}
-            </div>
-
-            <div class="painel-card">
-                <h2>Veículos com maior custo</h2>
-                {% if ranking %}
-                    <ul class="ranking">
-                        {% for v in ranking %}
-                            <li>
-                                <a href="{% url 'relatorios' %}?veiculo={{ v.id }}&inicio={{ ano_corrente|stringformat:'d' }}-01-01&fim={{ ano_corrente|stringformat:'d' }}-12-31"
-                                   title="Ver as categorias de gasto de {{ v.marca }} {{ v.modelo }} em {{ ano_corrente|stringformat:'d' }}">{{ v.marca }} {{ v.modelo }}</a>
-                                <span>R$ {{ v.total|floatformat:2 }}</span>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p class="vazio">Sem custos registrados.</p>
-                {% endif %}
-            </div>
-        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="vazio">Nada nos próximos {{ agenda_dias }} dias. 🎉</p>
+        {% endif %}
     </div>
 </div>
 {% endblock content %}

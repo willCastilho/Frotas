@@ -517,11 +517,6 @@ class DashboardTests(LogadoMixin, TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, 'Painel de Gestão')
 
-    def test_dashboard_tem_projecao(self):
-        r = self.client.get(reverse('dashboard'))
-        self.assertIn('projecao_fechamento', r.context)
-        self.assertContains(r, 'Projeção de fechamento')
-
     def test_relatorios_renderiza(self):
         self.assertEqual(self.client.get(reverse('relatorios')).status_code, 200)
 
@@ -660,21 +655,43 @@ class RelatorioPDFTests(LogadoMixin, TestCase):
         self.assertTrue(r.content.startswith(b'%PDF'))
 
 
-class DashboardPeriodoTests(LogadoMixin, TestCase):
+class FinanceiroTests(LogadoMixin, TestCase):
+    def test_financeiro_renderiza(self):
+        self.cria_veiculo()
+        r = self.client.get(reverse('financeiro'))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Financeiro')
+
+    def test_financeiro_tem_projecao_no_mes_atual(self):
+        r = self.client.get(reverse('financeiro'))
+        self.assertIn('projecao', r.context)
+        self.assertTrue(r.context['mostrar_projecao'])
+
     def test_periodo_mes_anterior_sem_projecao(self):
-        r = self.client.get(reverse('dashboard'), {'periodo': 'mes_anterior'})
+        r = self.client.get(reverse('financeiro'), {'periodo': 'mes_anterior'})
         self.assertEqual(r.status_code, 200)
         self.assertFalse(r.context['mostrar_projecao'])
-        self.assertNotContains(r, 'Projeção de fechamento')
 
     def test_periodo_filtra_custos(self):
         veiculo = self.cria_veiculo()
         Custo.objects.create(veiculo=veiculo, tipo='manutencao',
                              descricao='Antigo', valor=500, data='2020-01-01')
-        r = self.client.get(reverse('dashboard'),
+        r = self.client.get(reverse('financeiro'),
                             {'periodo': 'custom', 'inicio': '2026-01-01'})
-        # Custo de 2020 fica fora do periodo escolhido.
-        self.assertEqual(float(r.context['custo_mes_total']), 0.0)
+        self.assertEqual(float(r.context['total']), 0.0)
+
+    def test_combustivel_agrega(self):
+        from carro.models import Abastecimento
+        from django.utils import timezone
+        v = self.cria_veiculo()
+        hoje = timezone.now().date()
+        Abastecimento.objects.create(
+            veiculo=v, data=hoje, quilometragem=1000, litros=40,
+            valor_total=300, tipo_combustivel='diesel')
+        r = self.client.get(reverse('financeiro'),
+                            {'periodo': 'custom', 'inicio': hoje.replace(day=1).isoformat()})
+        self.assertEqual(float(r.context['litros']), 40.0)
+        self.assertEqual(float(r.context['custo_combustivel']), 300.0)
 
 
 class MotoristaTests(LogadoMixin, TestCase):
