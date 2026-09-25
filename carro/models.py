@@ -209,14 +209,15 @@ class Veiculo(models.Model):
     # Depreciacao anual pelo metodo do saldo decrescente (declining balance).
     TAXA_DEPRECIACAO_ANUAL = 0.10
 
-    def atribuicao_atual(self):
-        """Vinculo de motorista em aberto (sem data de fim), o mais recente."""
-        return self.atribuicoes.filter(data_fim__isnull=True).order_by(
-            '-data_inicio').select_related('motorista').first()
+    def escala_do_dia(self, data=None):
+        """Escala deste veiculo em uma data (padrao: hoje)."""
+        data = data or timezone.now().date()
+        return self.escalas.filter(data=data).select_related('motorista').first()
 
     def motorista_atual(self):
-        atrib = self.atribuicao_atual()
-        return atrib.motorista if atrib else None
+        """Motorista escalado para este veiculo hoje."""
+        escala = self.escala_do_dia()
+        return escala.motorista if escala else None
 
     def pendencias_documentais(self):
         """Pendencias que travam o lancamento de dados no veiculo: documentos
@@ -643,13 +644,15 @@ class Motorista(models.Model):
             cor, texto = 'green', '🟢 Em dia'
         return {'cor': cor, 'texto': texto, 'dias': dias}
 
-    def atribuicao_atual(self):
-        return self.atribuicoes.filter(data_fim__isnull=True).order_by(
-            '-data_inicio').select_related('veiculo').first()
+    def escala_do_dia(self, data=None):
+        """Escala deste motorista em uma data (padrao: hoje)."""
+        data = data or timezone.now().date()
+        return self.escalas.filter(data=data).select_related('veiculo').first()
 
     def veiculo_atual(self):
-        atrib = self.atribuicao_atual()
-        return atrib.veiculo if atrib else None
+        """Veiculo escalado para este motorista hoje."""
+        escala = self.escala_do_dia()
+        return escala.veiculo if escala else None
 
 
 class AtribuicaoVeiculo(models.Model):
@@ -934,6 +937,74 @@ def motoristas_disponiveis(organizacao, saida, retorno, excluir_id=None):
         if m.id in ocupados_ids:
             continue
         if m.cnh_validade and m.cnh_validade < hoje:
+            continue
+        livres.append(m)
+    return livres
+
+
+class EscalaDiaria(models.Model):
+    """Escala de utilizacao: o gestor define qual veiculo cada motorista usa em
+    um determinado dia. Substitui o vinculo aberto por periodo — o 'veiculo do
+    operador' passa a ser o carro escalado para ele no dia. Um motorista tem no
+    maximo um veiculo por dia e um veiculo no maximo um motorista por dia."""
+    organizacao = models.ForeignKey(
+        'contas.Organizacao', on_delete=models.CASCADE, related_name='escalas'
+    )
+    data = models.DateField()
+    veiculo = models.ForeignKey(
+        Veiculo, on_delete=models.CASCADE, related_name='escalas'
+    )
+    motorista = models.ForeignKey(
+        Motorista, on_delete=models.CASCADE, related_name='escalas'
+    )
+    observacao = models.CharField(max_length=200, blank=True)
+    criado_por = models.ForeignKey(
+        'auth.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='escalas_criadas'
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-data', 'veiculo__marca', 'veiculo__modelo']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['veiculo', 'data'], name='escala_unica_por_veiculo_dia'),
+            models.UniqueConstraint(
+                fields=['motorista', 'data'], name='escala_unica_por_motorista_dia'),
+        ]
+        indexes = [
+            models.Index(fields=['organizacao', 'data']),
+            models.Index(fields=['motorista', 'data']),
+            models.Index(fields=['veiculo', 'data']),
+        ]
+
+    def __str__(self):
+        return f'{self.data:%d/%m/%Y}: {self.motorista} → {self.veiculo}'
+
+
+def veiculos_livres_no_dia(organizacao, data, excluir_veiculo_id=None):
+    """Veiculos ativos da organizacao sem escala no dia e sem documento vencido."""
+    ocupados = set(EscalaDiaria.objects.filter(
+        organizacao=organizacao, data=data).values_list('veiculo_id', flat=True))
+    livres = []
+    for v in Veiculo.objects.filter(organizacao=organizacao, status='ativo'):
+        if v.id in ocupados and v.id != excluir_veiculo_id:
+            continue
+        if v.documentos.filter(vencimento__lt=data).exists():
+            continue
+        livres.append(v)
+    return livres
+
+
+def motoristas_livres_no_dia(organizacao, data, excluir_motorista_id=None):
+    """Motoristas ativos da organizacao sem escala no dia e com CNH em dia."""
+    ocupados = set(EscalaDiaria.objects.filter(
+        organizacao=organizacao, data=data).values_list('motorista_id', flat=True))
+    livres = []
+    for m in Motorista.objects.filter(organizacao=organizacao, status='ativo'):
+        if m.id in ocupados and m.id != excluir_motorista_id:
+            continue
+        if m.cnh_validade and m.cnh_validade < data:
             continue
         livres.append(m)
     return livres

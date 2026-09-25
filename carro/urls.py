@@ -34,9 +34,9 @@ urlpatterns = [
     path('motoristas/<int:motorista_id>/', carro_views.detalhes_motorista, name='detalhes_motorista'),
     path('motoristas/<int:motorista_id>/editar/', carro_views.editar_motorista, name='editar_motorista'),
     path('motoristas/<int:motorista_id>/excluir/', carro_views.excluir_motorista, name='excluir_motorista'),
-    path('atribuicao/nova/', carro_views.nova_atribuicao, name='nova_atribuicao'),
-    path('atribuicao/<int:pk>/encerrar/', carro_views.encerrar_atribuicao, name='encerrar_atribuicao'),
-    path('atribuicao/<int:pk>/excluir/', carro_views.excluir_atribuicao, name='excluir_atribuicao'),
+    path('escala/', carro_views.escala, name='escala'),
+    path('escala/montar/', carro_views.montar_escala, name='montar_escala'),
+    path('escala/<int:pk>/remover/', carro_views.remover_escala, name='remover_escala'),
 
     # Pre-agendamento de veiculos
     path('agendamento/cadastro/<uuid:token>/', carro_views.cadastro_solicitante, name='cadastro_solicitante'),

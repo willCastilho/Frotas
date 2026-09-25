@@ -64,3 +64,11 @@ class AtribuicaoVeiculoAdmin(admin.ModelAdmin):
     search_fields = ('motorista__nome', 'veiculo__modelo', 'veiculo__placa')
     date_hierarchy = 'data_inicio'
 
+
+@admin.register(models.EscalaDiaria)
+class EscalaDiariaAdmin(admin.ModelAdmin):
+    list_display = ('data', 'veiculo', 'motorista', 'organizacao')
+    list_filter = ('organizacao', 'data')
+    search_fields = ('motorista__nome', 'veiculo__modelo', 'veiculo__placa')
+    date_hierarchy = 'data'
+

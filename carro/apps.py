@@ -14,6 +14,7 @@ class CarroConfig(AppConfig):
             AtribuicaoVeiculo,
             Custo,
             Documento,
+            EscalaDiaria,
             Motorista,
             PlanoManutencao,
             RegistroQuilometragem,
@@ -21,5 +22,6 @@ class CarroConfig(AppConfig):
         )
 
         for modelo in (Veiculo, Custo, Abastecimento, RegistroQuilometragem,
-                       PlanoManutencao, Documento, Motorista, AtribuicaoVeiculo):
+                       PlanoManutencao, Documento, Motorista, AtribuicaoVeiculo,
+                       EscalaDiaria):
             auditlog.register(modelo)

@@ -1,14 +1,15 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from carro.forms import AtribuicaoVeiculoForm, MotoristaForm
-from carro.models import AtribuicaoVeiculo, Motorista, Veiculo
+from carro.forms import EscalaMontarForm, MotoristaForm
+from carro.models import EscalaDiaria, Motorista, Veiculo
 from contas.utils import exige_escrita, exige_gestor, organizacao_do
 
 
@@ -35,7 +36,7 @@ def motoristas(request):
 @exige_gestor
 def detalhes_motorista(request, motorista_id):
     motorista = get_object_or_404(_motoristas_da_org(request), id=motorista_id)
-    historico = motorista.atribuicoes.select_related('veiculo').all()
+    historico = motorista.escalas.select_related('veiculo').all()[:60]
     return render(request, 'motoristas/detalhes.html', {
         'motorista': motorista,
         'cnh': motorista.cnh_status(),
@@ -81,88 +82,144 @@ def excluir_motorista(request, motorista_id):
     return redirect('motoristas')
 
 
+def _dia_valido(dia, somente_uteis):
+    return not (somente_uteis and dia.weekday() >= 5)  # 5=sab, 6=dom
+
+
 @login_required
-@exige_escrita
-def nova_atribuicao(request):
-    """Vincula um motorista a um veiculo. Ao abrir um vinculo (sem data de fim),
-    encerra automaticamente o vinculo anterior em aberto tanto do mesmo veiculo
-    quanto do mesmo motorista (cada veiculo tem um motorista e cada motorista
-    tem um veiculo por vez)."""
+@exige_gestor
+def escala(request):
+    """Escala de utilizacao do dia + formulario para montar a escala por
+    periodo. O gestor define qual veiculo vai para cada motorista no dia."""
     org = organizacao_do(request.user)
-    inicial = {}
-    veiculo_id = request.GET.get('veiculo')
-    if veiculo_id:
-        inicial['veiculo'] = veiculo_id
-    form = AtribuicaoVeiculoForm(request.POST or None, organizacao=org, initial=inicial)
-    if request.method == 'POST' and form.is_valid():
-        atrib = form.save()
-        if atrib.data_fim is None:
-            from django.db.models import Q
-            # Encerra vinculos abertos do mesmo veiculo OU do mesmo motorista.
-            AtribuicaoVeiculo.objects.filter(
-                Q(veiculo=atrib.veiculo) | Q(motorista=atrib.motorista),
-                data_fim__isnull=True,
-            ).exclude(pk=atrib.pk).update(
-                data_fim=atrib.data_inicio - timedelta(days=1))
-        messages.success(request, 'Motorista vinculado ao veículo.')
-        return redirect('detalhes_veiculo', veiculo_id=atrib.veiculo_id)
-    return render(request, 'motoristas/form.html',
-                  {'form': form, 'titulo': 'Vincular motorista a veículo'})
+    data_str = request.GET.get('data') or timezone.now().date().isoformat()
+    try:
+        data = date.fromisoformat(data_str)
+    except ValueError:
+        data = timezone.now().date()
+
+    inicial = {'data_inicio': data.isoformat(), 'data_fim': data.isoformat()}
+    veic_id = request.GET.get('veiculo')
+    if veic_id:
+        inicial['veiculo'] = veic_id
+    form = EscalaMontarForm(organizacao=org, initial=inicial)
+
+    escalas = (EscalaDiaria.objects
+               .filter(organizacao=org, data=data)
+               .select_related('veiculo', 'motorista'))
+    com_veiculo = {e.veiculo_id for e in escalas}
+    sem_escala = Veiculo.objects.filter(
+        organizacao=org, status='ativo').exclude(id__in=com_veiculo)
+
+    return render(request, 'motoristas/escala.html', {
+        'data': data,
+        'dia_anterior': data - timedelta(days=1),
+        'dia_seguinte': data + timedelta(days=1),
+        'escalas': escalas,
+        'sem_escala': sem_escala,
+        'form': form,
+    })
 
 
 @login_required
 @exige_escrita
 @require_POST
-def encerrar_atribuicao(request, pk):
-    atrib = get_object_or_404(
-        AtribuicaoVeiculo, pk=pk, veiculo__organizacao=organizacao_do(request.user))
-    if atrib.data_fim is None:
-        atrib.data_fim = timezone.now().date()
-        atrib.save(update_fields=['data_fim'])
-        messages.success(request, 'Vínculo encerrado.')
-    return redirect('detalhes_veiculo', veiculo_id=atrib.veiculo_id)
+def montar_escala(request):
+    """Cria a escala de cada dia do periodo, respeitando as travas: 1 carro por
+    motorista/dia e 1 motorista por carro/dia, carro sem documento vencido e
+    motorista com CNH em dia."""
+    org = organizacao_do(request.user)
+    form = EscalaMontarForm(request.POST, organizacao=org)
+    if not form.is_valid():
+        # Reexibe a tela da escala com os erros.
+        data = form.cleaned_data.get('data_inicio') or timezone.now().date()
+        escalas = (EscalaDiaria.objects.filter(organizacao=org, data=data)
+                   .select_related('veiculo', 'motorista'))
+        return render(request, 'motoristas/escala.html', {
+            'data': data,
+            'dia_anterior': data - timedelta(days=1),
+            'dia_seguinte': data + timedelta(days=1),
+            'escalas': escalas,
+            'sem_escala': Veiculo.objects.filter(
+                organizacao=org, status='ativo').exclude(
+                id__in={e.veiculo_id for e in escalas}),
+            'form': form,
+        })
+
+    d = form.cleaned_data
+    motorista, veiculo = d['motorista'], d['veiculo']
+    inicio, fim, uteis = d['data_inicio'], d['data_fim'], d['somente_dias_uteis']
+    obs = d.get('observacao', '')
+
+    criados = 0
+    conflitos = []
+    dia = inicio
+    while dia <= fim:
+        if not _dia_valido(dia, uteis):
+            dia += timedelta(days=1)
+            continue
+        motivo = None
+        if veiculo.documentos.filter(vencimento__lt=dia).exists():
+            motivo = 'veículo com documento vencido'
+        elif motorista.cnh_validade and motorista.cnh_validade < dia:
+            motivo = 'CNH do motorista vencida'
+        elif EscalaDiaria.objects.filter(
+                organizacao=org, data=dia, veiculo=veiculo).exists():
+            motivo = 'veículo já escalado'
+        elif EscalaDiaria.objects.filter(
+                organizacao=org, data=dia, motorista=motorista).exists():
+            motivo = 'motorista já escalado'
+        if motivo:
+            conflitos.append(f'{dia:%d/%m}: {motivo}')
+        else:
+            EscalaDiaria.objects.create(
+                organizacao=org, data=dia, veiculo=veiculo,
+                motorista=motorista, observacao=obs, criado_por=request.user)
+            criados += 1
+        dia += timedelta(days=1)
+
+    if criados:
+        messages.success(request, f'{criados} dia(s) escalado(s) para '
+                         f'{motorista.nome} no {veiculo}.')
+    if conflitos:
+        messages.warning(request, 'Dias não escalados — ' + '; '.join(conflitos[:15])
+                         + ('…' if len(conflitos) > 15 else ''))
+    if not criados and not conflitos:
+        messages.info(request, 'Nenhum dia no período selecionado.')
+    return redirect(f"{reverse('escala')}?data={inicio.isoformat()}")
 
 
 @login_required
 @exige_escrita
 @require_POST
-def excluir_atribuicao(request, pk):
-    atrib = get_object_or_404(
-        AtribuicaoVeiculo, pk=pk, veiculo__organizacao=organizacao_do(request.user))
-    veiculo_id = atrib.veiculo_id
-    atrib.delete()
-    messages.success(request, 'Vínculo removido.')
-    return redirect('detalhes_veiculo', veiculo_id=veiculo_id)
-
-
-def _alocacoes_na_data(org, data):
-    """Vinculos ativos em uma data: data_inicio <= data e (sem fim ou fim >= data)."""
-    return (
-        AtribuicaoVeiculo.objects
-        .filter(veiculo__organizacao=org, data_inicio__lte=data)
-        .filter(Q(data_fim__isnull=True) | Q(data_fim__gte=data))
-        .select_related('veiculo', 'motorista')
-        .order_by('veiculo__marca', 'veiculo__modelo')
-    )
+def remover_escala(request, pk):
+    esc = get_object_or_404(
+        EscalaDiaria, pk=pk, organizacao=organizacao_do(request.user))
+    dia = esc.data
+    esc.delete()
+    messages.success(request, 'Escala removida.')
+    return redirect(f"{reverse('escala')}?data={dia.isoformat()}")
 
 
 @login_required
 @exige_gestor
 def relatorio_motoristas(request):
-    """Mostra qual motorista estava em qual veiculo em uma data de referencia."""
+    """Mostra qual motorista estava em qual veiculo em uma data (pela escala)."""
     org = organizacao_do(request.user)
     data_str = request.GET.get('data') or timezone.now().date().isoformat()
     try:
-        data = timezone.datetime.fromisoformat(data_str).date()
+        data = date.fromisoformat(data_str)
     except ValueError:
         data = timezone.now().date()
 
-    alocacoes = _alocacoes_na_data(org, data)
+    alocacoes = (EscalaDiaria.objects
+                 .filter(organizacao=org, data=data)
+                 .select_related('veiculo', 'motorista')
+                 .order_by('veiculo__marca', 'veiculo__modelo'))
 
     if request.GET.get('formato') == 'csv':
         return _exportar_alocacoes_csv(alocacoes, data)
 
-    # Veiculos sem motorista atribuido na data.
     com_motorista = {a.veiculo_id for a in alocacoes}
     sem_motorista = Veiculo.objects.filter(organizacao=org).exclude(
         id__in=com_motorista)
@@ -184,8 +241,8 @@ def _exportar_alocacoes_csv(alocacoes, data):
         f'attachment; filename="motoristas-{data.isoformat()}.csv"')
     resposta.write('﻿')
     escritor = csv.writer(resposta, delimiter=';')
-    escritor.writerow(['Data de referência', 'Veículo', 'Placa', 'Motorista',
-                       'CNH', 'Início do vínculo', 'Fim do vínculo'])
+    escritor.writerow(['Data', 'Veículo', 'Placa', 'Motorista', 'CNH',
+                       'Observação'])
     for a in alocacoes:
         escritor.writerow([
             data.strftime('%d/%m/%Y'),
@@ -193,7 +250,6 @@ def _exportar_alocacoes_csv(alocacoes, data):
             a.veiculo.placa,
             a.motorista.nome,
             a.motorista.cnh,
-            a.data_inicio.strftime('%d/%m/%Y'),
-            a.data_fim.strftime('%d/%m/%Y') if a.data_fim else 'em aberto',
+            a.observacao,
         ])
     return resposta

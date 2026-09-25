@@ -97,26 +97,20 @@
                     <span class="badge badge-{{ veiculo.status }}">{{ veiculo.get_status_display }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Motorista:</span>
+                    <span class="info-label">Motorista (hoje):</span>
                     <span class="info-value">
-                        {% if atribuicao_atual %}
-                            <a href="{% url 'detalhes_motorista' atribuicao_atual.motorista.id %}">{{ atribuicao_atual.motorista.nome }}</a>
-                            <small style="color:var(--text-muted);">desde {{ atribuicao_atual.data_inicio|date:"d/m/Y" }}</small>
+                        {% if escala_hoje %}
+                            <a href="{% url 'detalhes_motorista' escala_hoje.motorista.id %}">{{ escala_hoje.motorista.nome }}</a>
+                            <small style="color:var(--text-muted);">(escala do dia)</small>
                         {% else %}
-                            <span style="color:var(--text-muted);">sem motorista</span>
+                            <span style="color:var(--text-muted);">sem escala hoje</span>
                         {% endif %}
                     </span>
                 </div>
             </div>
             {% if perfil_efetivo.eh_gestor %}
             <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-                <a href="{% url 'nova_atribuicao' %}?veiculo={{ veiculo.id }}" class="btn btn-small btn-secondary">{% if atribuicao_atual %}Trocar motorista{% else %}Vincular motorista{% endif %}</a>
-                {% if atribuicao_atual %}
-                    <form method="post" action="{% url 'encerrar_atribuicao' atribuicao_atual.id %}" onsubmit="return confirm('Encerrar o vínculo com este motorista?')">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-small btn-danger">Encerrar vínculo</button>
-                    </form>
-                {% endif %}
+                <a href="{% url 'escala' %}?veiculo={{ veiculo.id }}" class="btn btn-small btn-secondary">📋 Escala de utilização</a>
             </div>
             {% endif %}
             {% if veiculo.observacoes %}

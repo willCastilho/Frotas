@@ -195,6 +195,38 @@ class AtribuicaoVeiculoForm(forms.ModelForm):
         return dados
 
 
+class EscalaMontarForm(forms.Form):
+    """Monta a escala de um motorista em um veiculo por um periodo (o sistema
+    cria a escala de cada dia do intervalo)."""
+    motorista = forms.ModelChoiceField(
+        queryset=Motorista.objects.none(), label='Motorista')
+    veiculo = forms.ModelChoiceField(
+        queryset=Veiculo.objects.none(), label='Veículo')
+    data_inicio = forms.DateField(widget=_DATE, label='De')
+    data_fim = forms.DateField(widget=_DATE, label='Até')
+    somente_dias_uteis = forms.BooleanField(
+        required=False, initial=True, label='Somente dias úteis (seg–sex)')
+    observacao = forms.CharField(max_length=200, required=False, label='Observação')
+
+    def __init__(self, *args, organizacao=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if organizacao is not None:
+            self.fields['motorista'].queryset = Motorista.objects.filter(
+                organizacao=organizacao, status='ativo')
+            self.fields['veiculo'].queryset = Veiculo.objects.filter(
+                organizacao=organizacao, status='ativo')
+
+    def clean(self):
+        dados = super().clean()
+        inicio, fim = dados.get('data_inicio'), dados.get('data_fim')
+        if inicio and fim:
+            if fim < inicio:
+                self.add_error('data_fim', 'A data final não pode ser anterior à inicial.')
+            elif (fim - inicio).days > 366:
+                self.add_error('data_fim', 'O período não pode passar de 1 ano.')
+        return dados
+
+
 class SolicitanteSignupForm(forms.Form):
     """Auto-cadastro do solicitante: cria login + cadastro (status pendente)."""
     username = forms.CharField(max_length=150, label='Usuário (login)')

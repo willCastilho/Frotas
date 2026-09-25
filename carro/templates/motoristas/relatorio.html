@@ -22,11 +22,11 @@
     </div>
 
     <div class="painel-card">
-        <h2>Vínculos ativos em {{ data }}</h2>
+        <h2>Escala em {{ data }}</h2>
         {% if alocacoes %}
             <table class="alertas-table">
                 <thead>
-                    <tr><th>Veículo</th><th>Placa</th><th>Motorista</th><th>CNH</th><th>Desde</th><th>Até</th></tr>
+                    <tr><th>Veículo</th><th>Placa</th><th>Motorista</th><th>CNH</th><th>Observação</th></tr>
                 </thead>
                 <tbody>
                     {% for a in alocacoes %}
@@ -35,14 +35,13 @@
                             <td>{{ a.veiculo.placa|default:"—" }}</td>
                             <td><a href="{% url 'detalhes_motorista' a.motorista.id %}">{{ a.motorista.nome }}</a></td>
                             <td>{{ a.motorista.cnh|default:"—" }}</td>
-                            <td>{{ a.data_inicio|date:"d/m/Y" }}</td>
-                            <td>{% if a.data_fim %}{{ a.data_fim|date:"d/m/Y" }}{% else %}em aberto{% endif %}</td>
+                            <td>{{ a.observacao }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
         {% else %}
-            <p class="vazio">Nenhum motorista vinculado nesta data.</p>
+            <p class="vazio">Nenhum motorista escalado nesta data.</p>
         {% endif %}
     </div>
 

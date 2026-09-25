@@ -46,7 +46,7 @@
             {% endif %}
             <div style="margin-top:16px;display:flex;gap:8px;">
                 <a href="{% url 'editar_motorista' motorista.id %}" class="btn btn-secondary btn-small">Editar</a>
-                <a href="{% url 'nova_atribuicao' %}" class="btn btn-primary btn-small">Vincular a veículo</a>
+                <a href="{% url 'escala' %}" class="btn btn-primary btn-small">Escala de utilização</a>
                 <form method="post" action="{% url 'excluir_motorista' motorista.id %}" onsubmit="return confirm('Excluir este motorista?')">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger btn-small">Excluir</button>
@@ -56,23 +56,22 @@
     </div>
 
     <div class="custos-lista">
-        <h2>Histórico de veículos</h2>
+        <h2>Histórico de escala</h2>
         {% if historico %}
             <table class="custos-table">
-                <thead><tr><th>Veículo</th><th>Início</th><th>Fim</th><th>Observação</th></tr></thead>
+                <thead><tr><th>Dia</th><th>Veículo</th><th>Observação</th></tr></thead>
                 <tbody>
                     {% for a in historico %}
                         <tr>
+                            <td>{{ a.data|date:"d/m/Y" }}</td>
                             <td><a href="{% url 'detalhes_veiculo' a.veiculo.id %}">{{ a.veiculo.marca }} {{ a.veiculo.modelo }}{% if a.veiculo.placa %} · {{ a.veiculo.placa }}{% endif %}</a></td>
-                            <td>{{ a.data_inicio|date:"d/m/Y" }}</td>
-                            <td>{% if a.data_fim %}{{ a.data_fim|date:"d/m/Y" }}{% else %}<span class="variacao-green">em aberto</span>{% endif %}</td>
                             <td>{{ a.observacao }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
         {% else %}
-            <p class="sem-custos">Nenhum vínculo registrado.</p>
+            <p class="sem-custos">Nenhuma escala registrada.</p>
         {% endif %}
     </div>
 </div>

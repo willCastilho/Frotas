@@ -649,56 +649,80 @@ class MotoristaTests(LogadoMixin, TestCase):
         self.assertContains(r, 'Meu Motorista')
         self.assertNotContains(r, 'De Fora')
 
-    def test_vinculo_define_motorista_atual(self):
+    def test_escala_define_motorista_do_dia(self):
         veiculo = self.cria_veiculo()
         m = self._cria_motorista()
-        r = self.client.post(reverse('nova_atribuicao'), {
+        hoje = date.today()
+        r = self.client.post(reverse('montar_escala'), {
             'motorista': m.id, 'veiculo': veiculo.id,
-            'data_inicio': date.today().isoformat(),
+            'data_inicio': hoje.isoformat(), 'data_fim': hoje.isoformat(),
         })
         self.assertEqual(r.status_code, 302)
         self.assertEqual(veiculo.motorista_atual(), m)
+        self.assertEqual(m.veiculo_atual(), veiculo)
 
-    def test_troca_encerra_vinculo_anterior(self):
-        from carro.models import AtribuicaoVeiculo
+    def test_escala_periodo_dias_uteis(self):
+        from carro.models import EscalaDiaria
         veiculo = self.cria_veiculo()
-        m1 = self._cria_motorista('Primeiro')
-        m2 = self._cria_motorista('Segundo')
-        self.client.post(reverse('nova_atribuicao'), {
-            'motorista': m1.id, 'veiculo': veiculo.id,
-            'data_inicio': (date.today() - timedelta(days=10)).isoformat(),
+        m = self._cria_motorista('Semana')
+        # Seg 05/10/2026 a Dom 11/10/2026, so dias uteis -> 5 dias.
+        self.client.post(reverse('montar_escala'), {
+            'motorista': m.id, 'veiculo': veiculo.id,
+            'data_inicio': '2026-10-05', 'data_fim': '2026-10-11',
+            'somente_dias_uteis': 'on',
         })
-        self.client.post(reverse('nova_atribuicao'), {
-            'motorista': m2.id, 'veiculo': veiculo.id,
-            'data_inicio': date.today().isoformat(),
-        })
-        # So o segundo fica em aberto; o primeiro foi encerrado automaticamente.
-        abertos = AtribuicaoVeiculo.objects.filter(veiculo=veiculo, data_fim__isnull=True)
-        self.assertEqual(abertos.count(), 1)
-        self.assertEqual(veiculo.motorista_atual(), m2)
+        self.assertEqual(EscalaDiaria.objects.filter(
+            veiculo=veiculo, motorista=m).count(), 5)
 
-    def test_relatorio_motorista_por_data(self):
-        from carro.models import AtribuicaoVeiculo
+    def test_escala_bloqueia_carro_com_doc_vencido(self):
+        from carro.models import EscalaDiaria, Documento
+        veiculo = self.cria_veiculo()
+        m = self._cria_motorista('Bloqueado')
+        Documento.objects.create(
+            veiculo=veiculo, tipo='licenciamento',
+            vencimento=date(2026, 10, 1))
+        # Escala no dia seguinte ao vencimento -> bloqueada.
+        self.client.post(reverse('montar_escala'), {
+            'motorista': m.id, 'veiculo': veiculo.id,
+            'data_inicio': '2026-10-05', 'data_fim': '2026-10-05',
+        })
+        self.assertEqual(EscalaDiaria.objects.count(), 0)
+
+    def test_escala_nao_duplica_veiculo_no_dia(self):
+        from carro.models import EscalaDiaria
+        veiculo = self.cria_veiculo()
+        m1 = self._cria_motorista('Um')
+        m2 = self._cria_motorista('Dois')
+        EscalaDiaria.objects.create(
+            organizacao=self.org, data=date(2026, 10, 5),
+            veiculo=veiculo, motorista=m1)
+        # Tentar escalar o mesmo carro para outro motorista no mesmo dia.
+        self.client.post(reverse('montar_escala'), {
+            'motorista': m2.id, 'veiculo': veiculo.id,
+            'data_inicio': '2026-10-05', 'data_fim': '2026-10-05',
+        })
+        self.assertEqual(EscalaDiaria.objects.filter(
+            veiculo=veiculo, data=date(2026, 10, 5)).count(), 1)
+
+    def test_relatorio_escala_por_data(self):
+        from carro.models import EscalaDiaria
         veiculo = self.cria_veiculo()
         m = self._cria_motorista('Condutor X')
-        # Vinculo de 01/03 a 31/03.
-        AtribuicaoVeiculo.objects.create(
-            veiculo=veiculo, motorista=m,
-            data_inicio=date(2026, 3, 1), data_fim=date(2026, 3, 31))
-        # Dentro do periodo: aparece.
+        EscalaDiaria.objects.create(
+            organizacao=self.org, data=date(2026, 3, 15),
+            veiculo=veiculo, motorista=m)
         r = self.client.get(reverse('relatorio_motoristas'), {'data': '2026-03-15'})
         self.assertContains(r, 'Condutor X')
-        # Fora do periodo: nao aparece na lista de alocacoes.
         r2 = self.client.get(reverse('relatorio_motoristas'), {'data': '2026-05-01'})
-        alocacoes = list(r2.context['alocacoes'])
-        self.assertEqual(alocacoes, [])
+        self.assertEqual(list(r2.context['alocacoes']), [])
 
     def test_relatorio_exporta_csv(self):
-        from carro.models import AtribuicaoVeiculo
+        from carro.models import EscalaDiaria
         veiculo = self.cria_veiculo()
         m = self._cria_motorista('Exportado')
-        AtribuicaoVeiculo.objects.create(
-            veiculo=veiculo, motorista=m, data_inicio=date(2026, 1, 1))
+        EscalaDiaria.objects.create(
+            organizacao=self.org, data=date(2026, 6, 1),
+            veiculo=veiculo, motorista=m)
         r = self.client.get(reverse('relatorio_motoristas'),
                             {'data': '2026-06-01', 'formato': 'csv'})
         self.assertEqual(r.status_code, 200)
@@ -858,8 +882,10 @@ class OperadorVeiculoTests(TestCase):
             user=self.user, organizacao=self.org, papel=PerfilUsuario.PAPEL_OPERADOR)
         self.motorista = Motorista.objects.create(
             organizacao=self.org, nome='Op', user=self.user)
-        AtribuicaoVeiculo.objects.create(
-            veiculo=self.veiculo, motorista=self.motorista, data_inicio=date.today())
+        from carro.models import EscalaDiaria
+        EscalaDiaria.objects.create(
+            organizacao=self.org, data=date.today(),
+            veiculo=self.veiculo, motorista=self.motorista)
         self.client.login(username='op', password='operad12345')
 
     def test_home_vai_para_seu_veiculo(self):
@@ -885,18 +911,22 @@ class OperadorVeiculoTests(TestCase):
 
 
 class UmVeiculoPorMotoristaTests(LogadoMixin, TestCase):
-    def test_novo_vinculo_fecha_o_anterior_do_motorista(self):
-        from carro.models import AtribuicaoVeiculo, Motorista
+    def test_motorista_tem_um_veiculo_por_dia(self):
+        from carro.models import EscalaDiaria, Motorista
         v1 = self.cria_veiculo(modelo='V1')
         v2 = self.cria_veiculo(modelo='V2')
         m = Motorista.objects.create(organizacao=self.org, nome='M')
-        self.client.post(reverse('nova_atribuicao'), {
-            'motorista': m.id, 'veiculo': v1.id, 'data_inicio': date.today().isoformat()})
-        self.client.post(reverse('nova_atribuicao'), {
-            'motorista': m.id, 'veiculo': v2.id, 'data_inicio': date.today().isoformat()})
-        abertos = AtribuicaoVeiculo.objects.filter(motorista=m, data_fim__isnull=True)
-        self.assertEqual(abertos.count(), 1)
-        self.assertEqual(m.veiculo_atual(), v2)
+        hoje = date.today().isoformat()
+        self.client.post(reverse('montar_escala'), {
+            'motorista': m.id, 'veiculo': v1.id,
+            'data_inicio': hoje, 'data_fim': hoje})
+        # Escalar o mesmo motorista em outro carro no mesmo dia e bloqueado.
+        self.client.post(reverse('montar_escala'), {
+            'motorista': m.id, 'veiculo': v2.id,
+            'data_inicio': hoje, 'data_fim': hoje})
+        self.assertEqual(EscalaDiaria.objects.filter(
+            motorista=m, data=date.today()).count(), 1)
+        self.assertEqual(m.veiculo_atual(), v1)
 
 
 class LogsTests(LogadoMixin, TestCase):

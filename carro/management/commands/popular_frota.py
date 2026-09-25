@@ -53,6 +53,7 @@ from carro.models import (
     AtribuicaoVeiculo,
     Custo,
     Documento,
+    EscalaDiaria,
     Motorista,
     PlanoManutencao,
     RegistroQuilometragem,
@@ -453,6 +454,24 @@ class Command(BaseCommand):
                 observacao=a.get('observacao', ''),
             ))
         AtribuicaoVeiculo.objects.bulk_create(objetos, batch_size=500)
+
+        # A escala diaria substituiu o vinculo aberto: para cada vinculo sem
+        # data_fim (motorista atual do veiculo), cria a escala de hoje, para o
+        # operador enxergar o seu veiculo apos a carga.
+        hoje = timezone.now().date()
+        escalas, vistos_v, vistos_m = [], set(), set()
+        for obj in objetos:
+            if obj.data_fim is not None:
+                continue
+            if obj.veiculo_id in vistos_v or obj.motorista_id in vistos_m:
+                continue
+            escalas.append(EscalaDiaria(
+                organizacao=obj.veiculo.organizacao, data=hoje,
+                veiculo=obj.veiculo, motorista=obj.motorista,
+                observacao='Escala inicial (carga)'))
+            vistos_v.add(obj.veiculo_id)
+            vistos_m.add(obj.motorista_id)
+        EscalaDiaria.objects.bulk_create(escalas, batch_size=500)
         return len(objetos)
 
     def _criar_gestor(self, organizacao, username, senha):

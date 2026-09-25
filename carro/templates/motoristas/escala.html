@@ -1,0 +1,82 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>📋 Escala de utilização</h1>
+        <p>Defina qual veículo cada motorista usa no dia.</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="painel-card">
+        <h2>Montar escala por período</h2>
+        <form method="post" action="{% url 'montar_escala' %}" class="filtro-relatorio">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% for erro in field.errors %}<span class="field-error">{{ erro }}</span>{% endfor %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary">Escalar período</button>
+        </form>
+    </div>
+
+    <div class="agenda-nav">
+        <a href="?data={{ dia_anterior|date:'Y-m-d' }}" class="btn btn-secondary">← Dia anterior</a>
+        <a href="{% url 'escala' %}" class="btn btn-secondary">Hoje</a>
+        <a href="?data={{ dia_seguinte|date:'Y-m-d' }}" class="btn btn-secondary">Próximo dia →</a>
+        <a href="{% url 'relatorio_motoristas' %}?data={{ data|date:'Y-m-d' }}" class="btn btn-secondary">Ver relatório do dia</a>
+    </div>
+
+    <div class="painel-card">
+        <h2>Escala de {{ data|date:"d/m/Y" }}</h2>
+        {% if escalas %}
+            <table class="alertas-table">
+                <thead>
+                    <tr><th>Veículo</th><th>Placa</th><th>Motorista</th><th>Observação</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for e in escalas %}
+                        <tr>
+                            <td><a href="{% url 'detalhes_veiculo' e.veiculo.id %}">{{ e.veiculo.marca }} {{ e.veiculo.modelo }}</a></td>
+                            <td>{{ e.veiculo.placa|default:"—" }}</td>
+                            <td><a href="{% url 'detalhes_motorista' e.motorista.id %}">{{ e.motorista.nome }}</a></td>
+                            <td>{{ e.observacao }}</td>
+                            <td>
+                                <form method="post" action="{% url 'remover_escala' e.id %}" onsubmit="return confirm('Remover esta escala?')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-small btn-danger">Remover</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vazio">Nenhum veículo escalado neste dia.</p>
+        {% endif %}
+    </div>
+
+    {% if sem_escala %}
+    <div class="painel-card">
+        <h2>Veículos sem escala em {{ data|date:"d/m/Y" }}</h2>
+        <ul class="ranking">
+            {% for v in sem_escala %}
+                <li><a href="?data={{ data|date:'Y-m-d' }}&veiculo={{ v.id }}">{{ v.marca }} {{ v.modelo }}{% if v.placa %} · {{ v.placa }}{% endif %}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock content %}
