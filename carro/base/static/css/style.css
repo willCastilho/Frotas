@@ -416,3 +416,25 @@ table { border-collapse: collapse; width: 100%; }
     .card-actions { flex-direction: column; }
     .topbar { padding: 12px 16px; }
 }
+
+/* ---------------------------------------- Layout "cabe na tela" (fit) generico */
+.page-fit {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    height: calc(100dvh - 76px);   /* fallback; a altura exata vem do fit.js */
+    overflow: hidden;
+}
+.page-fit .page-top { flex: 0 0 auto; }
+.page-fit .page-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.page-scroll .alertas-table thead th,
+.page-scroll .custos-table thead th {
+    position: sticky; top: 0; background: var(--surface); z-index: 1;
+}
+/* Cards de numero/resumo clicaveis */
+.kpi-link { text-decoration: none; color: inherit; transition: border-color .12s ease, transform .08s ease; }
+.kpi-link:hover { border-color: var(--primary); transform: translateY(-2px); text-decoration: none; }
+
+@media (max-width: 760px) {
+    .page-fit { height: auto !important; overflow: visible !important; }
+}

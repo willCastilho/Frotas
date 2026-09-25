@@ -4,7 +4,8 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 
-<div class="container">
+<div class="container page-fit">
+    <div class="page-top">
     <div class="header">
         <h1>📋 Escala de utilização</h1>
         <p>Defina qual veículo cada motorista usa no dia.</p>
@@ -38,7 +39,9 @@
         <a href="?data={{ dia_seguinte|date:'Y-m-d' }}" class="btn btn-secondary">Próximo dia →</a>
         <a href="{% url 'relatorio_motoristas' %}?data={{ data|date:'Y-m-d' }}" class="btn btn-secondary">Ver relatório do dia</a>
     </div>
+    </div>
 
+    <div class="page-scroll">
     <div class="painel-card">
         <h2>Escala de {{ data|date:"d/m/Y" }}</h2>
         {% if escalas %}
@@ -79,5 +82,6 @@
         </ul>
     </div>
     {% endif %}
+    </div>
 </div>
 {% endblock content %}

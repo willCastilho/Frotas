@@ -1,11 +1,12 @@
 {% extends "head.html" %}
 
 {% block content %}
-    <div class="container">
+    <div class="container page-fit">
+        <div class="page-top">
         <div class="header">
             <h1>🚗 Central de custos </h1>
             <p>Visualize e gerencie seus veículos com relatório de custos em tempo real</p>
-            
+
         </div>
 
         <div class="filters-section">
@@ -24,7 +25,9 @@
                 </div>
             </form>
         </div>
+        </div>
 
+        <div class="page-scroll">
         <div class="cards-grid">
             {% for carro in carros %}
                 <div class="card {% if carro.status == 'inativo' %}inactive{% endif %}">
@@ -118,5 +121,6 @@
                 {% endif %}
             </div>
         {% endif %}
+        </div>
     </div>
 {% endblock content %}

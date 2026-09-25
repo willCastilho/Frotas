@@ -4,7 +4,8 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 
-<div class="container">
+<div class="container page-fit">
+    <div class="page-top">
     <div class="header">
         <h1>💰 Financeiro</h1>
         <p>Tudo sobre os gastos da frota · {{ periodo_rotulo }}</p>
@@ -26,30 +27,32 @@
     </div>
 
     <div class="kpi-grid">
-        <div class="kpi-card kpi-destaque">
+        <a class="kpi-card kpi-destaque kpi-link" href="{% url 'relatorios' %}?inicio={{ periodo_inicio }}&fim={{ periodo_fim }}">
             <span class="kpi-valor">R$ {{ total|floatformat:2 }}</span>
             <span class="kpi-label">Total · {{ periodo_rotulo }}</span>
             {% if mostrar_projecao %}<span class="kpi-projecao">Projeção: R$ {{ projecao|floatformat:2 }}</span>{% endif %}
-        </div>
-        <div class="kpi-card">
+        </a>
+        <a class="kpi-card kpi-link" href="{% url 'relatorios' %}?tipo=combustivel&inicio={{ periodo_inicio }}&fim={{ periodo_fim }}">
             <span class="kpi-valor">R$ {{ custo_combustivel|floatformat:2 }}</span>
             <span class="kpi-label">Combustível · {{ litros|floatformat:0 }} L</span>
-        </div>
-        <div class="kpi-card">
+        </a>
+        <a class="kpi-card kpi-link" href="{% url 'relatorios' %}?tipo=manutencao&inicio={{ periodo_inicio }}&fim={{ periodo_fim }}">
             <span class="kpi-valor">R$ {{ custo_manutencao|floatformat:2 }}</span>
             <span class="kpi-label">Manutenção</span>
-        </div>
-        <div class="kpi-card">
+        </a>
+        <a class="kpi-card kpi-link" href="{% url 'relatorios' %}?grupo=documentacao&inicio={{ periodo_inicio }}&fim={{ periodo_fim }}">
             <span class="kpi-valor">R$ {{ custo_documentacao|floatformat:2 }}</span>
             <span class="kpi-label">Documentação</span>
-        </div>
+        </a>
     </div>
 
     <div class="painel-card">
         <a href="{% url 'relatorios' %}?inicio={{ periodo_inicio }}&fim={{ periodo_fim }}" class="btn btn-secondary">📑 Relatório detalhado e exportações</a>
         <a href="{% url 'relatorio_motoristas' %}" class="btn btn-secondary">🧾 Motorista × Veículo</a>
     </div>
+    </div>
 
+    <div class="page-scroll">
     <div class="dash-colunas">
         <div class="dash-analises">
             <div class="painel-card">
@@ -156,6 +159,7 @@
         {% else %}
             <p class="vazio">Nenhum veículo cadastrado.</p>
         {% endif %}
+    </div>
     </div>
 </div>
 {% endblock content %}

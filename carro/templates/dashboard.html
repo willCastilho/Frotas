@@ -4,7 +4,7 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 
-<div class="container dashboard-fit" id="dashFit">
+<div class="container page-fit dashboard-fit">
     <div class="dash-top">
         <div class="header header-compacto">
             <h1>📊 Painel de Gestão</h1>
@@ -12,18 +12,18 @@
 
         <div class="dash-top-linha">
             <div class="kpi-grid kpi-grid-compacto">
-                <div class="kpi-card">
+                <a class="kpi-card kpi-link" href="{% url 'home' %}">
                     <span class="kpi-valor">{{ total_veiculos }}</span>
                     <span class="kpi-label">Veículos</span>
-                </div>
-                <div class="kpi-card">
+                </a>
+                <a class="kpi-card kpi-link" href="{% url 'home' %}?status=ativo">
                     <span class="kpi-valor">{{ ativos }}</span>
                     <span class="kpi-label">Ativos</span>
-                </div>
-                <div class="kpi-card">
+                </a>
+                <a class="kpi-card kpi-link" href="{% url 'home' %}?status=manutencao">
                     <span class="kpi-valor">{{ em_manutencao }}</span>
                     <span class="kpi-label">Em manutenção</span>
-                </div>
+                </a>
             </div>
             <div class="agenda-periodos">
                 <span class="filter-label">Período:</span>
@@ -38,7 +38,7 @@
         <div class="painel-grid dash-grid-fit">
             <div class="painel-card">
                 <h2>🚗 Reservados {% if hoje_dias == 1 %}hoje{% else %}· {{ hoje_dias }} dias{% endif %}</h2>
-                <div class="card-scroll">
+                <div class="page-scroll">
                 {% if reservas_hoje %}
                     <table class="alertas-table">
                         <thead><tr>{% if hoje_dias > 1 %}<th>Quando</th>{% endif %}<th>Veículo</th><th>Para</th><th>Destino</th><th>Horário</th></tr></thead>
@@ -62,7 +62,7 @@
 
             <div class="painel-card">
                 <h2>📋 Escala {% if hoje_dias == 1 %}de hoje{% else %}· {{ hoje_dias }} dias{% endif %}</h2>
-                <div class="card-scroll">
+                <div class="page-scroll">
                 {% if escala_hoje %}
                     <table class="alertas-table">
                         <thead><tr>{% if hoje_dias > 1 %}<th>Dia</th>{% endif %}<th>Motorista</th><th>Veículo</th><th>Destino</th></tr></thead>
@@ -126,35 +126,4 @@
         {% endif %}
     </div>
 </div>
-
-<script>
-(function () {
-    document.querySelectorAll('.carrossel-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var track = document.getElementById(btn.dataset.alvo);
-            if (!track) return;
-            var dir = parseInt(btn.dataset.dir, 10) || 1;
-            track.scrollBy({ left: dir * Math.round(track.clientWidth * 0.85), behavior: 'smooth' });
-        });
-    });
-
-    // Ajusta a altura do painel para caber na tela (sem scroll vertical da pagina).
-    var el = document.getElementById('dashFit');
-    function ajustar() {
-        if (!el) return;
-        if (window.matchMedia('(max-width: 760px)').matches) {
-            el.style.height = '';
-            el.style.overflow = '';
-            return;
-        }
-        var top = el.getBoundingClientRect().top;
-        var altura = window.innerHeight - top - 14;
-        el.style.height = Math.max(altura, 360) + 'px';
-        el.style.overflow = 'hidden';
-    }
-    window.addEventListener('resize', ajustar);
-    window.addEventListener('orientationchange', ajustar);
-    ajustar();
-})();
-</script>
 {% endblock content %}

@@ -4,7 +4,8 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 
-<div class="container">
+<div class="container page-fit">
+    <div class="page-top">
     <div class="header">
         <h1>📆 Agenda de veículos</h1>
         <p>{{ mes_nome }} de {{ ano|stringformat:'d' }} · {{ total_reservas }} reserva(s) · {{ total_escalas }} escala(s)</p>
@@ -16,7 +17,9 @@
         <a href="?ano={{ mes_prox.year|stringformat:'d' }}&mes={{ mes_prox.month }}" class="btn btn-secondary">Próximo mês →</a>
         <a href="{% url 'solicitacoes_gestor' %}" class="btn btn-secondary">Lista de solicitações</a>
     </div>
+    </div>
 
+    <div class="page-scroll">
     <table class="calendario">
         <thead>
             <tr>{% for d in dias_semana %}<th>{{ d }}</th>{% endfor %}</tr>
@@ -44,6 +47,7 @@
         <span class="cal-ev cal-ev-aprovada">Aprovada</span>
         <span class="cal-ev cal-ev-em_uso">Em uso</span>
         <span class="cal-ev cal-ev-escala">Escala</span>
+    </div>
     </div>
 </div>
 {% endblock content %}
