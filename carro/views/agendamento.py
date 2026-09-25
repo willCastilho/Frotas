@@ -23,6 +23,7 @@ from django.views.decorators.http import require_POST
 from carro.forms import (
     AprovarSolicitacaoForm,
     DevolucaoForm,
+    RetiradaForm,
     SolicitacaoForm,
     SolicitanteSignupForm,
 )
@@ -68,6 +69,7 @@ def cadastro_solicitante(request, token):
                 papel=PerfilUsuario.PAPEL_SOLICITANTE)
             Solicitante.objects.create(
                 organizacao=org, user=user, nome=dados['nome'],
+                cargo=dados.get('cargo', ''),
                 setor=dados['setor'], cpf=dados.get('cpf', ''),
                 cnh=dados.get('cnh', ''),
                 cnh_categoria=dados.get('cnh_categoria', ''),
@@ -154,19 +156,49 @@ def cancelar_solicitacao(request, pk):
 
 
 @login_required
-@require_POST
 def iniciar_uso(request, pk):
     solicitante = solicitante_do(request.user)
     if solicitante is None:
+        messages.error(request, 'Área exclusiva de solicitantes.')
         return redirect('home')
     sol = get_object_or_404(
         SolicitacaoVeiculo, pk=pk, solicitante=solicitante)
-    if sol.status == SolicitacaoVeiculo.STATUS_APROVADA:
-        sol.iniciar_uso()
-        messages.success(request, 'Retirada registrada. Bom uso!')
-    else:
+    if sol.status != SolicitacaoVeiculo.STATUS_APROVADA:
         messages.error(request, 'Só é possível retirar uma reserva aprovada.')
-    return redirect('minhas_solicitacoes')
+        return redirect('minhas_solicitacoes')
+
+    km_minimo = sol.veiculo.km_atual() if sol.veiculo else None
+    form = RetiradaForm(
+        request.POST or None, km_minimo=km_minimo,
+        initial={'saida_real': timezone.now().strftime('%Y-%m-%dT%H:%M')})
+    if request.method == 'POST' and form.is_valid():
+        sol.iniciar_uso(saida_real=form.cleaned_data['saida_real'],
+                        km_inicial=form.cleaned_data['km_inicial'])
+        messages.success(request, 'Retirada registrada. Bom uso!')
+        return redirect('minhas_solicitacoes')
+    return render(request, 'agendamento/retirada.html', {'form': form, 'sol': sol})
+
+
+@login_required
+def detalhes_solicitacao(request, pk):
+    """Detalhe completo de uma solicitacao. Acessivel ao gestor da organizacao
+    e ao solicitante dono do pedido."""
+    perfil = perfil_do(request.user)
+    org = organizacao_do(request.user)
+    sol = get_object_or_404(
+        SolicitacaoVeiculo.objects.select_related(
+            'solicitante', 'veiculo', 'motorista', 'aprovado_por'),
+        pk=pk, organizacao=org)
+    solicitante = solicitante_do(request.user)
+    eh_dono = solicitante is not None and sol.solicitante_id == solicitante.id
+    eh_gestor = bool(perfil and perfil.pode_administrar)
+    if not (eh_dono or eh_gestor):
+        messages.error(request, 'Você não tem acesso a esta solicitação.')
+        return redirect('home')
+    return render(request, 'agendamento/detalhes_solicitacao.html', {
+        'sol': sol,
+        'voltar': 'solicitacoes_gestor' if eh_gestor else 'minhas_solicitacoes',
+    })
 
 
 @login_required

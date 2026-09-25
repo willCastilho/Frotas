@@ -42,6 +42,7 @@ urlpatterns = [
     path('agendamento/cadastro/<uuid:token>/', carro_views.cadastro_solicitante, name='cadastro_solicitante'),
     path('agendamento/minhas/', carro_views.minhas_solicitacoes, name='minhas_solicitacoes'),
     path('agendamento/nova/', carro_views.nova_solicitacao, name='nova_solicitacao'),
+    path('agendamento/<int:pk>/', carro_views.detalhes_solicitacao, name='detalhes_solicitacao'),
     path('agendamento/<int:pk>/cancelar/', carro_views.cancelar_solicitacao, name='cancelar_solicitacao'),
     path('agendamento/<int:pk>/retirar/', carro_views.iniciar_uso, name='iniciar_uso'),
     path('agendamento/<int:pk>/devolucao/', carro_views.registrar_devolucao, name='registrar_devolucao'),

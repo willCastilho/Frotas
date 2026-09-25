@@ -49,6 +49,7 @@
                             <td>{% if s.veiculo %}{{ s.veiculo.marca }} {{ s.veiculo.modelo }}{% if s.motorista %}<br><small>{{ s.motorista.nome }}</small>{% endif %}{% else %}—{% endif %}</td>
                             <td>{{ s.get_status_display }}{% if s.status == 'recusada' and s.motivo_recusa %}<br><small>{{ s.motivo_recusa }}</small>{% endif %}</td>
                             <td>
+                                <a href="{% url 'detalhes_solicitacao' s.id %}" class="btn btn-small btn-secondary">Detalhes</a>
                                 {% if s.status == 'pendente' %}
                                     <a href="{% url 'aprovar_solicitacao' s.id %}" class="btn btn-small btn-primary">Analisar</a>
                                 {% endif %}

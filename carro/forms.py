@@ -232,6 +232,7 @@ class SolicitanteSignupForm(forms.Form):
     username = forms.CharField(max_length=150, label='Usuário (login)')
     nome = forms.CharField(max_length=120, label='Nome completo')
     email = forms.EmailField(label='E-mail')
+    cargo = forms.CharField(max_length=120, required=False, label='Cargo')
     setor = forms.CharField(max_length=120, label='Setor')
     telefone = forms.CharField(max_length=20, required=False, label='Telefone')
     cpf = forms.CharField(max_length=14, required=False, label='CPF')
@@ -310,6 +311,28 @@ class AprovarSolicitacaoForm(forms.Form):
             raise forms.ValidationError(
                 'Esta solicitação pediu motorista; selecione um disponível.')
         return motorista
+
+
+class RetiradaForm(forms.Form):
+    """Retirada do veiculo pelo solicitante: hora e KM de saida."""
+    saida_real = forms.DateTimeField(
+        widget=_DATETIME, label='Saída real (data e hora)')
+    km_inicial = forms.IntegerField(min_value=0, label='KM de saída do veículo')
+
+    def __init__(self, *args, km_minimo=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.km_minimo = km_minimo
+        if km_minimo:
+            self.fields['km_inicial'].help_text = (
+                f'O odômetro atual do veículo é {km_minimo} km.')
+
+    def clean_km_inicial(self):
+        km = self.cleaned_data['km_inicial']
+        if self.km_minimo and km < self.km_minimo:
+            raise forms.ValidationError(
+                f'O KM de saída não pode ser menor que o odômetro atual '
+                f'({self.km_minimo} km).')
+        return km
 
 
 class DevolucaoForm(forms.Form):

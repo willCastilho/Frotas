@@ -1323,10 +1323,20 @@ class AgendamentoDevolucaoTests(LogadoMixin, TestCase):
 
     def test_iniciar_uso_marca_em_uso(self):
         sol = self._reserva(dias_saida=0, dias_retorno=1)
+        km = (self.veic.km_atual() or 0) + 10
         c = Client(); c.login(username='sold', password='senha12345')
-        c.post(reverse('iniciar_uso', args=[sol.id]))
+        c.post(reverse('iniciar_uso', args=[sol.id]),
+               {'saida_real': '2026-09-24T08:00', 'km_inicial': str(km)})
         sol.refresh_from_db()
         self.assertEqual(sol.status, 'em_uso')
+        self.assertEqual(sol.km_inicial, km)
+        self.assertIsNotNone(sol.saida_real)
+
+    def test_detalhes_solicitacao_gestor(self):
+        sol = self._reserva()
+        r = self.client.get(reverse('detalhes_solicitacao', args=[sol.id]))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, sol.solicitante.nome)
 
 
 from django.test import override_settings

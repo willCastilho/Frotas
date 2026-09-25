@@ -1,0 +1,71 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>🚗 Solicitação de veículo</h1>
+        <p>{{ sol.get_status_display }} · pedido em {{ sol.criado_em|date:"d/m/Y H:i" }}</p>
+    </div>
+
+    <div class="painel-card">
+        <a href="{% url voltar %}" class="btn btn-secondary">← Voltar</a>
+    </div>
+
+    <div class="painel-grid">
+        <div class="painel-card">
+            <h2>Solicitante</h2>
+            <table class="alertas-table">
+                <tr><th>Nome</th><td>{{ sol.solicitante.nome }}</td></tr>
+                <tr><th>Cargo</th><td>{{ sol.solicitante.cargo|default:"—" }}</td></tr>
+                <tr><th>Setor (solicitante)</th><td>{{ sol.solicitante.setor|default:"—" }}</td></tr>
+                <tr><th>Setor (do pedido)</th><td>{{ sol.setor }}</td></tr>
+                <tr><th>CNH</th><td>{{ sol.solicitante.cnh|default:"—" }}{% if sol.solicitante.cnh_categoria %} ({{ sol.solicitante.cnh_categoria }}){% endif %}</td></tr>
+                <tr><th>Contato</th><td>{{ sol.solicitante.email }}{% if sol.solicitante.telefone %} · {{ sol.solicitante.telefone }}{% endif %}</td></tr>
+            </table>
+        </div>
+
+        <div class="painel-card">
+            <h2>Veículo e motorista</h2>
+            <table class="alertas-table">
+                <tr><th>Veículo</th><td>{% if sol.veiculo %}{{ sol.veiculo.marca }} {{ sol.veiculo.modelo }}{% if sol.veiculo.placa %} · {{ sol.veiculo.placa }}{% endif %}{% else %}—{% endif %}</td></tr>
+                <tr><th>Motorista</th><td>{% if sol.precisa_motorista %}{{ sol.motorista|default:"a definir" }}{% else %}O solicitante dirige{% endif %}</td></tr>
+                <tr><th>Destino</th><td>{{ sol.destino }}</td></tr>
+                <tr><th>Decidido por</th><td>{{ sol.aprovado_por|default:"—" }}{% if sol.data_decisao %} em {{ sol.data_decisao|date:"d/m/Y H:i" }}{% endif %}</td></tr>
+                {% if sol.motivo_recusa %}<tr><th>Motivo da recusa</th><td>{{ sol.motivo_recusa }}</td></tr>{% endif %}
+            </table>
+        </div>
+    </div>
+
+    <div class="painel-grid">
+        <div class="painel-card">
+            <h2>Saída</h2>
+            <table class="alertas-table">
+                <tr><th>Horário previsto</th><td>{{ sol.saida_prevista|date:"d/m/Y H:i" }}</td></tr>
+                <tr><th>Horário real</th><td>{{ sol.saida_real|date:"d/m/Y H:i"|default:"—" }}</td></tr>
+                <tr><th>KM de saída</th><td>{% if sol.km_inicial is not None %}{{ sol.km_inicial }} km{% else %}—{% endif %}</td></tr>
+            </table>
+        </div>
+
+        <div class="painel-card">
+            <h2>Chegada / devolução</h2>
+            <table class="alertas-table">
+                <tr><th>Horário previsto</th><td>{{ sol.retorno_previsto|date:"d/m/Y H:i" }}</td></tr>
+                <tr><th>Horário real</th><td>{{ sol.retorno_real|date:"d/m/Y H:i"|default:"—" }}</td></tr>
+                <tr><th>KM de chegada</th><td>{% if sol.km_final is not None %}{{ sol.km_final }} km{% else %}—{% endif %}</td></tr>
+                <tr><th>KM rodados</th><td>{% if sol.km_rodados is not None %}{{ sol.km_rodados }} km{% else %}—{% endif %}</td></tr>
+            </table>
+        </div>
+    </div>
+
+    {% if sol.justificativa or sol.obs_devolucao %}
+    <div class="painel-card">
+        <h2>Observações</h2>
+        {% if sol.justificativa %}<p><strong>Justificativa do pedido:</strong> {{ sol.justificativa }}</p>{% endif %}
+        {% if sol.obs_devolucao %}<p><strong>Devolução:</strong> {{ sol.obs_devolucao }}</p>{% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock content %}

@@ -711,6 +711,7 @@ class Solicitante(models.Model):
         'auth.User', on_delete=models.CASCADE, related_name='solicitante'
     )
     nome = models.CharField(max_length=120)
+    cargo = models.CharField(max_length=120, blank=True)
     setor = models.CharField(max_length=120, blank=True)
     cpf = models.CharField(max_length=14, blank=True)
     cnh = models.CharField('Número da CNH', max_length=20, blank=True)
@@ -825,7 +826,11 @@ class SolicitacaoVeiculo(models.Model):
     data_decisao = models.DateTimeField(null=True, blank=True)
     motivo_recusa = models.CharField(max_length=200, blank=True)
 
-    # Preenchidos na devolucao (Fase 2).
+    # Preenchidos na retirada (saida).
+    saida_real = models.DateTimeField(null=True, blank=True)
+    km_inicial = models.PositiveIntegerField(null=True, blank=True)
+
+    # Preenchidos na devolucao (chegada).
     retorno_real = models.DateTimeField(null=True, blank=True)
     km_final = models.PositiveIntegerField(null=True, blank=True)
     obs_devolucao = models.TextField(blank=True)
@@ -858,11 +863,30 @@ class SolicitacaoVeiculo(models.Model):
     def aberta(self):
         return self.status in (self.STATUS_APROVADA, self.STATUS_EM_USO)
 
-    def iniciar_uso(self):
-        """Marca a retirada do veiculo (aprovada -> em uso)."""
-        if self.status == self.STATUS_APROVADA:
-            self.status = self.STATUS_EM_USO
-            self.save(update_fields=['status', 'atualizado_em'])
+    @property
+    def km_rodados(self):
+        if self.km_inicial is not None and self.km_final is not None:
+            return self.km_final - self.km_inicial
+        return None
+
+    def iniciar_uso(self, saida_real=None, km_inicial=None):
+        """Marca a retirada do veiculo (aprovada -> em uso), gravando o horario
+        e o KM de saida. Gera um RegistroQuilometragem com o KM inicial."""
+        if self.status != self.STATUS_APROVADA:
+            return None
+        registro = None
+        self.saida_real = saida_real or timezone.now()
+        self.km_inicial = km_inicial
+        if km_inicial is not None and self.veiculo_id:
+            registro = RegistroQuilometragem.objects.create(
+                veiculo=self.veiculo,
+                data=self.saida_real.date(),
+                quilometragem=km_inicial,
+                origem='Retirada de agendamento',
+                observacao=f'Agendamento #{self.pk} · saída · {self.destino}'[:200])
+        self.status = self.STATUS_EM_USO
+        self.save()
+        return registro
 
     def registrar_devolucao(self, retorno_real, km_final, observacao=''):
         """Fecha o agendamento: grava a devolucao, gera um RegistroQuilometragem

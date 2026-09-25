@@ -58,11 +58,9 @@
                                 {% if s.status == 'devolvida' %}<br><small>Devolvido {{ s.retorno_real|date:"d/m/Y H:i" }} · {{ s.km_final }} km</small>{% endif %}
                             </td>
                             <td>
+                                <a href="{% url 'detalhes_solicitacao' s.id %}" class="btn btn-small btn-secondary">Detalhes</a>
                                 {% if s.status == 'aprovada' %}
-                                    <form method="post" action="{% url 'iniciar_uso' s.id %}" style="display:inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-small btn-secondary">Retirei</button>
-                                    </form>
+                                    <a href="{% url 'iniciar_uso' s.id %}" class="btn btn-small btn-secondary">Retirar</a>
                                     <a href="{% url 'registrar_devolucao' s.id %}" class="btn btn-small btn-primary">Devolver</a>
                                 {% elif s.status == 'em_uso' %}
                                     <a href="{% url 'registrar_devolucao' s.id %}" class="btn btn-small btn-primary">Devolver</a>
