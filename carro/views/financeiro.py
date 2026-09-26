@@ -27,7 +27,7 @@ ROTULOS_TIPO = dict(Custo.TIPO_CHOICES)
 def periodo_do_request(request):
     """Resolve o periodo a partir dos parametros GET. Retorna
     (inicio, fim, rotulo, preset, eh_mes_atual). `fim` None = ate hoje."""
-    hoje = timezone.now().date()
+    hoje = timezone.localdate()
     preset = request.GET.get('periodo', 'mes_atual')
 
     if preset == 'mes_anterior':
@@ -75,7 +75,7 @@ def _patrimonio(org):
 
 
 def _custos_ultimos_meses(org, qtd=6):
-    hoje = timezone.now().date()
+    hoje = timezone.localdate()
     inicio = (hoje.replace(day=1) - timedelta(days=30 * (qtd - 1))).replace(day=1)
     por_mes = (Custo.objects.filter(veiculo__organizacao=org, data__gte=inicio)
                .annotate(mes=TruncMonth('data')).values('mes')
@@ -96,7 +96,7 @@ def _custos_ultimos_meses(org, qtd=6):
 
 
 def _projecao_fechamento(custo_ate_agora):
-    hoje = timezone.now().date()
+    hoje = timezone.localdate()
     dias_no_mes = calendar.monthrange(hoje.year, hoje.month)[1]
     if hoje.day <= 0:
         return float(custo_ate_agora)

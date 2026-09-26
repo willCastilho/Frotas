@@ -34,7 +34,7 @@ def _agenda(org, kms, dias):
     """Agenda vertical: documentos e manutencoes a vencer, alertas por km, e a
     escala futura, dentro da janela de `dias`. Eventos criticos (vencidos /
     atrasados) ficam fixos ate 90 dias, mesmo com janela menor."""
-    hoje = timezone.now().date()
+    hoje = timezone.localdate()
     fim = hoje + timedelta(days=dias)
     fim_critico = hoje + timedelta(days=90)
     itens = []
@@ -110,7 +110,7 @@ def dashboard(request):
     if hoje_dias not in PERIODOS_HOJE:
         hoje_dias = 1
 
-    hoje = timezone.now().date()
+    hoje = timezone.localdate()
     fim_hoje = hoje + timedelta(days=hoje_dias - 1)
     reservas_hoje = (SolicitacaoVeiculo.objects
                      .filter(organizacao=org, status__in=('aprovada', 'em_uso'),

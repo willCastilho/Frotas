@@ -51,7 +51,7 @@
                 </thead>
                 <tbody>
                     {% for e in escalas %}
-                        <tr>
+                        <tr class="linha-clicavel" data-href="{% url 'detalhes_escala' e.id %}">
                             <td><a href="{% url 'detalhes_veiculo' e.veiculo.id %}">{{ e.veiculo.marca }} {{ e.veiculo.modelo }}</a></td>
                             <td>{{ e.veiculo.placa|default:"—" }}</td>
                             <td><a href="{% url 'detalhes_motorista' e.motorista.id %}">{{ e.motorista.nome }}</a></td>

@@ -24,7 +24,7 @@
                 </thead>
                 <tbody>
                     {% for s in solicitacoes %}
-                        <tr>
+                        <tr class="linha-clicavel" data-href="{% url 'detalhes_solicitacao' s.id %}">
                             <td>{{ s.saida_prevista|date:"d/m/Y H:i" }}</td>
                             <td>{{ s.retorno_previsto|date:"d/m/Y H:i" }}</td>
                             <td>{{ s.destino }}</td>

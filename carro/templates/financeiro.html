@@ -147,7 +147,7 @@
                 </thead>
                 <tbody>
                     {% for v in por_veiculo %}
-                        <tr>
+                        <tr class="linha-clicavel" data-href="{% url 'detalhes_veiculo' v.obj.id %}">
                             <td><a href="{% url 'detalhes_veiculo' v.obj.id %}">{{ v.obj.marca }} {{ v.obj.modelo }}{% if v.obj.placa %} · {{ v.obj.placa }}{% endif %}</a></td>
                             <td>R$ {{ v.total_vida|floatformat:2 }}</td>
                             <td>{% if v.custo_km %}R$ {{ v.custo_km|floatformat:2 }}/km{% else %}—{% endif %}</td>

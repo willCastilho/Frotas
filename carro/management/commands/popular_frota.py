@@ -458,7 +458,7 @@ class Command(BaseCommand):
         # A escala diaria substituiu o vinculo aberto: para cada vinculo sem
         # data_fim (motorista atual do veiculo), cria a escala de hoje, para o
         # operador enxergar o seu veiculo apos a carga.
-        hoje = timezone.now().date()
+        hoje = timezone.localdate()
         escalas, vistos_v, vistos_m = [], set(), set()
         for obj in objetos:
             if obj.data_fim is not None:

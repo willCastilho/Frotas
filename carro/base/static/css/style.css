@@ -438,3 +438,7 @@ table { border-collapse: collapse; width: 100%; }
 @media (max-width: 760px) {
     .page-fit { height: auto !important; overflow: visible !important; }
 }
+
+/* Linhas de tabela clicaveis (padrao "item -> detalhe") */
+.linha-clicavel { cursor: pointer; }
+.linha-clicavel:hover td { background: var(--surface-2); }

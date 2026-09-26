@@ -29,7 +29,7 @@
                 </thead>
                 <tbody>
                     {% for s in solicitantes %}
-                        <tr>
+                        <tr class="linha-clicavel" data-href="{% url 'detalhes_solicitante' s.id %}">
                             <td><a href="{% url 'detalhes_solicitante' s.id %}">{{ s.nome }}</a></td>
                             <td>{{ s.setor }}</td>
                             <td>{{ s.cnh|default:"—" }}{% if s.cnh_categoria %} ({{ s.cnh_categoria }}){% endif %}</td>

@@ -103,11 +103,11 @@ def escala(request):
     """Escala de utilizacao do dia + formulario para montar a escala por
     periodo. O gestor define qual veiculo vai para cada motorista no dia."""
     org = organizacao_do(request.user)
-    data_str = request.GET.get('data') or timezone.now().date().isoformat()
+    data_str = request.GET.get('data') or timezone.localdate().isoformat()
     try:
         data = date.fromisoformat(data_str)
     except ValueError:
-        data = timezone.now().date()
+        data = timezone.localdate()
 
     inicial = {'data_inicio': data.isoformat(), 'data_fim': data.isoformat()}
     veic_id = request.GET.get('veiculo')
@@ -143,7 +143,7 @@ def montar_escala(request):
     form = EscalaMontarForm(request.POST, organizacao=org)
     if not form.is_valid():
         # Reexibe a tela da escala com os erros.
-        data = form.cleaned_data.get('data_inicio') or timezone.now().date()
+        data = form.cleaned_data.get('data_inicio') or timezone.localdate()
         escalas = (EscalaDiaria.objects.filter(organizacao=org, data=data)
                    .select_related('veiculo', 'motorista'))
         return render(request, 'motoristas/escala.html', {
@@ -219,11 +219,11 @@ def remover_escala(request, pk):
 def relatorio_motoristas(request):
     """Mostra qual motorista estava em qual veiculo em uma data (pela escala)."""
     org = organizacao_do(request.user)
-    data_str = request.GET.get('data') or timezone.now().date().isoformat()
+    data_str = request.GET.get('data') or timezone.localdate().isoformat()
     try:
         data = date.fromisoformat(data_str)
     except ValueError:
-        data = timezone.now().date()
+        data = timezone.localdate()
 
     alocacoes = (EscalaDiaria.objects
                  .filter(organizacao=org, data=data)

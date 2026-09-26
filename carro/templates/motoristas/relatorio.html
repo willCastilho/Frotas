@@ -30,7 +30,7 @@
                 </thead>
                 <tbody>
                     {% for a in alocacoes %}
-                        <tr>
+                        <tr class="linha-clicavel" data-href="{% url 'detalhes_escala' a.id %}">
                             <td><a href="{% url 'detalhes_veiculo' a.veiculo.id %}">{{ a.veiculo.marca }} {{ a.veiculo.modelo }}</a></td>
                             <td>{{ a.veiculo.placa|default:"—" }}</td>
                             <td><a href="{% url 'detalhes_motorista' a.motorista.id %}">{{ a.motorista.nome }}</a></td>

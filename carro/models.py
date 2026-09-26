@@ -211,7 +211,7 @@ class Veiculo(models.Model):
 
     def escala_do_dia(self, data=None):
         """Escala deste veiculo em uma data (padrao: hoje)."""
-        data = data or timezone.now().date()
+        data = data or timezone.localdate()
         return self.escalas.filter(data=data).select_related('motorista').first()
 
     def motorista_atual(self):
@@ -231,7 +231,7 @@ class Veiculo(models.Model):
         """Pendencias que travam o lancamento de dados no veiculo: documentos
         do veiculo ja vencidos e a CNH vencida do motorista atualmente
         vinculado. Retorna lista de descricoes (vazia = sem bloqueio)."""
-        hoje = timezone.now().date()
+        hoje = timezone.localdate()
         itens = []
         for d in self.documentos.filter(vencimento__lt=hoje).order_by('vencimento'):
             itens.append(
@@ -251,7 +251,7 @@ class Veiculo(models.Model):
         if not self.valor_aquisicao:
             return None
         inicio = self.data_compra or self.data_cadastro.date()
-        anos = max((timezone.now().date() - inicio).days / 365.25, 0)
+        anos = max((timezone.localdate() - inicio).days / 365.25, 0)
         aquisicao = float(self.valor_aquisicao)
         atual = aquisicao * ((1 - self.TAXA_DEPRECIACAO_ANUAL) ** anos)
         depreciacao = aquisicao - atual
@@ -481,7 +481,7 @@ class PlanoManutencao(models.Model):
                 detalhes.append(f'Faltam {faltam} km')
 
         if self.proxima_data is not None:
-            faltam_dias = (self.proxima_data - timezone.now().date()).days
+            faltam_dias = (self.proxima_data - timezone.localdate()).days
             if faltam_dias <= 0:
                 niveis.append('red')
                 detalhes.append(f'Vencida ha {abs(faltam_dias)} dias')
@@ -589,7 +589,7 @@ class Documento(models.Model):
             custo.delete()
 
     def dias_restantes(self):
-        return (self.vencimento - timezone.now().date()).days
+        return (self.vencimento - timezone.localdate()).days
 
     def status(self):
         dias = self.dias_restantes()
@@ -643,7 +643,7 @@ class Motorista(models.Model):
         """Status da validade da CNH (mesma regra dos documentos)."""
         if not self.cnh_validade:
             return None
-        dias = (self.cnh_validade - timezone.now().date()).days
+        dias = (self.cnh_validade - timezone.localdate()).days
         if dias < 0:
             cor, texto = 'red', '🔴 Vencida'
         elif dias <= 30:
@@ -654,7 +654,7 @@ class Motorista(models.Model):
 
     def escala_do_dia(self, data=None):
         """Escala deste motorista em uma data (padrao: hoje)."""
-        data = data or timezone.now().date()
+        data = data or timezone.localdate()
         return self.escalas.filter(data=data).select_related('veiculo').first()
 
     def veiculo_atual(self):
@@ -747,7 +747,7 @@ class Solicitante(models.Model):
         """Status da validade da CNH (mesma regra dos documentos/motorista)."""
         if not self.cnh_validade:
             return None
-        dias = (self.cnh_validade - timezone.now().date()).days
+        dias = (self.cnh_validade - timezone.localdate()).days
         if dias < 0:
             cor, texto = 'red', '🔴 Vencida'
         elif dias <= 30:
@@ -963,7 +963,7 @@ def motoristas_disponiveis(organizacao, saida, retorno, excluir_id=None):
         ocupadas = ocupadas.exclude(pk=excluir_id)
     ocupados_ids = set(ocupadas.values_list('motorista_id', flat=True))
 
-    hoje = timezone.now().date()
+    hoje = timezone.localdate()
     livres = []
     for m in Motorista.objects.filter(organizacao=organizacao, status='ativo'):
         if m.id in ocupados_ids:

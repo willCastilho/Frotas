@@ -34,7 +34,7 @@
                 </thead>
                 <tbody>
                     {% for m in motoristas %}
-                        <tr>
+                        <tr class="linha-clicavel" data-href="{% url 'detalhes_motorista' m.obj.id %}">
                             <td><a href="{% url 'detalhes_motorista' m.obj.id %}">{{ m.obj.nome }}</a></td>
                             <td>{{ m.obj.cnh|default:"—" }}{% if m.obj.cnh_categoria %} · {{ m.obj.cnh_categoria }}{% endif %}</td>
                             <td>
