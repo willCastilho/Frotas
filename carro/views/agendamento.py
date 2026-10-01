@@ -48,6 +48,11 @@ from contas.utils import (
 )
 
 
+class _IndisponivelError(Exception):
+    """Recurso (veiculo/motorista) deixou de estar disponivel ao aprovar;
+    aborta a transacao e volta para a tela de aprovacao com a mensagem."""
+
+
 # --------------------------------------------------------------- auto-cadastro
 
 def cadastro_solicitante(request, token):
@@ -148,8 +153,15 @@ def cancelar_solicitacao(request, pk):
         SolicitacaoVeiculo, pk=pk, solicitante=solicitante)
     if sol.status in (SolicitacaoVeiculo.STATUS_PENDENTE,
                       SolicitacaoVeiculo.STATUS_APROVADA):
-        sol.status = SolicitacaoVeiculo.STATUS_CANCELADA
-        sol.save(update_fields=['status', 'atualizado_em'])
+        with transaction.atomic():
+            # A reserva nunca foi usada: remove a atribuicao criada na aprovacao
+            # para nao deixar no historico um vinculo motorista->veiculo de uma
+            # viagem que nao ocorreu.
+            if sol.atribuicao_id:
+                sol.atribuicao.delete()  # SET_NULL limpa sol.atribuicao
+                sol.atribuicao = None
+            sol.status = SolicitacaoVeiculo.STATUS_CANCELADA
+            sol.save(update_fields=['status', 'atribuicao', 'atualizado_em'])
         messages.success(request, 'Solicitação cancelada.')
     else:
         messages.error(request, 'Esta solicitação não pode ser cancelada.')
@@ -279,30 +291,47 @@ def aprovar_solicitacao(request, pk):
     if request.method == 'POST' and form.is_valid():
         veiculo = form.cleaned_data['veiculo']
         motorista = form.cleaned_data.get('motorista')
-        # Revalida o conflito no momento de gravar (evita corrida).
-        livres_ids = {v.id for v in veiculos_disponiveis(
-            org, sol.saida_prevista, sol.retorno_previsto)}
-        if veiculo.id not in livres_ids:
-            messages.error(
-                request, 'Este veículo deixou de estar disponível no período. '
-                'Escolha outro.')
-            return redirect('aprovar_solicitacao', pk=sol.pk)
+        try:
+            with transaction.atomic():
+                # Trava a linha do veiculo (e do motorista) ate o commit, para
+                # que duas aprovacoes simultaneas do mesmo recurso serializem e
+                # a segunda veja a reserva ja gravada pela primeira.
+                Veiculo.objects.select_for_update().get(pk=veiculo.id)
+                if motorista:
+                    Motorista.objects.select_for_update().get(pk=motorista.id)
 
-        with transaction.atomic():
-            sol.veiculo = veiculo
-            sol.motorista = motorista
-            sol.status = SolicitacaoVeiculo.STATUS_APROVADA
-            sol.aprovado_por = request.user
-            sol.data_decisao = timezone.now()
-            sol.motivo_recusa = ''
-            if motorista:
-                atrib = AtribuicaoVeiculo.objects.create(
-                    veiculo=veiculo, motorista=motorista,
-                    data_inicio=sol.saida_prevista.date(),
-                    data_fim=sol.retorno_previsto.date(),
-                    observacao=f'Agendamento #{sol.pk} · {sol.destino}'[:200])
-                sol.atribuicao = atrib
-            sol.save()
+                # Revalida o conflito ja com as linhas travadas (evita corrida).
+                livres_ids = {v.id for v in veiculos_disponiveis(
+                    org, sol.saida_prevista, sol.retorno_previsto)}
+                if veiculo.id not in livres_ids:
+                    raise _IndisponivelError(
+                        'Este veículo deixou de estar disponível no período. '
+                        'Escolha outro.')
+                if motorista:
+                    mot_livres = {m.id for m in motoristas_disponiveis(
+                        org, sol.saida_prevista, sol.retorno_previsto)}
+                    if motorista.id not in mot_livres:
+                        raise _IndisponivelError(
+                            'Este motorista deixou de estar disponível no '
+                            'período. Escolha outro.')
+
+                sol.veiculo = veiculo
+                sol.motorista = motorista
+                sol.status = SolicitacaoVeiculo.STATUS_APROVADA
+                sol.aprovado_por = request.user
+                sol.data_decisao = timezone.now()
+                sol.motivo_recusa = ''
+                if motorista:
+                    atrib = AtribuicaoVeiculo.objects.create(
+                        veiculo=veiculo, motorista=motorista,
+                        data_inicio=sol.saida_prevista.date(),
+                        data_fim=sol.retorno_previsto.date(),
+                        observacao=f'Agendamento #{sol.pk} · {sol.destino}'[:200])
+                    sol.atribuicao = atrib
+                sol.save()
+        except _IndisponivelError as e:
+            messages.error(request, str(e))
+            return redirect('aprovar_solicitacao', pk=sol.pk)
         notificar_decisao(sol)
         messages.success(request, 'Solicitação aprovada e veículo reservado.')
         return redirect('solicitacoes_gestor')

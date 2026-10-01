@@ -96,6 +96,9 @@ def editar_custo(request, custo_id):
     if hasattr(custo, 'abastecimento'):
         messages.info(request, 'Este custo vem de um abastecimento; edite pelo abastecimento.')
         return redirect('detalhes_veiculo', veiculo_id=veiculo.id)
+    if hasattr(custo, 'documento'):
+        messages.info(request, 'Este custo vem de um documento; edite a taxa pelo documento.')
+        return redirect('detalhes_veiculo', veiculo_id=veiculo.id)
     form = CustoForm(request.POST or None, request.FILES or None, instance=custo)
     if request.method == 'POST' and form.is_valid():
         form.save()
@@ -113,6 +116,9 @@ def deletar_custo(request, custo_id):
     veiculo_id = custo.veiculo.id
     if hasattr(custo, 'abastecimento'):
         messages.info(request, 'Este custo vem de um abastecimento; exclua pelo abastecimento.')
+        return redirect('detalhes_veiculo', veiculo_id=veiculo_id)
+    if hasattr(custo, 'documento'):
+        messages.info(request, 'Este custo vem de um documento; exclua ou edite pelo documento.')
         return redirect('detalhes_veiculo', veiculo_id=veiculo_id)
     custo.delete()
     messages.success(request, 'Custo deletado com sucesso!')

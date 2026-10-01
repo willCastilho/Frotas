@@ -290,6 +290,17 @@ class SolicitanteSignupForm(forms.Form):
             raise forms.ValidationError('Este usuário já existe.')
         return username
 
+    def clean_password1(self):
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        senha = self.cleaned_data.get('password1')
+        if senha:
+            try:
+                validate_password(senha)
+            except DjangoValidationError as erro:
+                raise forms.ValidationError(erro.messages)
+        return senha
+
     def clean(self):
         dados = super().clean()
         if dados.get('password1') != dados.get('password2'):

@@ -166,7 +166,19 @@ def alterar_papel(request, perfil_id):
         form = PapelForm(request.POST)
         if form.is_valid():
             novo_papel = form.cleaned_data['papel']
-            if (novo_papel == PerfilUsuario.PAPEL_OPERADOR
+            # Protege contra lockout: nao deixar a organizacao sem gestor.
+            rebaixando_gestor = (membro.eh_gestor
+                                 and novo_papel != PerfilUsuario.PAPEL_GESTOR)
+            ultimo_gestor = PerfilUsuario.objects.filter(
+                organizacao=org, papel=PerfilUsuario.PAPEL_GESTOR).count() <= 1
+            if rebaixando_gestor and membro.user_id == request.user.id:
+                messages.error(
+                    request, 'Você não pode rebaixar a si mesmo de gestor.')
+            elif rebaixando_gestor and ultimo_gestor:
+                messages.error(
+                    request, 'A organização precisa de ao menos um gestor. '
+                    'Promova outro usuário a gestor antes de rebaixar este.')
+            elif (novo_papel == PerfilUsuario.PAPEL_OPERADOR
                     and not hasattr(membro.user, 'motorista')):
                 messages.error(
                     request,

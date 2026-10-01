@@ -1615,3 +1615,78 @@ class VarreduraLoteATests(LogadoMixin, TestCase):
             cnh_validade=date.today() + timedelta(days=5))
         ini, fim = self._periodo(date.today() + timedelta(days=20))
         self.assertNotIn(mot.id, [m.id for m in motoristas_disponiveis(self.org, ini, fim)])
+
+
+class VarreduraLoteBTests(LogadoMixin, TestCase):
+    """Lote B: atribuicao orfa ao cancelar (5), custo de documento protegido
+    (6), nao rebaixar ultimo gestor (7) e senha do solicitante validada (8)."""
+
+    # ---- Fix 5: cancelar reserva aprovada encerra a atribuicao ----
+    def test_cancelar_reserva_aprovada_remove_atribuicao(self):
+        from django.utils import timezone
+        import datetime
+        from carro.models import (
+            AtribuicaoVeiculo, Motorista, SolicitacaoVeiculo, Solicitante)
+        veic = self.cria_veiculo(placa='CAN1234')
+        mot = Motorista.objects.create(
+            organizacao=self.org, nome='Mot', status='ativo')
+        u = User.objects.create_user('solcan', password='senha12345')
+        PerfilUsuario.objects.create(
+            user=u, organizacao=self.org, papel=PerfilUsuario.PAPEL_SOLICITANTE)
+        solic = Solicitante.objects.create(
+            organizacao=self.org, user=u, nome='S', setor='TI',
+            status=Solicitante.STATUS_ATIVO)
+        ini = timezone.make_aware(datetime.datetime(2026, 11, 1, 8, 0))
+        fim = timezone.make_aware(datetime.datetime(2026, 11, 1, 17, 0))
+        atrib = AtribuicaoVeiculo.objects.create(
+            veiculo=veic, motorista=mot,
+            data_inicio=ini.date(), data_fim=fim.date())
+        sol = SolicitacaoVeiculo.objects.create(
+            organizacao=self.org, solicitante=solic, setor='TI',
+            saida_prevista=ini, retorno_previsto=fim, destino='A',
+            status='aprovada', veiculo=veic, motorista=mot, atribuicao=atrib)
+        c = Client(); c.login(username='solcan', password='senha12345')
+        c.post(reverse('cancelar_solicitacao', args=[sol.id]))
+        sol.refresh_from_db()
+        self.assertEqual(sol.status, 'cancelada')
+        self.assertIsNone(sol.atribuicao_id)
+        self.assertFalse(AtribuicaoVeiculo.objects.filter(id=atrib.id).exists())
+
+    # ---- Fix 6: custo espelhado de documento nao e editavel/excluivel direto --
+    def test_custo_de_documento_nao_pode_ser_excluido_direto(self):
+        from carro.models import Documento, Custo
+        veic = self.cria_veiculo(placa='DOC9999')
+        doc = Documento.objects.create(
+            veiculo=veic, tipo='ipva', vencimento=date.today() + timedelta(days=30),
+            valor=500)
+        self.assertIsNotNone(doc.custo_id)
+        custo_id = doc.custo_id
+        r = self.client.post(reverse('deletar_custo', args=[custo_id]))
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(Custo.objects.filter(id=custo_id).exists())
+        # edicao tambem e bloqueada (redireciona sem abrir o form)
+        r2 = self.client.get(reverse('editar_custo', args=[custo_id]))
+        self.assertEqual(r2.status_code, 302)
+
+    # ---- Fix 7: nao rebaixar o ultimo gestor ----
+    def test_nao_rebaixa_unico_gestor(self):
+        # vincula um motorista ao gestor para passar na regra do operador e
+        # isolar a trava de "ultimo gestor"
+        from carro.models import Motorista
+        Motorista.objects.create(
+            organizacao=self.org, nome='G', status='ativo', user=self.user)
+        perfil = self.user.perfil
+        self.client.post(reverse('alterar_papel', args=[perfil.id]),
+                         {'papel': PerfilUsuario.PAPEL_OPERADOR})
+        perfil.refresh_from_db()
+        self.assertEqual(perfil.papel, PerfilUsuario.PAPEL_GESTOR)
+
+    # ---- Fix 8: senha fraca no auto-cadastro do solicitante ----
+    def test_autocadastro_rejeita_senha_fraca(self):
+        from carro.models import Solicitante
+        c = Client()
+        r = c.post(reverse('cadastro_solicitante', args=[self.org.token_convite]), {
+            'username': 'fraco', 'nome': 'Fraco', 'email': 'f@ex.com',
+            'setor': 'RH', 'password1': '123', 'password2': '123'})
+        self.assertEqual(r.status_code, 200)  # re-renderiza com erro
+        self.assertFalse(Solicitante.objects.filter(user__username='fraco').exists())
