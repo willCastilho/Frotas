@@ -26,7 +26,7 @@ from contas.utils import (
 
 
 def _criar(request, veiculo_id, form_class, titulo, sucesso, operador_ok=False,
-           bloqueia_pendencia=False):
+           bloqueia_pendencia=False, passa_veiculo=False):
     veiculo = get_object_or_404(
         Veiculo, id=veiculo_id, organizacao=organizacao_do(request.user))
     # operador_ok: operador pode lancar no seu proprio veiculo; caso contrario,
@@ -48,7 +48,8 @@ def _criar(request, veiculo_id, form_class, titulo, sucesso, operador_ok=False,
         if bloqueio:
             return bloqueio
 
-    form = form_class(request.POST or None)
+    form_kwargs = {'veiculo': veiculo} if passa_veiculo else {}
+    form = form_class(request.POST or None, **form_kwargs)
     if request.method == 'POST' and form.is_valid():
         obj = form.save(commit=False)
         obj.veiculo = veiculo
@@ -63,14 +64,14 @@ def _criar(request, veiculo_id, form_class, titulo, sucesso, operador_ok=False,
 def novo_abastecimento(request, veiculo_id):
     return _criar(request, veiculo_id, AbastecimentoForm,
                   'Novo Abastecimento', 'Abastecimento registrado com sucesso!',
-                  operador_ok=True, bloqueia_pendencia=True)
+                  operador_ok=True, bloqueia_pendencia=True, passa_veiculo=True)
 
 
 @login_required
 def novo_registro_km(request, veiculo_id):
     return _criar(request, veiculo_id, RegistroQuilometragemForm,
                   'Novo Registro de Quilometragem', 'Quilometragem registrada!',
-                  operador_ok=True, bloqueia_pendencia=True)
+                  operador_ok=True, bloqueia_pendencia=True, passa_veiculo=True)
 
 
 @login_required

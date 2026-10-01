@@ -375,6 +375,23 @@ def cadastros_solicitantes(request):
 @login_required
 @exige_gestor
 @require_POST
+def regenerar_token_convite(request):
+    """Gera um novo token para o link de auto-cadastro de solicitantes. O link
+    anterior deixa de funcionar imediatamente (util se o link vazou)."""
+    import uuid
+    org = organizacao_do(request.user)
+    if org is not None:
+        org.token_convite = uuid.uuid4()
+        org.save(update_fields=['token_convite'])
+        messages.success(
+            request, 'Link de convite regenerado. O link anterior deixou de '
+            'funcionar.')
+    return redirect('cadastros_solicitantes')
+
+
+@login_required
+@exige_gestor
+@require_POST
 def decidir_cadastro(request, pk):
     org = organizacao_do(request.user)
     solicitante = get_object_or_404(Solicitante, pk=pk, organizacao=org)

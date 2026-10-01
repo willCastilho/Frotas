@@ -399,8 +399,17 @@ def editar_organizacao(request, org_id):
 @exige_admin_global
 @require_POST
 def excluir_organizacao(request, org_id):
+    from carro.models import Veiculo
     org = get_object_or_404(Organizacao, id=org_id)
-    org.delete()  # cascata remove veiculos, motoristas e perfis da org
+    # Trava de seguranca: exclusao cascateia veiculos, custos, motoristas e
+    # perfis. So permite apagar uma organizacao ja esvaziada de veiculos.
+    if Veiculo.objects.filter(organizacao=org).exists():
+        messages.error(
+            request,
+            'Esta organização ainda tem veículos. Remova os veículos antes de '
+            'excluí-la (evita apagar histórico financeiro por engano).')
+        return redirect('admin_organizacao', org_id=org.id)
+    org.delete()  # cascata remove motoristas e perfis da org (ja sem veiculos)
     messages.success(request, 'Organização excluída.')
     return redirect('painel_admin')
 

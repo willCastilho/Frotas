@@ -917,6 +917,11 @@ class SolicitacaoVeiculo(models.Model):
         if self.atribuicao_id and self.atribuicao.data_fim is None:
             self.atribuicao.data_fim = retorno_real.date()
             self.atribuicao.save(update_fields=['data_fim'])
+        # Devolucao direta de uma reserva que nunca passou pela retirada
+        # (status aprovada): registra a saida com o horario previsto para o
+        # historico nao ficar sem data de inicio.
+        if self.saida_real is None:
+            self.saida_real = self.saida_prevista
         self.retorno_real = retorno_real
         self.km_final = km_final
         self.obs_devolucao = observacao

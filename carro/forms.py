@@ -142,12 +142,35 @@ class CustoForm(forms.ModelForm):
         return dados
 
 
+def _valida_km_odometro(valor, veiculo):
+    """Odometro so anda para a frente: o KM informado nao pode ser menor que a
+    maior leitura ja registrada do veiculo. Retorna mensagem de erro ou None."""
+    if valor is None or veiculo is None:
+        return None
+    atual = veiculo.km_atual()
+    if atual is not None and valor < atual:
+        return (f'O KM informado ({valor}) não pode ser menor que o odômetro '
+                f'atual do veículo ({atual} km).')
+    return None
+
+
 class AbastecimentoForm(forms.ModelForm):
     class Meta:
         model = Abastecimento
         fields = ['data', 'quilometragem', 'litros', 'valor_total',
                   'tipo_combustivel', 'posto']
         widgets = {'data': _DATE}
+
+    def __init__(self, *args, veiculo=None, **kwargs):
+        self.veiculo = veiculo
+        super().__init__(*args, **kwargs)
+
+    def clean_quilometragem(self):
+        km = self.cleaned_data['quilometragem']
+        erro = _valida_km_odometro(km, self.veiculo)
+        if erro:
+            raise forms.ValidationError(erro)
+        return km
 
     def clean_litros(self):
         litros = self.cleaned_data['litros']
@@ -167,6 +190,17 @@ class RegistroQuilometragemForm(forms.ModelForm):
         model = RegistroQuilometragem
         fields = ['data', 'quilometragem', 'origem', 'observacao']
         widgets = {'data': _DATE, 'observacao': forms.Textarea(attrs={'rows': 2})}
+
+    def __init__(self, *args, veiculo=None, **kwargs):
+        self.veiculo = veiculo
+        super().__init__(*args, **kwargs)
+
+    def clean_quilometragem(self):
+        km = self.cleaned_data['quilometragem']
+        erro = _valida_km_odometro(km, self.veiculo)
+        if erro:
+            raise forms.ValidationError(erro)
+        return km
 
 
 class DocumentoForm(forms.ModelForm):

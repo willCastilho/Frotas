@@ -1690,3 +1690,77 @@ class VarreduraLoteBTests(LogadoMixin, TestCase):
             'setor': 'RH', 'password1': '123', 'password2': '123'})
         self.assertEqual(r.status_code, 200)  # re-renderiza com erro
         self.assertFalse(Solicitante.objects.filter(user__username='fraco').exists())
+
+
+class VarreduraLoteCTests(LogadoMixin, TestCase):
+    """Lote C: KM vs odometro (9), regenerar token (10), exclusao protegida
+    (11) e devolucao direta coerente (12)."""
+
+    # ---- Fix 9: KM nao pode ser menor que o odometro ----
+    def test_abastecimento_rejeita_km_menor_que_odometro(self):
+        from carro.forms import AbastecimentoForm
+        from carro.models import RegistroQuilometragem
+        veic = self.cria_veiculo(placa='KM01234')
+        RegistroQuilometragem.objects.create(
+            veiculo=veic, data=date.today(), quilometragem=1000)
+        base = {'data': date.today().isoformat(), 'litros': '30',
+                'valor_total': '200', 'tipo_combustivel': 'gasolina'}
+        ruim = AbastecimentoForm({**base, 'quilometragem': '500'}, veiculo=veic)
+        self.assertFalse(ruim.is_valid())
+        self.assertIn('quilometragem', ruim.errors)
+        bom = AbastecimentoForm({**base, 'quilometragem': '1500'}, veiculo=veic)
+        self.assertTrue(bom.is_valid())
+
+    def test_registro_km_rejeita_km_menor_que_odometro(self):
+        from carro.forms import RegistroQuilometragemForm
+        from carro.models import RegistroQuilometragem
+        veic = self.cria_veiculo(placa='KM02234')
+        RegistroQuilometragem.objects.create(
+            veiculo=veic, data=date.today(), quilometragem=2000)
+        f = RegistroQuilometragemForm(
+            {'data': date.today().isoformat(), 'quilometragem': '1900'},
+            veiculo=veic)
+        self.assertFalse(f.is_valid())
+
+    # ---- Fix 10: regenerar token de convite ----
+    def test_regenerar_token_convite(self):
+        antigo = self.org.token_convite
+        r = self.client.post(reverse('regenerar_token_convite'))
+        self.assertEqual(r.status_code, 302)
+        self.org.refresh_from_db()
+        self.assertNotEqual(self.org.token_convite, antigo)
+
+    # ---- Fix 11: exclusao protegida ----
+    def test_veiculo_com_historico_nao_e_excluido(self):
+        from carro.models import Custo
+        veic = self.cria_veiculo(placa='HIS1234')
+        Custo.objects.create(
+            veiculo=veic, tipo='outro', descricao='x', valor=10, data=date.today())
+        self.client.post(reverse('excluir_veiculo', args=[veic.id]))
+        self.assertTrue(Veiculo.objects.filter(id=veic.id).exists())
+
+    def test_veiculo_sem_historico_e_excluido(self):
+        veic = self.cria_veiculo(placa='SEM1234')
+        self.client.post(reverse('excluir_veiculo', args=[veic.id]))
+        self.assertFalse(Veiculo.objects.filter(id=veic.id).exists())
+
+    # ---- Fix 12: devolucao direta de aprovada registra a saida prevista ----
+    def test_devolucao_direta_preenche_saida(self):
+        from django.utils import timezone
+        import datetime
+        from carro.models import SolicitacaoVeiculo, Solicitante
+        veic = self.cria_veiculo(placa='DEV1234')
+        u = User.objects.create_user('soldev', password='senha12345')
+        solic = Solicitante.objects.create(
+            organizacao=self.org, user=u, nome='S', setor='TI',
+            status=Solicitante.STATUS_ATIVO)
+        ini = timezone.make_aware(datetime.datetime(2026, 12, 1, 8, 0))
+        fim = timezone.make_aware(datetime.datetime(2026, 12, 1, 17, 0))
+        sol = SolicitacaoVeiculo.objects.create(
+            organizacao=self.org, solicitante=solic, setor='TI',
+            saida_prevista=ini, retorno_previsto=fim, destino='A',
+            status='aprovada', veiculo=veic)
+        self.assertIsNone(sol.saida_real)
+        sol.registrar_devolucao(retorno_real=fim, km_final=100)
+        self.assertEqual(sol.status, 'devolvida')
+        self.assertEqual(sol.saida_real, ini)

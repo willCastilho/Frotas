@@ -165,6 +165,19 @@ def editar_veiculo(request, veiculo_id):
 @require_POST
 def excluir_veiculo(request, veiculo_id):
     veiculo = get_object_or_404(_veiculos_da_org(request), id=veiculo_id)
+    # Nao deixar apagar historico financeiro/operacional por engano. Veiculo com
+    # lancamentos deve ser aposentado (status 'vendido'/'baixado'), nao excluido.
+    tem_historico = (
+        veiculo.custos.exists() or veiculo.abastecimentos.exists()
+        or veiculo.registros_km.exists() or veiculo.documentos.exists()
+        or veiculo.escalas.exists() or veiculo.solicitacoes.exists())
+    if tem_historico:
+        messages.error(
+            request,
+            'Este veículo tem histórico (custos, abastecimentos, documentos ou '
+            'reservas) e não pode ser excluído. Para tirá-lo de operação, '
+            'edite-o e mude o status para "Vendido" ou "Baixado".')
+        return redirect('detalhes_veiculo', veiculo_id=veiculo.id)
     veiculo.delete()
     messages.success(request, 'Veículo excluído com sucesso!')
     return redirect('home')

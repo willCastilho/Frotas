@@ -53,6 +53,7 @@ urlpatterns = [
     path('agendamento/gestor/<int:pk>/aprovar/', carro_views.aprovar_solicitacao, name='aprovar_solicitacao'),
     path('agendamento/gestor/<int:pk>/recusar/', carro_views.recusar_solicitacao, name='recusar_solicitacao'),
     path('agendamento/gestor/cadastros/', carro_views.cadastros_solicitantes, name='cadastros_solicitantes'),
+    path('agendamento/gestor/cadastros/regenerar-token/', carro_views.regenerar_token_convite, name='regenerar_token_convite'),
     path('agendamento/gestor/cadastros/<int:pk>/decidir/', carro_views.decidir_cadastro, name='decidir_cadastro'),
     path('agendamento/gestor/solicitante/<int:pk>/', carro_views.detalhes_solicitante, name='detalhes_solicitante'),
 ]
