@@ -48,6 +48,25 @@ def comparacao_custos(atual, anterior):
     return {'percentual': abs(round(diferenca)), 'cor': cor, 'direcao': direcao}
 
 
+def status_vencimento(validade, vencido='🔴 Vencido', proximo='🟡 Vence em breve',
+                      em_dia='🟢 Em dia', limite_amarelo=30):
+    """Classifica uma data de vencimento (CNH, documento...) em verde/amarelo/
+    vermelho pela proximidade de hoje. Devolve {cor, texto, detalhe, dias} ou
+    None quando nao ha data. `vencido`/`proximo`/`em_dia` permitem ajustar o
+    rotulo (ex.: 'Vencida' para CNH)."""
+    if not validade:
+        return None
+    dias = (validade - timezone.localdate()).days
+    if dias < 0:
+        return {'cor': 'red', 'texto': vencido,
+                'detalhe': f'Vencido há {abs(dias)} dias', 'dias': dias}
+    if dias <= limite_amarelo:
+        return {'cor': 'yellow', 'texto': proximo,
+                'detalhe': f'Vence em {dias} dias', 'dias': dias}
+    return {'cor': 'green', 'texto': em_dia,
+            'detalhe': f'Vence em {dias} dias', 'dias': dias}
+
+
 class VeiculoQuerySet(models.QuerySet):
     def com_custos_mensais(self):
         """Anota custo do mes atual e do anterior em uma unica query,
@@ -596,14 +615,7 @@ class Documento(models.Model):
         return (self.vencimento - timezone.localdate()).days
 
     def status(self):
-        dias = self.dias_restantes()
-        if dias < 0:
-            cor, texto, detalhe = 'red', '🔴 Vencido', f'Vencido há {abs(dias)} dias'
-        elif dias <= 30:
-            cor, texto, detalhe = 'yellow', '🟡 Vence em breve', f'Vence em {dias} dias'
-        else:
-            cor, texto, detalhe = 'green', '🟢 Em dia', f'Vence em {dias} dias'
-        return {'cor': cor, 'texto': texto, 'detalhe': detalhe, 'dias': dias}
+        return status_vencimento(self.vencimento)
 
 
 class Motorista(models.Model):
@@ -645,16 +657,7 @@ class Motorista(models.Model):
 
     def cnh_status(self):
         """Status da validade da CNH (mesma regra dos documentos)."""
-        if not self.cnh_validade:
-            return None
-        dias = (self.cnh_validade - timezone.localdate()).days
-        if dias < 0:
-            cor, texto = 'red', '🔴 Vencida'
-        elif dias <= 30:
-            cor, texto = 'yellow', '🟡 Vence em breve'
-        else:
-            cor, texto = 'green', '🟢 Em dia'
-        return {'cor': cor, 'texto': texto, 'dias': dias}
+        return status_vencimento(self.cnh_validade, vencido='🔴 Vencida')
 
     def escala_do_dia(self, data=None):
         """Escala deste motorista em uma data (padrao: hoje)."""
@@ -749,16 +752,7 @@ class Solicitante(models.Model):
 
     def cnh_status(self):
         """Status da validade da CNH (mesma regra dos documentos/motorista)."""
-        if not self.cnh_validade:
-            return None
-        dias = (self.cnh_validade - timezone.localdate()).days
-        if dias < 0:
-            cor, texto = 'red', '🔴 Vencida'
-        elif dias <= 30:
-            cor, texto = 'yellow', '🟡 Vence em breve'
-        else:
-            cor, texto = 'green', '🟢 Em dia'
-        return {'cor': cor, 'texto': texto, 'dias': dias}
+        return status_vencimento(self.cnh_validade, vencido='🔴 Vencida')
 
     def solicitacao_em_aberto(self):
         """Solicitacao aprovada/em uso (reserva ativa)."""
@@ -930,9 +924,35 @@ class SolicitacaoVeiculo(models.Model):
         return registro
 
 
-def _periodos_se_sobrepoem(inicio_a, fim_a, inicio_b, fim_b):
-    """True se dois intervalos [inicio, fim) se sobrepoem."""
-    return inicio_a < fim_b and inicio_b < fim_a
+# --- Blocos de ocupacao compartilhados pelas funcoes de disponibilidade ------
+# `campo` e 'veiculo_id' ou 'motorista_id'. Centralizar aqui evita repetir a
+# mesma consulta nas versoes por periodo e por dia (agendamento x escala).
+
+def _ids_escalados(organizacao, dia_ini, dia_fim, campo):
+    """IDs do recurso com escala diaria em qualquer dia de [dia_ini, dia_fim]."""
+    return set(EscalaDiaria.objects.filter(
+        organizacao=organizacao, data__gte=dia_ini, data__lte=dia_fim
+    ).values_list(campo, flat=True))
+
+
+def _ids_reservados_periodo(organizacao, saida, retorno, campo, excluir_id=None):
+    """IDs do recurso com solicitacao aprovada/em uso sobrepondo [saida, retorno)."""
+    qs = SolicitacaoVeiculo.objects.filter(
+        organizacao=organizacao, status__in=SolicitacaoVeiculo.STATUS_OCUPAM,
+        saida_prevista__lt=retorno, retorno_previsto__gt=saida,
+        **{f'{campo[:-3]}__isnull': False})
+    if excluir_id:
+        qs = qs.exclude(pk=excluir_id)
+    return set(qs.values_list(campo, flat=True))
+
+
+def _ids_reservados_dia(organizacao, data, campo):
+    """IDs do recurso com solicitacao aprovada/em uso que cobre o dia `data`."""
+    return set(SolicitacaoVeiculo.objects.filter(
+        organizacao=organizacao, status__in=SolicitacaoVeiculo.STATUS_OCUPAM,
+        saida_prevista__date__lte=data, retorno_previsto__date__gte=data,
+        **{f'{campo[:-3]}__isnull': False}
+    ).values_list(campo, flat=True))
 
 
 def veiculos_disponiveis(organizacao, saida, retorno, excluir_id=None):
@@ -940,22 +960,12 @@ def veiculos_disponiveis(organizacao, saida, retorno, excluir_id=None):
     vencido ate o fim do periodo, sem outra solicitacao aprovada/em uso que se
     sobreponha e sem escala diaria em nenhum dia do periodo. Retorna lista de
     Veiculo."""
-    ocupadas = (SolicitacaoVeiculo.objects
-                .filter(organizacao=organizacao,
-                        status__in=SolicitacaoVeiculo.STATUS_OCUPAM,
-                        veiculo__isnull=False,
-                        saida_prevista__lt=retorno,
-                        retorno_previsto__gt=saida))
-    if excluir_id:
-        ocupadas = ocupadas.exclude(pk=excluir_id)
-    ocupados_ids = set(ocupadas.values_list('veiculo_id', flat=True))
-
+    ocupados_ids = _ids_reservados_periodo(
+        organizacao, saida, retorno, 'veiculo_id', excluir_id)
     # Escala diaria tambem ocupa o veiculo (nao pode estar reservado e escalado
     # no mesmo dia).
-    escalados_ids = set(EscalaDiaria.objects.filter(
-        organizacao=organizacao,
-        data__gte=saida.date(), data__lte=retorno.date()
-    ).values_list('veiculo_id', flat=True))
+    escalados_ids = _ids_escalados(
+        organizacao, saida.date(), retorno.date(), 'veiculo_id')
 
     livres = []
     for v in Veiculo.objects.filter(organizacao=organizacao, status='ativo'):
@@ -974,20 +984,10 @@ def motoristas_disponiveis(organizacao, saida, retorno, excluir_id=None):
     """Motoristas ativos da organizacao com CNH valida ate o fim do periodo, sem
     outra solicitacao aprovada/em uso que se sobreponha e sem escala diaria em
     nenhum dia do periodo."""
-    ocupadas = (SolicitacaoVeiculo.objects
-                .filter(organizacao=organizacao,
-                        status__in=SolicitacaoVeiculo.STATUS_OCUPAM,
-                        motorista__isnull=False,
-                        saida_prevista__lt=retorno,
-                        retorno_previsto__gt=saida))
-    if excluir_id:
-        ocupadas = ocupadas.exclude(pk=excluir_id)
-    ocupados_ids = set(ocupadas.values_list('motorista_id', flat=True))
-
-    escalados_ids = set(EscalaDiaria.objects.filter(
-        organizacao=organizacao,
-        data__gte=saida.date(), data__lte=retorno.date()
-    ).values_list('motorista_id', flat=True))
+    ocupados_ids = _ids_reservados_periodo(
+        organizacao, saida, retorno, 'motorista_id', excluir_id)
+    escalados_ids = _ids_escalados(
+        organizacao, saida.date(), retorno.date(), 'motorista_id')
 
     livres = []
     for m in Motorista.objects.filter(organizacao=organizacao, status='ativo'):
@@ -1041,30 +1041,11 @@ class EscalaDiaria(models.Model):
         return f'{self.data:%d/%m/%Y}: {self.motorista} → {self.veiculo}'
 
 
-def _veiculos_reservados_no_dia(organizacao, data):
-    """Veiculos com solicitacao aprovada/em uso que cobre o dia."""
-    return set(SolicitacaoVeiculo.objects.filter(
-        organizacao=organizacao, status__in=SolicitacaoVeiculo.STATUS_OCUPAM,
-        veiculo__isnull=False,
-        saida_prevista__date__lte=data, retorno_previsto__date__gte=data
-    ).values_list('veiculo_id', flat=True))
-
-
-def _motoristas_reservados_no_dia(organizacao, data):
-    """Motoristas com solicitacao aprovada/em uso que cobre o dia."""
-    return set(SolicitacaoVeiculo.objects.filter(
-        organizacao=organizacao, status__in=SolicitacaoVeiculo.STATUS_OCUPAM,
-        motorista__isnull=False,
-        saida_prevista__date__lte=data, retorno_previsto__date__gte=data
-    ).values_list('motorista_id', flat=True))
-
-
 def veiculos_livres_no_dia(organizacao, data, excluir_veiculo_id=None):
     """Veiculos ativos da organizacao sem escala no dia, sem reserva de
     agendamento que cubra o dia e sem documento vencido."""
-    ocupados = set(EscalaDiaria.objects.filter(
-        organizacao=organizacao, data=data).values_list('veiculo_id', flat=True))
-    reservados = _veiculos_reservados_no_dia(organizacao, data)
+    ocupados = _ids_escalados(organizacao, data, data, 'veiculo_id')
+    reservados = _ids_reservados_dia(organizacao, data, 'veiculo_id')
     livres = []
     for v in Veiculo.objects.filter(organizacao=organizacao, status='ativo'):
         if (v.id in ocupados or v.id in reservados) and v.id != excluir_veiculo_id:
@@ -1078,9 +1059,8 @@ def veiculos_livres_no_dia(organizacao, data, excluir_veiculo_id=None):
 def motoristas_livres_no_dia(organizacao, data, excluir_motorista_id=None):
     """Motoristas ativos da organizacao sem escala no dia, sem reserva de
     agendamento que cubra o dia e com CNH em dia."""
-    ocupados = set(EscalaDiaria.objects.filter(
-        organizacao=organizacao, data=data).values_list('motorista_id', flat=True))
-    reservados = _motoristas_reservados_no_dia(organizacao, data)
+    ocupados = _ids_escalados(organizacao, data, data, 'motorista_id')
+    reservados = _ids_reservados_dia(organizacao, data, 'motorista_id')
     livres = []
     for m in Motorista.objects.filter(organizacao=organizacao, status='ativo'):
         if (m.id in ocupados or m.id in reservados) and m.id != excluir_motorista_id:

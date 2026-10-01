@@ -59,7 +59,7 @@ class Organizacao(models.Model):
     def assinatura_em_dia(self):
         if not self.assinatura_ativa:
             return False
-        if self.assinatura_valida_ate and self.assinatura_valida_ate < timezone.now().date():
+        if self.assinatura_valida_ate and self.assinatura_valida_ate < timezone.localdate():
             return False
         return True
 
