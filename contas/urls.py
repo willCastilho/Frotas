@@ -9,6 +9,7 @@ urlpatterns = [
     path('conta/usuarios/<int:perfil_id>/papel/', views.alterar_papel, name='alterar_papel'),
     path('conta/usuarios/<int:perfil_id>/remover/', views.remover_usuario, name='remover_usuario'),
     path('conta/', views.conta, name='conta'),
+    path('conta/assinatura/', views.assinatura_vencida, name='assinatura_vencida'),
     path('conta/logs/', views.logs, name='logs'),
     path('termos/', views.termos, name='termos'),
     path('privacidade/', views.privacidade, name='privacidade'),

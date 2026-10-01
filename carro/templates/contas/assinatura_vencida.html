@@ -1,0 +1,59 @@
+{% extends "head.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="container">
+    <div class="header">
+        <h1>🔒 Assinatura inativa</h1>
+        <p>O acesso ao Gestão de Frotas da organização <strong>{{ org.nome }}</strong> está suspenso.</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="painel-card">
+        {% if org.assinatura_valida_ate %}
+            <p>A assinatura venceu em <strong>{{ org.assinatura_valida_ate|date:"d/m/Y" }}</strong>.</p>
+        {% else %}
+            <p>A assinatura está marcada como <strong>inativa</strong>.</p>
+        {% endif %}
+
+        {% if eh_gestor %}
+            <p>Para reativar o acesso de toda a equipe, regularize a assinatura da organização.</p>
+            {% if planos %}
+                <h2>Planos disponíveis</h2>
+                <table class="alertas-table">
+                    <thead>
+                        <tr><th>Plano</th><th>Preço/mês</th><th>Limite de veículos</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for plano in planos %}
+                            <tr>
+                                <td>{{ plano.nome }}</td>
+                                <td>R$ {{ plano.preco_mensal }}</td>
+                                <td>{% if plano.limite_veiculos %}{{ plano.limite_veiculos }}{% else %}Ilimitado{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+            <p style="margin-top:16px;">Fale com o suporte para concluir o pagamento e reativar a conta.</p>
+        {% else %}
+            <p class="vazio">Procure o <strong>gestor da sua organização</strong> para regularizar a
+            assinatura. Assim que a conta for reativada, seu acesso volta automaticamente.</p>
+        {% endif %}
+    </div>
+
+    <div class="painel-card">
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary">Sair</button>
+        </form>
+    </div>
+</div>
+{% endblock content %}

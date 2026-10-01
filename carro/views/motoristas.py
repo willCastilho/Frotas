@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from carro.forms import EscalaMontarForm, MotoristaForm
-from carro.models import EscalaDiaria, Motorista, Veiculo
+from carro.models import EscalaDiaria, Motorista, SolicitacaoVeiculo, Veiculo
 from contas.utils import exige_escrita, exige_gestor, organizacao_do
 
 
@@ -181,6 +181,16 @@ def montar_escala(request):
         elif EscalaDiaria.objects.filter(
                 organizacao=org, data=dia, motorista=motorista).exists():
             motivo = 'motorista já escalado'
+        elif SolicitacaoVeiculo.objects.filter(
+                organizacao=org, status__in=SolicitacaoVeiculo.STATUS_OCUPAM,
+                veiculo=veiculo, saida_prevista__date__lte=dia,
+                retorno_previsto__date__gte=dia).exists():
+            motivo = 'veículo reservado em um agendamento'
+        elif SolicitacaoVeiculo.objects.filter(
+                organizacao=org, status__in=SolicitacaoVeiculo.STATUS_OCUPAM,
+                motorista=motorista, saida_prevista__date__lte=dia,
+                retorno_previsto__date__gte=dia).exists():
+            motivo = 'motorista reservado em um agendamento'
         if motivo:
             conflitos.append(f'{dia:%d/%m}: {motivo}')
         else:

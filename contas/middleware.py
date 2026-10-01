@@ -64,8 +64,19 @@ class AcessoMiddleware:
             if not any(path.startswith(p) for p in self.ADMIN_PATHS):
                 return redirect(reverse('painel_admin'))
 
-        # Solicitante so acessa o modulo de pre-agendamento.
         perfil = efetivo or real
+
+        # Paywall: organizacao com assinatura inativa/vencida fica restrita a
+        # tela de assinatura (e aos prefixos liberados ja tratados acima). O
+        # admin global nunca e travado. Vale para gestor, operador e solicitante.
+        if not real.eh_admin:
+            org = perfil.organizacao if perfil else None
+            if org is not None and not org.assinatura_em_dia():
+                if path != reverse('assinatura_vencida'):
+                    return redirect(reverse('assinatura_vencida'))
+                return None
+
+        # Solicitante so acessa o modulo de pre-agendamento.
         if perfil and perfil.eh_solicitante:
             if not path.startswith('/agendamento/'):
                 return redirect(reverse('minhas_solicitacoes'))

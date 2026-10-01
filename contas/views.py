@@ -209,6 +209,24 @@ def conta(request):
                    'perfil': perfil_do(request.user), 'form': form})
 
 
+@login_required
+def assinatura_vencida(request):
+    """Tela exibida quando a assinatura da organizacao esta inativa/vencida.
+    O AcessoMiddleware redireciona para ca todo acesso dessa organizacao. O
+    gestor ve os planos e o contato; os demais papeis veem orientacao."""
+    perfil = perfil_do(request.user)
+    org = organizacao_do(request.user)
+    # Se a assinatura voltou a ficar em dia, nao faz sentido ficar preso aqui.
+    if org is None or org.assinatura_em_dia():
+        return redirect('home')
+    return render(request, 'contas/assinatura_vencida.html', {
+        'org': org,
+        'perfil': perfil,
+        'eh_gestor': bool(perfil and perfil.pode_administrar),
+        'planos': Plano.objects.filter(ativo=True),
+    })
+
+
 def termos(request):
     return render(request, 'contas/termos.html')
 

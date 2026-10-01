@@ -1528,3 +1528,90 @@ class AgendamentoNotificacaoTests(LogadoMixin, TestCase):
         call_command('lembrar_devolucoes')
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn('sol@ex.com', mail.outbox[0].to)
+
+
+class VarreduraLoteATests(LogadoMixin, TestCase):
+    """Lote A da varredura: trava de assinatura (1), cruzamento escala x
+    agendamento (2) e vencimento x periodo da reserva (3)."""
+
+    def _periodo(self, dia_ini, dia_fim=None):
+        from django.utils import timezone
+        import datetime
+        dia_fim = dia_fim or dia_ini
+        ini = timezone.make_aware(
+            datetime.datetime(dia_ini.year, dia_ini.month, dia_ini.day, 8, 0))
+        fim = timezone.make_aware(
+            datetime.datetime(dia_fim.year, dia_fim.month, dia_fim.day, 17, 0))
+        return ini, fim
+
+    # ---- Fix 1: assinatura ----
+    def test_assinatura_vencida_bloqueia_acesso(self):
+        self.org.assinatura_valida_ate = date.today() - timedelta(days=1)
+        self.org.save(update_fields=['assinatura_valida_ate'])
+        r = self.client.get(reverse('home'))
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.url, reverse('assinatura_vencida'))
+        # a propria tela de assinatura abre normalmente
+        self.assertEqual(self.client.get(reverse('assinatura_vencida')).status_code, 200)
+
+    def test_assinatura_inativa_bloqueia_acesso(self):
+        self.org.assinatura_ativa = False
+        self.org.save(update_fields=['assinatura_ativa'])
+        r = self.client.get(reverse('home'))
+        self.assertEqual(r.url, reverse('assinatura_vencida'))
+
+    def test_assinatura_em_dia_nao_bloqueia(self):
+        self.assertEqual(self.client.get(reverse('home')).status_code, 200)
+
+    # ---- Fix 2: escala x agendamento ----
+    def test_escala_torna_veiculo_e_motorista_indisponiveis_no_agendamento(self):
+        from carro.models import (
+            EscalaDiaria, Motorista, veiculos_disponiveis, motoristas_disponiveis)
+        dia = date.today() + timedelta(days=10)
+        veic = self.cria_veiculo(placa='ESC1234')
+        mot = Motorista.objects.create(
+            organizacao=self.org, nome='Escalado', status='ativo')
+        EscalaDiaria.objects.create(
+            organizacao=self.org, data=dia, veiculo=veic, motorista=mot)
+        ini, fim = self._periodo(dia)
+        self.assertNotIn(veic.id, [v.id for v in veiculos_disponiveis(self.org, ini, fim)])
+        self.assertNotIn(mot.id, [m.id for m in motoristas_disponiveis(self.org, ini, fim)])
+
+    def test_reserva_torna_veiculo_e_motorista_indisponiveis_na_escala(self):
+        from carro.models import (
+            Motorista, SolicitacaoVeiculo, Solicitante,
+            veiculos_livres_no_dia, motoristas_livres_no_dia)
+        dia = date.today() + timedelta(days=11)
+        veic = self.cria_veiculo(placa='RES1234')
+        mot = Motorista.objects.create(
+            organizacao=self.org, nome='Reservado', status='ativo')
+        u = User.objects.create_user('solres', password='x123456789')
+        solic = Solicitante.objects.create(
+            organizacao=self.org, user=u, nome='S', setor='TI',
+            status=Solicitante.STATUS_ATIVO)
+        ini, fim = self._periodo(dia)
+        SolicitacaoVeiculo.objects.create(
+            organizacao=self.org, solicitante=solic, setor='TI',
+            saida_prevista=ini, retorno_previsto=fim, destino='A',
+            status='aprovada', veiculo=veic, motorista=mot)
+        self.assertNotIn(veic.id, [v.id for v in veiculos_livres_no_dia(self.org, dia)])
+        self.assertNotIn(mot.id, [m.id for m in motoristas_livres_no_dia(self.org, dia)])
+
+    # ---- Fix 3: vencimento x periodo ----
+    def test_documento_que_vence_durante_a_viagem_bloqueia(self):
+        from carro.models import Documento, veiculos_disponiveis
+        veic = self.cria_veiculo(placa='DOC1234')
+        # vence depois de hoje, mas antes do retorno da reserva
+        Documento.objects.create(
+            veiculo=veic, tipo='licenciamento',
+            vencimento=date.today() + timedelta(days=5))
+        ini, fim = self._periodo(date.today() + timedelta(days=20))
+        self.assertNotIn(veic.id, [v.id for v in veiculos_disponiveis(self.org, ini, fim)])
+
+    def test_cnh_que_vence_durante_a_viagem_bloqueia(self):
+        from carro.models import Motorista, motoristas_disponiveis
+        mot = Motorista.objects.create(
+            organizacao=self.org, nome='CNH curta', status='ativo',
+            cnh_validade=date.today() + timedelta(days=5))
+        ini, fim = self._periodo(date.today() + timedelta(days=20))
+        self.assertNotIn(mot.id, [m.id for m in motoristas_disponiveis(self.org, ini, fim)])
