@@ -66,7 +66,7 @@ def home(request):
             'cor': carro.cor,
             'placa': carro.placa,
             'status': carro.status,
-            'picture': carro.picture,
+            'foto': carro.foto,
             'custo_mes_atual': atual,
             'comparacao': comparacao_custos(atual, anterior),
             'total_vida': float(carro.total_vida or 0),

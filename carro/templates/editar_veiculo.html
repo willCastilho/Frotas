@@ -22,8 +22,9 @@
             {% if form.non_field_errors %}
                 <div class="alert alert-error">{{ form.non_field_errors }}</div>
             {% endif %}
-            {% if veiculo.picture %}
-                <p style="color:var(--text-muted);font-size:.85rem;">Foto atual: {{ veiculo.picture.name }}</p>
+            {% if veiculo.foto %}
+                <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:6px;">Foto atual:</p>
+                <img src="{{ veiculo.foto }}" alt="Foto atual" style="max-height:140px;border-radius:8px;margin-bottom:12px;">
             {% endif %}
             {% for field in form %}
                 <div class="form-group">

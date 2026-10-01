@@ -31,8 +31,8 @@
         <!-- Card com foto e informações básicas -->
         <div class="detalhes-card">
             <div class="detalhes-image">
-                {% if veiculo.picture %}
-                    <img src="{{ veiculo.picture.url }}" alt="{{ veiculo.modelo }}">
+                {% if veiculo.foto %}
+                    <img src="{{ veiculo.foto }}" alt="{{ veiculo.modelo }}">
                 {% else %}
                     <div class="placeholder-image">🚗</div>
                 {% endif %}

@@ -106,6 +106,10 @@ class Veiculo(models.Model):
     observacoes = models.TextField(blank=True)
     data_cadastro = models.DateTimeField(default=timezone.now)
     picture = models.ImageField(upload_to="veiculos/", blank=True, null=True)
+    # Foto embutida como data URI (base64) no proprio banco. Usada no lugar do
+    # `picture` (ImageField), que depende de MEDIA e nao e servido em producao
+    # (disco efemero + /media sem rota). Preenchida pelo VeiculoForm.
+    foto = models.TextField(blank=True, default='')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ativo')
     meta_custo_mensal = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True,

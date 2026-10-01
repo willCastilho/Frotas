@@ -18,12 +18,39 @@ _DATETIME = forms.DateTimeInput(
     attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M')
 
 
+def gerar_foto_veiculo(arquivo, box=(640, 480)):
+    """Redimensiona a foto do veiculo para caber dentro do card e devolve um
+    data URI (base64 JPEG), pronto para embutir no <img>. Guardar no banco faz a
+    imagem funcionar em producao, onde o disco e efemero e /media nao tem rota.
+    Preserva a proporcao dentro da `box` e achata eventual transparencia sobre
+    branco (fotos de veiculo sao opacas)."""
+    import base64
+    import io
+
+    from PIL import Image
+
+    img = Image.open(arquivo)
+    img = img.convert('RGBA')
+    fundo = Image.new('RGB', img.size, (255, 255, 255))
+    fundo.paste(img, mask=img.split()[-1])
+    img = fundo
+    img.thumbnail(box)
+    buf = io.BytesIO()
+    img.save(buf, format='JPEG', quality=82, optimize=True)
+    b64 = base64.b64encode(buf.getvalue()).decode('ascii')
+    return f'data:image/jpeg;base64,{b64}'
+
+
 class VeiculoForm(forms.ModelForm):
+    foto_arquivo = forms.ImageField(
+        required=False, label='Foto do veículo',
+        help_text='PNG, JPG… É redimensionada automaticamente para caber no card.')
+
     class Meta:
         model = Veiculo
         fields = ['marca', 'modelo', 'ano', 'cor', 'placa', 'renavam', 'chassi',
                   'combustivel', 'data_compra', 'valor_aquisicao', 'status',
-                  'meta_custo_mensal', 'observacoes', 'picture']
+                  'meta_custo_mensal', 'observacoes']
         widgets = {
             'data_compra': forms.DateInput(
                 attrs={'type': 'date'}, format='%Y-%m-%d'
@@ -34,6 +61,15 @@ class VeiculoForm(forms.ModelForm):
     def __init__(self, *args, organizacao=None, **kwargs):
         self.organizacao = organizacao
         super().__init__(*args, **kwargs)
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        arquivo = self.cleaned_data.get('foto_arquivo')
+        if arquivo:
+            obj.foto = gerar_foto_veiculo(arquivo)
+        if commit:
+            obj.save()
+        return obj
 
     def clean_ano(self):
         ano = self.cleaned_data['ano']

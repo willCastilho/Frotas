@@ -37,8 +37,8 @@
                             {% elif carro.status == 'inativo' %}Inativo
                             {% else %}Manutenção{% endif %}
                         </span>
-                        {% if carro.picture %}
-                            <img src="{{ carro.picture.url }}" alt="{{ carro.modelo }}">
+                        {% if carro.foto %}
+                            <img src="{{ carro.foto }}" alt="{{ carro.modelo }}">
                         {% else %}
                             <div style="text-align: center; z-index: 1; font-size: 4rem;">🚗</div>
                         {% endif %}
